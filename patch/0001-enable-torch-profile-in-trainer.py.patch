@@ -1,0 +1,65 @@
+From 63cb8b799c85848a15148f06ad7bedccddafceaa Mon Sep 17 00:00:00 2001
+From: ywan171 <yi.a.wang@intel.com>
+Date: Thu, 30 Jun 2022 22:04:10 -0700
+Subject: [PATCH] enable torch profile in trainer.py
+
+Signed-off-by: ywan171 <yi.a.wang@intel.com>
+---
+ src/transformers/trainer.py | 20 +++++++++++++++++++-
+ 1 file changed, 19 insertions(+), 1 deletion(-)
+
+diff --git a/src/transformers/trainer.py b/src/transformers/trainer.py
+index 70d11d2..6aa11e5 100755
+--- a/src/transformers/trainer.py
++++ b/src/transformers/trainer.py
+@@ -145,6 +145,12 @@ from .utils import (
+ )
+ from .utils.generic import ContextManagers
+ 
++def trace_handler(prof):
++    print(prof.key_averages().table(
++        sort_by="self_cpu_time_total", row_limit=-1))
++    prof.export_chrome_trace("my_trace.log" + str(prof.step_num) + ".json")
++
++
+ 
+ _is_torch_generator_available = False
+ _is_native_cuda_amp_available = False
+@@ -422,7 +428,16 @@ class Trainer:
+         self.train_dataset = train_dataset
+         self.eval_dataset = eval_dataset
+         self.tokenizer = tokenizer
+-
++        if int(os.environ["RANK"]) == 0:
++            self.prof = torch.profiler.profile(
++                activities=[
++                    torch.profiler.ProfilerActivity.CPU],
++                schedule=torch.profiler.schedule(
++                    wait=1,
++                    warmup=1,
++                    active=10),
++                on_trace_ready=trace_handler
++            )
+         if self.place_model_on_device:
+             self._move_model_to_device(model, args.device)
+ 
+@@ -1281,6 +1296,7 @@ class Trainer:
+ 
+             if self.args.ddp_bucket_cap_mb is not None:
+                 kwargs["bucket_cap_mb"] = self.args.ddp_bucket_cap_mb
++#            kwargs["gradient_as_bucket_view"] = True
+             model = nn.parallel.DistributedDataParallel(
+                 model,
+                 device_ids=[self.args.local_rank] if self.args._n_gpu != 0 else None,
+@@ -2337,6 +2353,8 @@ class Trainer:
+         else:
+             labels = None
+         outputs = model(**inputs)
++        if int(os.environ["RANK"]) == 0:
++            self.prof.step()
+         # Save past state if it exists
+         # TODO: this needs to be fixed and made cleaner later.
+         if self.args.past_index >= 0:
+-- 
+1.8.3.1
+
