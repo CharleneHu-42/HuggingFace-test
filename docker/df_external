@@ -1,10 +1,12 @@
-FROM 401beacc5418
+FROM python:3.9
 LABEL maintainer="Hugging Face"
+ENV http_proxy="http://proxy-chain.intel.com:911"
+ENV https_proxy="http://proxy-chain.intel.com:911"
 
 # Create virtual environment
-RUN python3 -m venv env && source env/bin/activate
+RUN python -m venv env && exec bash && source env/bin/activate
 
-RUN source /root/anaconda3/bin/activate pytorch
+RUN pip install --upgrade pip
 
 # Install pytorch and intel extension for pytorch
 RUN pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113 && python3 -m pip install intel_extension_for_pytorch
@@ -12,12 +14,9 @@ RUN pip3 install torch torchvision torchaudio --extra-index-url https://download
 # Install torch-ccl
 RUN python3 -m pip install oneccl_bind_pt==1.11.0 -f https://software.intel.com/ipex-whl-stable
 
-# Install Intel® AI Analytics Toolkit via Conda*
-
-
 # Install mpi
 COPY l_mpi_oneapi_p_2021.6.0.602.sh .
-RUN ./l_mpi_oneapi_p_2021.6.0.602.sh -a --eula accept -s && source /opt/intel/oneapi/setvars.sh
+RUN ./l_mpi_oneapi_p_2021.6.0.602.sh -a --eula accept -s && exec bash && source /opt/intel/oneapi/setvars.sh
 
 # Fetch transformer
 RUN git clone https://github.com/huggingface/transformers && cd transformers/ && python3 -m pip install -e . && python3 -m pip install -r examples/pytorch/question-answering/requirements.txt && cd ../
@@ -26,7 +25,7 @@ RUN git clone https://github.com/huggingface/transformers && cd transformers/ &&
 RUN cd transformers/ && git clone https://github.com/huggingface/accelerate && cd accelerate && python3 -m pip install -e . && cd ../../
 
 
-RUN python3 -m pip install --no-cache-dir --upgrade pip && python3 -m pip install --no-cache-dir git+https://github.com/huggingface/doc-builder ./transformers[dev]
+RUN python3 -m pip install --no-cache-dir git+https://github.com/huggingface/doc-builder ./transformers[dev]
 
 # Torch needs to be installed before deepspeed
 RUN python3 -m pip install --no-cache-dir ./transformers[deepspeed]
@@ -39,5 +38,3 @@ RUN cd transformers && pip install -r examples/pytorch/question-answering/requir
 # Test if the image could successfully build the doc. before publishing the image
 RUN doc-builder build transformers transformers/docs/source/en --build_dir doc-build-dev --notebook_dir notebooks/transformers_doc --clean
 RUN rm -rf doc-build-dev
-
-RUN source /opt/intel/oneapi/setvars.sh

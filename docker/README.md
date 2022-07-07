@@ -1,7 +1,15 @@
-1. Build dockerfile: docker build -t df_1 .
+These two dockerfiles are internal and external respectively. The shell file is for install mpi.
+
+1. Build dockerfile: 
+for internal: docker build -f df_internal --build-arg imageVersion=2022_ww26 .
+for external: docker build -f df_external .
+notes: If the container based on external image is disconnected with Internet, please change the proxy to your proxy in the dockerfile.
+
 2. Start the image: docker run -it --privileged --shm-size 800g "image id" /bin/bash
-3. Activate env: i) source /opt/intel/oneapi/setvars.sh
-		 ii) export MASTER_ADDR=127.0.0.1 && export MASTER_PORT=29500 && export CCL_WORKER_COUNT=1
+
+3. Activate env: 
+i) source /opt/intel/oneapi/setvars.sh
+ii) export MASTER_ADDR=127.0.0.1 && export MASTER_PORT=29500 && export CCL_WORKER_COUNT=1
 
 Then, you can run the model.
 Run distribution BERT large refine tune for question and answer in two CPU sockets in one machine by this command:
