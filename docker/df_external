@@ -3,6 +3,8 @@ LABEL maintainer="Hugging Face"
 ENV http_proxy="http://proxy-chain.intel.com:911"
 ENV https_proxy="http://proxy-chain.intel.com:911"
 
+WORKDIR /usr/local/
+
 # Create virtual environment
 RUN python -m venv env && exec bash && source env/bin/activate
 
@@ -38,3 +40,8 @@ RUN cd transformers && pip install -r examples/pytorch/question-answering/requir
 # Test if the image could successfully build the doc. before publishing the image
 RUN doc-builder build transformers transformers/docs/source/en --build_dir doc-build-dev --notebook_dir notebooks/transformers_doc --clean
 RUN rm -rf doc-build-dev
+
+COPY start_bert.sh .
+RUN chmod +x ./start_bert.sh
+ENTRYPOINT ["bash", "./start_bert.sh"]
+
