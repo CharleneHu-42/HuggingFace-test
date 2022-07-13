@@ -3,45 +3,39 @@ LABEL maintainer="Hugging Face"
 ENV http_proxy="http://proxy-chain.intel.com:911"
 ENV https_proxy="http://proxy-chain.intel.com:911"
 
-WORKDIR /usr/local/
+ARG DIR=/usr/local
+ 
+WORKDIR $DIR
 
 # Create virtual environment
-RUN python -m venv env && exec bash && source env/bin/activate
+RUN python -m venv env 
 
-RUN pip install --upgrade pip
+ENV PATH=$DIR/env/bin:$PATH
 
-# Install pytorch and intel extension for pytorch
-RUN pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113 && python3 -m pip install intel_extension_for_pytorch
+RUN python3 -m pip install --upgrade pip
+
+RUN pip3 install torch==1.11.0 torchvision
+
+# Install intel extension for pytorch
+RUN python3 -m pip install intel_extension_for_pytorch==1.11.0
 
 # Install torch-ccl
 RUN python3 -m pip install oneccl_bind_pt==1.11.0 -f https://software.intel.com/ipex-whl-stable
 
 # Install mpi
 COPY l_mpi_oneapi_p_2021.6.0.602.sh .
-RUN ./l_mpi_oneapi_p_2021.6.0.602.sh -a --eula accept -s && exec bash && source /opt/intel/oneapi/setvars.sh
+RUN ./l_mpi_oneapi_p_2021.6.0.602.sh -a --eula accept -s
 
-# Fetch transformer
-RUN git clone https://github.com/huggingface/transformers && cd transformers/ && python3 -m pip install -e . && python3 -m pip install -r examples/pytorch/question-answering/requirements.txt && cd ../
+# Install transformer
+RUN git clone https://github.com/huggingface/transformers && cd transformers && python3 -m pip install --no-cache-dir .
 
 # Install accelerate
-RUN cd transformers/ && git clone https://github.com/huggingface/accelerate && cd accelerate && python3 -m pip install -e . && cd ../../
+RUN git clone https://github.com/huggingface/accelerate && cd accelerate && python3 -m pip install --no-cache-dir .
 
+# Prepare transformers QA dataset
+RUN python3 -m pip install -r ./transformers/examples/pytorch/question-answering/requirements.txt
 
-RUN python3 -m pip install --no-cache-dir git+https://github.com/huggingface/doc-builder ./transformers[dev]
-
-# Torch needs to be installed before deepspeed
-RUN python3 -m pip install --no-cache-dir ./transformers[deepspeed]
-
-RUN python3 -m pip install --no-cache-dir torch-scatter -f https://data.pyg.org/whl/torch-1.12.0+cpu.html
-
-# Prepare transformers
-RUN cd transformers && pip install -r examples/pytorch/question-answering/requirements.txt && cd ../
-
-# Test if the image could successfully build the doc. before publishing the image
-RUN doc-builder build transformers transformers/docs/source/en --build_dir doc-build-dev --notebook_dir notebooks/transformers_doc --clean
-RUN rm -rf doc-build-dev
-
-COPY start_bert.sh .
-RUN chmod +x ./start_bert.sh
-ENTRYPOINT ["bash", "./start_bert.sh"]
+COPY run_qa_entrypoint.sh .
+RUN chmod +x ./run_qa_entrypoint.sh
+ENTRYPOINT ["bash", "./run_qa_entrypoint.sh"]
 
