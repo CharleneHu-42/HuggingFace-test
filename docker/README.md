@@ -20,11 +20,23 @@ notes:
 ```bash
 help: ./host_qa_test.sh -h
 
-for external: ./host_qa_test.sh -i bert_qa:external
+for external: ./host_qa_test.sh -c 0 -i bert_qa:external #2DDP in 1 container(node1)
+              ./host_qa_test.sh -c 1 -i bert_qa:external #4DPP in 2 containers single node(node1 and node2)
 
-for internal: ./host_qa_test.sh -i bert_qa:internal
+for internal: ./host_qa_test.sh -c 0 -i bert_qa:internal #2DDP in 1 container(node1)
+              ./host_qa_test.sh -c 1 -i bert_qa:internal #4DPP in 2 containers single node(node1 and node2)
 ```
 the output is /tmp/debug_squad, you could change it in host_qa_test.sh
 
 The shell named host_qa_test.sh is a startup script
+
+please stop and rm existing container named node1 and node2 before start the test
+
+```bash
+docker stop node1
+docker rm node1
+docker stop node2
+docker rm node2
+```
+
 

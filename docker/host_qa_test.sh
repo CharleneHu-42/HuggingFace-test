@@ -24,16 +24,18 @@ function usage_help() {
     echo -e "  -h Display help"
     echo -e "  -i {image_id}"
     echo -e "  -m {model_name}"
+    echo -e "  -c case id 0: single container run 2DDP
+               1: two container run 4 DDP in single node"
 }
 
 
 # Set env param
-master_addr=127.0.0.1
 master_port=29500
 ccl_worker_count=1
 
 # Start training BERT
-mpi_n=2
+mpi_n=4
+mpi_ppn=2
 omp_num_threads=23
 model_name=bert-large-uncased
 dataset_name=squad
@@ -42,14 +44,14 @@ learning_rate=3e-5
 num_train_epochs=2
 max_seq_length=384
 doc_stride=128
-output_dir="tmp/debug_squad/"
+output_dir="./tmp/debug_squad/"
 xpu_backend=ccl
 dataloader_pin_memory=False
 bf16=False
 use_ipex=True
-
+case_id=0
 # Override args
-while getopts "h?r:i:m:" OPT; do
+while getopts "h?r:i:m:c:" OPT; do
     case $OPT in
         h|\?)
             usage_help
@@ -63,6 +65,10 @@ while getopts "h?r:i:m:" OPT; do
             echo -e "Option $OPTIND, model_name = $OPTARG"
             model_name=$OPTARG
             ;;
+        c)
+            echo -e "Option $OPTIND, case_id = $OPTARG"
+            case_id=$OPTARG
+            ;;
         ?)
             echo -e "Unknown option $OPTARG"
             usage_help
@@ -71,15 +77,33 @@ while getopts "h?r:i:m:" OPT; do
     esac
 done
 
-docker run \
+if [ ! $image_id ];then
+   echo -e "no docker image id indication"
+   exit 0
+fi
+
+if [ $case_id -eq 1 ];then
+master_addr=node1
+mpi_n=4
+mpi_ppn=2
+echo "node1" > /tmp/hostfile
+echo "node2" >> /tmp/hostfile
+docker run -d --name node2 -h node2 --net network_mpi --ip 192.168.10.12 --add-host node1:192.168.10.11 \
+    --privileged --shm-size 800g \
+    -e master_node=False \
+    ${image_id}
+
+docker run --name node1 -h node1 --net network_mpi --ip 192.168.10.11 --add-host node2:192.168.10.12  \
     --privileged --shm-size 800g \
     -v /tmp/:/usr/local/tmp/ \
+    -e master_node=True \
     -e learning_rate=${learning_rate} \
     -e max_seq_length=${max_seq_length} \
     -e dataloader_pin_memory=${dataloader_pin_memory} \
     -e model_name=${model_name} \
     -e output_dir=${output_dir} \
     -e mpi_n=${mpi_n} \
+    -e mpi_ppn=${mpi_ppn} \
     -e omp_num_threads=${omp_num_threads} \
     -e per_device_train_batch_size=${per_device_train_batch_size} \
     -e learning_rate=${learning_rate} \
@@ -93,4 +117,34 @@ docker run \
     -e use_ipex=${use_ipex} \
     -e bf16=${bf16} \
     ${image_id}
+fi
 
+if [ $case_id -eq 0 ];then
+master_addr=127.0.0.1
+mpi_n=2
+mpi_ppn=2
+echo "node1" > /tmp/hostfile
+docker run --name node1 -h node1 --privileged --shm-size 800g \
+    -v /tmp/:/usr/local/tmp/ \
+    -e master_node=True \
+    -e learning_rate=${learning_rate} \
+    -e max_seq_length=${max_seq_length} \
+    -e dataloader_pin_memory=${dataloader_pin_memory} \
+    -e model_name=${model_name} \
+    -e output_dir=${output_dir} \
+    -e mpi_n=${mpi_n} \
+    -e mpi_ppn=${mpi_ppn} \
+    -e omp_num_threads=${omp_num_threads} \
+    -e per_device_train_batch_size=${per_device_train_batch_size} \
+    -e learning_rate=${learning_rate} \
+    -e num_train_epochs=${num_train_epochs} \
+    -e xpu_backend=${xpu_backend} \
+    -e doc_stride=${doc_stride}\
+    -e ccl_worker_count=${ccl_worker_count} \
+    -e master_addr=${master_addr} \
+    -e master_port=${master_port} \
+    -e dataset_name=${dataset_name} \
+    -e use_ipex=${use_ipex} \
+    -e bf16=${bf16} \
+    ${image_id}
+fi
