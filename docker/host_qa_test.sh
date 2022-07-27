@@ -1,5 +1,4 @@
-#!/usr/bin/env bash
-
+#!/bin/bash
 #
 # Copyright (c) 2021 Intel Corporation
 #
@@ -16,8 +15,6 @@
 # limitations under the License.
 
 
-
-set -e
 
 function usage_help() {
     echo -e "options:"
@@ -88,12 +85,17 @@ mpi_n=4
 mpi_ppn=2
 echo "node1" > /tmp/hostfile
 echo "node2" >> /tmp/hostfile
-docker run -d --name node2 -h node2 --net network_mpi --ip 192.168.10.12 --add-host node1:192.168.10.11 \
+output=`docker network ls | grep -c hg-bridge`
+if [ $output == 0 ];then
+    docker network create --driver bridge hg-bridge
+fi
+set -e
+docker run -d --name node2 -h node2 --net hg-bridge \
     --privileged --shm-size 800g \
     -e master_node=False \
     ${image_id}
 
-docker run --name node1 -h node1 --net network_mpi --ip 192.168.10.11 --add-host node2:192.168.10.12  \
+docker run --name node1 -h node1 --net hg-bridge  \
     --privileged --shm-size 800g \
     -v /tmp/:/usr/local/tmp/ \
     -e master_node=True \
@@ -120,7 +122,7 @@ docker run --name node1 -h node1 --net network_mpi --ip 192.168.10.11 --add-host
 fi
 
 if [ $case_id -eq 0 ];then
-master_addr=127.0.0.1
+master_addr=node1
 mpi_n=2
 mpi_ppn=2
 echo "node1" > /tmp/hostfile

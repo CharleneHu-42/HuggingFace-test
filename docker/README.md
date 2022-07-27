@@ -6,7 +6,7 @@ These two dockerfiles are internal and external respectively.
 ```bash
 for internal: docker build -f df_internal --build-arg imageVersion=2022_ww26 -t bert_qa:internal .
 
-for external: docker build -f df_external -t bert_qa:external .
+for external: docker build -f df_external --build-arg http_proxy=http://proxy-chain.intel.com:911 --build-arg https_proxy=http://proxy-chain.intel.com:911 --build-arg no_proxy=*.intel.com -t bert_qa:external .
 ```
 notes:
 
@@ -38,5 +38,5 @@ docker rm node1
 docker stop node2
 docker rm node2
 ```
-
+you could remove hg-bridge by "docker network rm hg-bridge"
 
