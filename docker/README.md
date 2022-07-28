@@ -47,8 +47,7 @@ multiple dockers utilize "bridge" network mode here, hg-bridge is created in the
 ## 4. Docker containers deployment in multiple nodes:
 
 two scripts are provided. master_qa_node.sh should be launched in master node and 
-slave_qa_node.sh should be launched in slave node. <font color=#ff0000> containers in slave node must be created before master</font>
-
+slave_qa_node.sh should be launched in slave node. ***containers in slave node must be created before master***
 
 **In slave node:**
 
@@ -74,7 +73,7 @@ where `{image_id}` could be appliedmlwf/hf:bert_qa_external_2022ww31 or appliedm
 
 the output is /tmp/debug_squad, you could change it in master_qa_node.sh
 
-please stop and remove existing container named master and slave0, slave1 before starting the test
+please stop and remove existing containers named master and slave0, slave1 before starting the test
 
 ```bash
 docker stop master
@@ -97,6 +96,7 @@ docker run -d -p 8500:8500 -h consul --name consul progrium/consul -server -boot
 you could open 10.165.9.49:8500 in browser to check the consul status
 
 **configure the docker listening port and consul addr**
+
 in 10.165.9.49
 ```bash
 vi /etc/docker/daemon.json
@@ -121,14 +121,14 @@ ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
 to  
 ExecStart=/usr/bin/dockerd --containerd=/run/containerd/containerd.sock
 
-restart docker service
+**restart docker service**
 
 ```bash
 systemctl restart docker
 ```
 you could see the nodes(10.165.9.48 and 10.165.9.49) shown in the 10.165.9.49:8500
 
-create the global overlay network
+**create the global overlay network**
 ```bash
 docker network create -d overlay ov_net1
 
