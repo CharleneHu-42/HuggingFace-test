@@ -16,10 +16,8 @@ COPY l_mpi_oneapi_p_2021.6.0.602.sh .
 
 RUN ./l_mpi_oneapi_p_2021.6.0.602.sh -a --eula accept -s
 
-COPY ccl.patch .
-
 # Fetch transformer
-RUN git clone https://github.com/huggingface/transformers && cd transformers && patch -p1 < ../ccl.patch && python3 -m pip install --no-cache-dir .
+RUN git clone https://github.com/huggingface/transformers && cd transformers && python3 -m pip install --no-cache-dir .
 
 # Install accelerate
 RUN git clone https://github.com/huggingface/accelerate && cd accelerate && python3 -m pip install --no-cache-dir .
