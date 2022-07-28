@@ -21,8 +21,8 @@ function usage_help() {
     echo -e "  -h Display help"
     echo -e "  -i {image_id}"
     echo -e "  -m {model_name}"
-    echo -e "  -c case id 0: single container run 2DDP
-               1: two container run 4 DDP in single node"
+    echo -e "  -p {total process}"
+    echo -e "  -n {docker network name}"
 }
 
 
@@ -46,9 +46,8 @@ xpu_backend=ccl
 dataloader_pin_memory=False
 bf16=False
 use_ipex=True
-case_id=0
 # Override args
-while getopts "h?r:i:m:c:" OPT; do
+while getopts "h?r:i:m:p:n:" OPT; do
     case $OPT in
         h|\?)
             usage_help
@@ -62,9 +61,13 @@ while getopts "h?r:i:m:c:" OPT; do
             echo -e "Option $OPTIND, model_name = $OPTARG"
             model_name=$OPTARG
             ;;
-        c)
-            echo -e "Option $OPTIND, case_id = $OPTARG"
-            case_id=$OPTARG
+        p)
+            echo -e "Option $OPTIND, pn = $OPTARG"
+            mpi_n=$OPTARG
+            ;;
+        n)
+            echo -e "Option $OPTIND, network = $OPTARG"
+            network=$OPTARG
             ;;
         ?)
             echo -e "Unknown option $OPTARG"
@@ -79,23 +82,13 @@ if [ ! $image_id ];then
    exit 0
 fi
 
-if [ $case_id -eq 1 ];then
-master_addr=master
-mpi_n=4
-mpi_ppn=2
-echo "master" > /tmp/hostfile
-echo "slave0" >> /tmp/hostfile
-output=`docker network ls | grep -c hg-bridge`
-if [ $output == 0 ];then
-    docker network create --driver bridge hg-bridge
+if [ ! $network ];then
+   echo -e "no docker network indication"
+   exit 0
 fi
-set -e
-docker run -d --name slave0 -h slave0 --net hg-bridge \
-    --privileged --shm-size 800g \
-    -e master_node=False \
-    ${image_id}
 
-docker run --name master -h master --net hg-bridge  \
+master_addr=master
+docker run --name master -h master --net $network  \
     --privileged --shm-size 800g \
     -v /tmp/:/usr/local/tmp/ \
     -e master_node=True \
@@ -119,34 +112,4 @@ docker run --name master -h master --net hg-bridge  \
     -e use_ipex=${use_ipex} \
     -e bf16=${bf16} \
     ${image_id}
-fi
 
-if [ $case_id -eq 0 ];then
-master_addr=master
-mpi_n=2
-mpi_ppn=2
-echo "master" > /tmp/hostfile
-docker run --name master -h master --privileged --shm-size 800g \
-    -v /tmp/:/usr/local/tmp/ \
-    -e master_node=True \
-    -e learning_rate=${learning_rate} \
-    -e max_seq_length=${max_seq_length} \
-    -e dataloader_pin_memory=${dataloader_pin_memory} \
-    -e model_name=${model_name} \
-    -e output_dir=${output_dir} \
-    -e mpi_n=${mpi_n} \
-    -e mpi_ppn=${mpi_ppn} \
-    -e omp_num_threads=${omp_num_threads} \
-    -e per_device_train_batch_size=${per_device_train_batch_size} \
-    -e learning_rate=${learning_rate} \
-    -e num_train_epochs=${num_train_epochs} \
-    -e xpu_backend=${xpu_backend} \
-    -e doc_stride=${doc_stride}\
-    -e ccl_worker_count=${ccl_worker_count} \
-    -e master_addr=${master_addr} \
-    -e master_port=${master_port} \
-    -e dataset_name=${dataset_name} \
-    -e use_ipex=${use_ipex} \
-    -e bf16=${bf16} \
-    ${image_id}
-fi
