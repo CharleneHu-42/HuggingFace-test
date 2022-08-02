@@ -13,7 +13,7 @@ $ docker build -f df_internal --build-arg imageVersion=2022_ww26 -t bert_qa:inte
 > The imageVersion is the version of base image from internal release of PyTorch,IPEX and oneCCL, it may be changed.
 
 ### external build
-``bash
+```bash
 $ docker build -f df_external --build-arg http_proxy=http://proxy-chain.intel.com:911 --build-arg https_proxy=http://proxy-chain.intel.com:911 --build-arg no_proxy=*.intel.com -t bert_qa:external .
 ```
 
@@ -24,6 +24,7 @@ $ docker build -f df_external --build-arg http_proxy=http://proxy-chain.intel.co
 $ docker pull appliedmlwf/hf:bert_qa_internal_2022ww26
 ```
 ### external
+```bash
 $ docker pull appliedmlwf/hf:bert_qa_external_2022ww31
 ```
 
