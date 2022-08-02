@@ -41,7 +41,7 @@ note:
 1. `{image_id}` could be appliedmlwf/hf:bert_qa_external_2022ww31 or appliedmlwf/hf:bert_qa_internal_2022ww26 based on your needs;
 2. the output is /tmp/debug_squad, you could change it in host_qa_test.sh;
 
-If there is a precedental run, please stop and remove existing containers named master and slave0 before starting a new round, as below:
+If there is a precedental run, please stop and remove existing containers named master before starting a new round, as below:
 
 ```bash
 $ docker stop master
@@ -114,8 +114,8 @@ vi /etc/docker/daemon.json
   "cluster-advertise": "10.165.9.48:2376"
 }
 ```
-
-change  
+change /usr/lib/systemd/system/docker.service in the two nodes  
+from  
 ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock  
 to  
 ExecStart=/usr/bin/dockerd --containerd=/run/containerd/containerd.sock
@@ -134,3 +134,6 @@ $ docker network create -d overlay ov_net1
 $ docker network ls # to check its scope
 ```
 and ov_net1 could be used when creating container in section 4
+
+## 5. Perf Knobs
+omp_num_threads could be configured in master_qa_node.sh and host_qa_test.sh according to your cpu phy cores per socket.

@@ -33,7 +33,7 @@ ccl_worker_count=1
 # Start training BERT
 mpi_n=4
 mpi_ppn=2
-omp_num_threads=23
+omp_num_threads=24
 model_name=bert-large-uncased
 dataset_name=squad
 per_device_train_batch_size=12
