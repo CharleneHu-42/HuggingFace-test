@@ -7,7 +7,7 @@ The external one uses stock PyTorch, IPEX, oneCCL, all w/ version 1.12.
 
 ### internal build
 ```bash
-$ docker build -f df_internal --build-arg imageVersion=2022_ww26 -t bert_qa:internal .
+$ docker build -f df_internal --build-arg imageVersion=2022_ww32 -t bert_qa:internal .
 ```
 > notes:
 > The imageVersion is the version of base image from internal release of PyTorch,IPEX and oneCCL, it may be changed.
@@ -21,11 +21,11 @@ $ docker build -f df_external --build-arg http_proxy=http://proxy-chain.intel.co
 
 ### internal
 ```bash
-$ docker pull appliedmlwf/hf:bert_qa_internal_2022ww26
+$ docker pull appliedmlwf/hf:bert_qa_internal_2022ww32
 ```
 ### external
 ```bash
-$ docker pull appliedmlwf/hf:bert_qa_external_2022ww31
+$ docker pull appliedmlwf/hf:bert_qa_external_2022ww33
 ```
 
 ## 3. Docker containers deployment(single node)
@@ -38,7 +38,7 @@ Run training with below command
 $ ./host_qa_test.sh -c 0 -i {image_id} # 2 DDPs in 1 container
 ```
 note:
-1. `{image_id}` could be appliedmlwf/hf:bert_qa_external_2022ww31 or appliedmlwf/hf:bert_qa_internal_2022ww26 based on your needs;
+1. `{image_id}` could be appliedmlwf/hf:bert_qa_external_2022ww33 or appliedmlwf/hf:bert_qa_internal_2022ww32 based on your needs;
 2. the output is /tmp/debug_squad, you could change it in host_qa_test.sh;
 
 If there is a precedental run, please stop and remove existing containers named master before starting a new round, as below:
@@ -69,7 +69,7 @@ $ echo "slave0" >> /tmp/hostfile
 $ ./master_qa_node.sh -i {image_id} -n ov_net1 -p 4 -n ov_net1 #total 4 DPP, 2 DDP per container instance
 ```
 
-where `{image_id}` could be appliedmlwf/hf:bert_qa_external_2022ww31 or appliedmlwf/hf:bert_qa_internal_2022ww26 based on your needs
+where `{image_id}` could be appliedmlwf/hf:bert_qa_external_2022ww33 or appliedmlwf/hf:bert_qa_internal_2022ww32 based on your needs
 
 the output is /tmp/debug_squad, you could change it in master_qa_node.sh
 
