@@ -4,6 +4,16 @@
 mkdir /run/sshd
 /usr/sbin/sshd
 
+
+
+cd transformers
+
+version=`git log -1 --pretty=format:"%h"`
+
+echo "transformer last commit ${version}"
+
+cd ../
+
 if [ $master_node = True ];then
   # Activate mpi and conda
   source /opt/intel/oneapi/setvars.sh
