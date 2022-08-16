@@ -23,6 +23,7 @@ function usage_help() {
     echo -e "  -m {model_name}"
     echo -e "  -c case id 0: single container run 2DDP
                1: two container run 4 DDP in single node"
+    echo -e "  -o: enable offline mode"
 }
 
 
@@ -42,13 +43,15 @@ num_train_epochs=2
 max_seq_length=384
 doc_stride=128
 output_dir="./tmp/debug_squad/"
+cache_dir="./tmp/cache"          # you could put the download to /tmp/cache and then enable offline mode
 xpu_backend=ccl
 dataloader_pin_memory=False
 bf16=False
 use_ipex=True
 case_id=0
+offline=False
 # Override args
-while getopts "h?r:i:m:c:" OPT; do
+while getopts "h?r:i:m:c:o" OPT; do
     case $OPT in
         h|\?)
             usage_help
@@ -65,6 +68,10 @@ while getopts "h?r:i:m:c:" OPT; do
         c)
             echo -e "Option $OPTIND, case_id = $OPTARG"
             case_id=$OPTARG
+            ;;
+        o)
+            echo -e "enable offline mode"
+            offline=True
             ;;
         ?)
             echo -e "Unknown option $OPTARG"
@@ -92,6 +99,7 @@ fi
 set -e
 docker run -d --name slave0 -h slave0 --net hg-bridge \
     --privileged --shm-size 800g \
+    -v /tmp/:/usr/local/tmp/ \
     -e master_node=False \
     ${image_id}
 
@@ -118,6 +126,8 @@ docker run --name master -h master --net hg-bridge  \
     -e dataset_name=${dataset_name} \
     -e use_ipex=${use_ipex} \
     -e bf16=${bf16} \
+    -e cache_dir=${cache_dir} \
+    -e offline=${offline} \
     ${image_id}
 fi
 
@@ -148,5 +158,7 @@ docker run --name master -h master --privileged --shm-size 800g \
     -e dataset_name=${dataset_name} \
     -e use_ipex=${use_ipex} \
     -e bf16=${bf16} \
+    -e cache_dir=${cache_dir} \
+    -e offline=${offline} \
     ${image_id}
 fi

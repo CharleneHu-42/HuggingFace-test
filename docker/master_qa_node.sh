@@ -23,6 +23,7 @@ function usage_help() {
     echo -e "  -m {model_name}"
     echo -e "  -p {total process}"
     echo -e "  -n {docker network name}"
+    echo -e "  -o: enable offline mode"
 }
 
 
@@ -42,12 +43,14 @@ num_train_epochs=2
 max_seq_length=384
 doc_stride=128
 output_dir="./tmp/debug_squad/"
+cache_dir="./tmp/cache"   # you could put the download to /tmp/cache and then enable offline mode
 xpu_backend=ccl
 dataloader_pin_memory=False
 bf16=False
 use_ipex=True
+offline=False
 # Override args
-while getopts "h?r:i:m:p:n:" OPT; do
+while getopts "h?r:i:m:p:n:o" OPT; do
     case $OPT in
         h|\?)
             usage_help
@@ -68,6 +71,10 @@ while getopts "h?r:i:m:p:n:" OPT; do
         n)
             echo -e "Option $OPTIND, network = $OPTARG"
             network=$OPTARG
+            ;;
+        o)
+            echo -e "enable offline mode"
+            offline=True
             ;;
         ?)
             echo -e "Unknown option $OPTARG"
@@ -111,5 +118,7 @@ docker run --name master -h master --net $network  \
     -e dataset_name=${dataset_name} \
     -e use_ipex=${use_ipex} \
     -e bf16=${bf16} \
+    -e cache_dir=${cache_dir} \
+    -e offline=${offline} \
     ${image_id}
 

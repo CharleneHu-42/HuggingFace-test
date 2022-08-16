@@ -64,5 +64,6 @@ if [ ! $network ];then
 fi
 docker run -d --name slave$slave_id -h slave$slave_id --net $network \
     --privileged --shm-size 800g \
+    -v /tmp/:/usr/local/tmp/ \
     -e master_node=False \
     ${image_id}
