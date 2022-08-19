@@ -6,3 +6,6 @@ fig.write_image(format='png',file="result.png")
 
 fig = optuna.visualization.plot_parallel_coordinate(loaded_study)
 fig.write_image(format='png',file="param_rel.png")
+
+fig = optuna.visualization.plot_param_importances(loaded_study)
+fig.write_image(format='png',file="param_importances.png")
