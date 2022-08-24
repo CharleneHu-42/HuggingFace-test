@@ -6,6 +6,7 @@ import os
 
 f1_reg=re.compile("Optimized model with eval_f1 of (?P<eval_f1>[1-9]\d*.\d*|0.\d*[1-9]\d*)")
 training_time_reg=re.compile("'train_runtime':[ ]+(?P<time>[1-9]\d*.\d*|0.\d*[1-9]\d*)")
+immediate_reg=re.compile("'eval_f1':[ ]+(?P<eval_f1>[1-9]\d*.\d*|0.\d*[1-9]\d*),[ ]+'epoch':[ ]+(?P<epoch>[1-9]\d*.\d*)")
 def get_eval_f1(lines):
     f1 = None
     for line in lines:
@@ -30,10 +31,21 @@ def get_training_time(lines):
             break
     return time
 
+def get_immediate_report(trial,lines):
+    for line in lines:
+        match = immediate_reg.search(line)
+        if not match:
+            continue
+        eval_f1 = match.groupdict().get('eval_f1')
+        epoch = match.groupdict().get('epoch')
+        print(eval_f1,epoch)
+        if eval_f1 and epoch:
+            trial.report(float(eval_f1),step=int(float(epoch)))
+
 def objective(trial):
     learning_rate = trial.suggest_float("learning_rate", 1e-6, 1e-4, log=True)
     ce_loss_weight = trial.suggest_float("ce_loss_weight", 0.0, 1.0, step=0.1)
-    num_train_epochs = trial.suggest_int("num_train_epochs", 1, 20)
+    num_train_epochs = trial.suggest_int("num_train_epochs", 1, 10)
     per_device_train_batch_size = trial.suggest_categorical("per_device_train_batch_size", [4, 8, 16, 32, 64])
     try:
         with open("distillation.yml", "r", encoding="utf-8") as f:
@@ -52,6 +64,7 @@ def objective(trial):
     F1 = 0
     if exit == 0:
         F1 = get_eval_f1(output.split('\n'))
+        get_immediate_report(trial,output.split('\n'))
     else:
         print(output)
     return F1
