@@ -43,7 +43,7 @@ def get_immediate_report(trial,lines):
             trial.report(float(eval_f1),step=int(float(epoch)))
 
 def objective(trial):
-    learning_rate = trial.suggest_float("learning_rate", 1e-6, 1e-4, log=True)
+    learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True)
     ce_loss_weight = trial.suggest_float("ce_loss_weight", 0.0, 1.0, step=0.1)
     num_train_epochs = trial.suggest_int("num_train_epochs", 1, 10)
     per_device_train_batch_size = trial.suggest_categorical("per_device_train_batch_size", [4, 8, 16, 32, 64])
@@ -56,7 +56,7 @@ def objective(trial):
     config_dict['distillation']['train']['criterion']['KnowledgeDistillationLoss']['loss_weights']=[ce_loss_weight, 1.0-ce_loss_weight]
     with open("distillation.yml", "w", encoding="utf-8") as f:
         yaml.safe_dump(config_dict, f)
-    cmdstr = "mpirun --bootstrap ssh -n 2 -genv OMP_NUM_THREADS=24 python run_qa.py --overwrite_output_dir --model_name_or_path nreimers/MiniLMv2-L6-H768-distilled-from-BERT-Large --dataset_name squad --apply_distillation  --teacher_model_name_or_path bert-large-uncased-whole-word-masking-finetuned-squad --do_train --do_eval --output_dir ./output_dir/bert-large-distill_MiniLM/squad_output_test_3 --per_device_eval_batch_size 32 --no_cuda --xpu_backend ccl --distillation_config ."
+    cmdstr = "mpirun --bootstrap ssh -f nodefile -n 8 -ppn 2 -genv OMP_NUM_THREADS=36 -genv HF_DATASETS_OFFLINE=1 -genv TRANSFORMERS_OFFLINE=1 python run_qa.py --overwrite_output_dir --model_name_or_path nreimers/MiniLMv2-L6-H768-distilled-from-BERT-Large --dataset_name squad --apply_distillation --run_teacher_logits --teacher_model_name_or_path bert-large-uncased-whole-word-masking-finetuned-squad --do_train --do_eval --output_dir ./output_dir/bert-large-distill_MiniLM/squad_output_test_3 --per_device_eval_batch_size 32 --no_cuda --xpu_backend ccl --use_ipex --distillation_config ."
     cmdstr += " --learning_rate "+str(learning_rate)
     cmdstr += " --num_train_epochs "+str(num_train_epochs)
     cmdstr += " --per_device_train_batch_size " + str(per_device_train_batch_size)
@@ -65,14 +65,15 @@ def objective(trial):
     if exit == 0:
         F1 = get_eval_f1(output.split('\n'))
         get_immediate_report(trial,output.split('\n'))
+
+    if F1 != 0:
+        return F1
     else:
         print(output)
-    return F1
+        raise Exception("no output")
 
-if os.path.isfile('glue.db'):
-    os.remove("glue.db")
-study = optuna.create_study(study_name="glue-study", storage="sqlite:///glue.db", load_if_exists=False, direction="maximize")
-study.optimize(objective, n_trials=10)
+study = optuna.create_study(study_name="squad-study", storage="sqlite:///squad.db", load_if_exists=False, direction="maximize")
+study.optimize(objective, n_trials=20)
 
 best_trial = study.best_trial
 print("best trial",best_trial)
