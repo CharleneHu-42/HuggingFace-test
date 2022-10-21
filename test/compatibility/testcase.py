@@ -61,6 +61,8 @@ def run_finetune(
         a["eval_samples_per_second"] = results["eval_samples_per_second"]
         a["train_loss"] = results["train_loss"]
         a["train_samples_per_second"] = results["train_samples_per_second"]
+    else:
+        logger.error(f"{output}")
     csv_writer.writerow(a)
     return
 
@@ -106,6 +108,8 @@ def run_inference(
         results = get_json_map(output_dir + "/eval_results.json")
         a["eval_f1"] = results["eval_f1"]
         a["eval_samples_per_second"] = results["eval_samples_per_second"]
+    else:
+        logger.error(f"{output}")
     csv_writer.writerow(a)
     return
 
@@ -158,6 +162,8 @@ def run_optimum_intel_quantization(
         results = get_json_map(output_dir + "/eval_results.json")
         a["eval_f1"] = results["eval_f1"]
         a["eval_samples_per_second"] = results["eval_samples_per_second"]
+    else:
+        logger.error(f"{output}")
     csv_writer.writerow(a)
     return
 

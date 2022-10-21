@@ -25,7 +25,7 @@ def init_arguments_parser():
         "--case",
         default="text-classification-mrpc",
         choices=["text-classification-mrpc", "text-classification-sst2"],
-        help="choice test case",
+        help="choice test case, default is text-classification-mrpc",
     )
     parser.add_argument(
         "-m",
@@ -48,16 +48,16 @@ def init_arguments_parser():
 
 def get_finetune_case_command(arg: argparse.Namespace):
     switch = {
-        "text-classification-mrpc": "run_glue.py --task_name mrpc --max_seq_length 128 --per_device_train_batch_size 32 --per_device_eval_batch_size 8 --no_cuda --num_train_epochs 1 --overwrite_output_dir",
-        "text-classification-sst2": "run_glue.py --task_name sst2 --max_seq_length 128 --per_device_train_batch_size 32 --per_device_eval_batch_size 8 --no_cuda --num_train_epochs 1 --overwrite_output_dir",
+        "text-classification-mrpc": "run_glue.py --task_name mrpc --max_seq_length 128 --per_device_train_batch_size 32 --per_device_eval_batch_size 8 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
+        "text-classification-sst2": "run_glue.py --task_name sst2 --max_seq_length 128 --per_device_train_batch_size 32 --per_device_eval_batch_size 8 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
     }
     return switch[arg.case]
 
 
 def get_optimum_case_command(arg: argparse.Namespace):
     switch = {
-        "text-classification-mrpc": "run_glue.py --task_name mrpc --max_seq_length 128 --per_device_train_batch_size 32 --per_device_eval_batch_size 8 --no_cuda --num_train_epochs 1 --overwrite_output_dir --verify_loading",
-        "text-classification-sst2": "run_glue.py --task_name sst2 --max_seq_length 128 --per_device_train_batch_size 32 --per_device_eval_batch_size 8 --no_cuda --num_train_epochs 1 --overwrite_output_dir --verify_loading",
+        "text-classification-mrpc": "run_glue.py --task_name mrpc --max_seq_length 128 --per_device_train_batch_size 32 --per_device_eval_batch_size 8 --no_cuda --num_train_epochs 2 --overwrite_output_dir --verify_loading",
+        "text-classification-sst2": "run_glue.py --task_name sst2 --max_seq_length 128 --per_device_train_batch_size 32 --per_device_eval_batch_size 8 --no_cuda --num_train_epochs 2 --overwrite_output_dir --verify_loading",
     }
     return switch[arg.case]
 
@@ -65,7 +65,12 @@ def get_optimum_case_command(arg: argparse.Namespace):
 def main():
     parser = init_arguments_parser()
     args = parser.parse_args()
-    f = open(args.output + "/summery.csv", mode="w", encoding="utf-8", newline="")
+    append = False
+    if os.path.exists(args.output + "/summary.csv"):
+        f = open(args.output + "/summary.csv", mode="a", encoding="utf-8", newline="")
+        append = True
+    else:
+        f = open(args.output + "/summary.csv", mode="w", encoding="utf-8", newline="")
     csv_writer = csv.DictWriter(
         f,
         fieldnames=[
@@ -78,9 +83,11 @@ def main():
             "train_loss",
         ],
     )
-    csv_writer.writeheader()
+    if append == False:
+        csv_writer.writeheader()
     finetune_base_cmd = get_finetune_case_command(args)
     optimum_base_cmd = get_optimum_case_command(args)
+
     testcase.run_ipex_bf16_finetune_evaluate(
         args.case, finetune_base_cmd, args, csv_writer
     )
@@ -93,7 +100,6 @@ def main():
     testcase.run_torch_fp32_finetune_evaluate(
         args.case, finetune_base_cmd, args, csv_writer
     )
-
     testcase.run_ipex_bf16_finetune_quantization(
         args.case, finetune_base_cmd, optimum_base_cmd, args, csv_writer
     )
