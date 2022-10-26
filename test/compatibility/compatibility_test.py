@@ -48,16 +48,16 @@ def init_arguments_parser():
 
 def get_finetune_case_command(arg: argparse.Namespace):
     switch = {
-        "text-classification-mrpc": "run_glue.py --task_name mrpc --max_seq_length 128 --per_device_train_batch_size 32 --per_device_eval_batch_size 8 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
-        "text-classification-sst2": "run_glue.py --task_name sst2 --max_seq_length 128 --per_device_train_batch_size 32 --per_device_eval_batch_size 8 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
+        "text-classification-mrpc": "run_glue.py --task_name mrpc --max_seq_length 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
+        "text-classification-sst2": "run_glue.py --task_name sst2 --max_seq_length 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
     }
     return switch[arg.case]
 
 
 def get_optimum_case_command(arg: argparse.Namespace):
     switch = {
-        "text-classification-mrpc": "run_glue.py --task_name mrpc --max_seq_length 128 --per_device_train_batch_size 32 --per_device_eval_batch_size 8 --no_cuda --num_train_epochs 2 --overwrite_output_dir --verify_loading",
-        "text-classification-sst2": "run_glue.py --task_name sst2 --max_seq_length 128 --per_device_train_batch_size 32 --per_device_eval_batch_size 8 --no_cuda --num_train_epochs 2 --overwrite_output_dir --verify_loading",
+        "text-classification-mrpc": "run_glue.py --task_name mrpc --max_seq_length 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir --verify_loading",
+        "text-classification-sst2": "run_glue.py --task_name sst2 --max_seq_length 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir --verify_loading",
     }
     return switch[arg.case]
 
@@ -81,6 +81,11 @@ def main():
             "eval_samples_per_second",
             "train_samples_per_second",
             "train_loss",
+            "lcores",
+            "jit_mode",
+            "bf16",
+            "use_ipex",
+            "model",
         ],
     )
     if append == False:
@@ -103,16 +108,15 @@ def main():
     testcase.run_ipex_bf16_finetune_quantization(
         args.case, finetune_base_cmd, optimum_base_cmd, args, csv_writer
     )
-    testcase.run_ipex_fp32_finetune_quantization(
+    testcase.run_torch_bf16_finetune_quantization(
         args.case, finetune_base_cmd, optimum_base_cmd, args, csv_writer
     )
-    testcase.run_torch_bf16_finetune_quantization(
+    testcase.run_ipex_fp32_finetune_quantization(
         args.case, finetune_base_cmd, optimum_base_cmd, args, csv_writer
     )
     testcase.run_torch_fp32_finetune_quantization(
         args.case, finetune_base_cmd, optimum_base_cmd, args, csv_writer
     )
-
 
 if __name__ == "__main__":
     main()

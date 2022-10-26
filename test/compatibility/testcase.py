@@ -27,6 +27,7 @@ def run_finetune(
     args: argparse.Namespace,
     csv_writer: csv.DictWriter,
 ):
+    import psutil
     os.chdir(args.finetune_dir)
     output_dir = args.output + "/" + case_name + "-" + subname
     cmdstr = (
@@ -37,10 +38,14 @@ def run_finetune(
         + args.model
         + " --do_eval --do_train"
     )
+    bf16 = False
+    ipex = False
     if "bf16" in subname:
         cmdstr += " --bf16"
+        bf16 = True
     if "ipex" in subname:
         cmdstr += " --use_ipex"
+        ipex = True
     cmdstr = "numactl --cpunodebind 0 --membind 0 python3 " + cmdstr
     logger.info(f"{cmdstr}")
     exit, output = subprocess.getstatusoutput(cmdstr)
@@ -52,6 +57,11 @@ def run_finetune(
         "eval_samples_per_second": None,
         "train_samples_per_second": None,
         "train_loss": None,
+        "lcores": int(psutil.cpu_count(logical=True) / 2),
+        "jit_mode": False,
+        "bf16": bf16,
+        "use_ipex": ipex,
+        "model": args.model,
     }
     a["casename"] = case_name
     a["subname"] = subname + "-finetune"
@@ -86,10 +96,18 @@ def run_inference(
         + model_dir
         + " --do_eval"
     )
+    jit = False
+    bf16 = False
+    ipex = False
     if "bf16" in inf_subname:
         cmdstr += " --bf16"
+        bf16 = True
     if "ipex" in inf_subname:
         cmdstr += " --use_ipex"
+        ipex = True
+    if "jit" in inf_subname:
+        cmdstr += " --jit_mode_eval"
+        jit = True
     cmdstr = "taskset -c 0-3 python3 " + cmdstr
     logger.info(f"{cmdstr}")
     exit, output = subprocess.getstatusoutput(cmdstr)
@@ -101,6 +119,11 @@ def run_inference(
         "eval_samples_per_second": None,
         "train_samples_per_second": None,
         "train_loss": None,
+        "lcores": 4,
+        "jit_mode": jit,
+        "bf16": bf16,
+        "use_ipex": ipex,
+        "model": args.model,
     }
     a["casename"] = case_name
     a["subname"] = subname + "-finetune-model-inf-only-" + inf_subname
@@ -155,13 +178,19 @@ def run_optimum_intel_quantization(
         "eval_samples_per_second": None,
         "train_samples_per_second": None,
         "train_loss": None,
+        "lcores": 4,
+        "jit_mode": False,
+        "bf16": False,
+        "use_ipex": False,
+        "model": args.model,
     }
     a["casename"] = case_name
     a["subname"] = subname + "-finetune-model-only-qt-" + qt_subname
     if exit == 0:
         results = get_json_map(output_dir + "/eval_results.json")
-        a["eval_f1"] = results["eval_f1"]
-        a["eval_samples_per_second"] = results["eval_samples_per_second"]
+        if results:
+            a["eval_f1"] = results["eval_f1"]
+            a["eval_samples_per_second"] = results["eval_samples_per_second"]
     else:
         logger.error(f"{output}")
     csv_writer.writerow(a)
@@ -178,6 +207,11 @@ def run_ipex_bf16_finetune_evaluate(
     run_inference(case_name, "ipex-bf16", "ipex-fp32", basecmd, args, csv_writer)
     run_inference(case_name, "ipex-bf16", "fp32", basecmd, args, csv_writer)
     run_inference(case_name, "ipex-bf16", "bf16", basecmd, args, csv_writer)
+    # step3: run bf16 or fp32 inference on the finetune output model using jit
+    run_inference(case_name, "ipex-bf16", "ipex-bf16-jit", basecmd, args, csv_writer)
+    run_inference(case_name, "ipex-bf16", "ipex-fp32-jit", basecmd, args, csv_writer)
+    run_inference(case_name, "ipex-bf16", "fp32-jit", basecmd, args, csv_writer)
+    run_inference(case_name, "ipex-bf16", "bf16-jit", basecmd, args, csv_writer)
     return
 
 
@@ -191,6 +225,11 @@ def run_ipex_fp32_finetune_evaluate(
     run_inference(case_name, "ipex-fp32", "ipex-fp32", basecmd, args, csv_writer)
     run_inference(case_name, "ipex-fp32", "fp32", basecmd, args, csv_writer)
     run_inference(case_name, "ipex-fp32", "bf16", basecmd, args, csv_writer)
+    # step3: run bf16 or fp32 inference on the finetune output model using jit
+    run_inference(case_name, "ipex-fp32", "ipex-bf16-jit", basecmd, args, csv_writer)
+    run_inference(case_name, "ipex-fp32", "ipex-fp32-jit", basecmd, args, csv_writer)
+    run_inference(case_name, "ipex-fp32", "fp32-jit", basecmd, args, csv_writer)
+    run_inference(case_name, "ipex-fp32", "bf16-jit", basecmd, args, csv_writer)
     return
 
 
@@ -204,6 +243,11 @@ def run_torch_bf16_finetune_evaluate(
     run_inference(case_name, "bf16", "ipex-fp32", basecmd, args, csv_writer)
     run_inference(case_name, "bf16", "fp32", basecmd, args, csv_writer)
     run_inference(case_name, "bf16", "bf16", basecmd, args, csv_writer)
+    # step3: run bf16 or fp32 inference on the finetune output model using jit
+    run_inference(case_name, "bf16", "ipex-bf16-jit", basecmd, args, csv_writer)
+    run_inference(case_name, "bf16", "ipex-fp32-jit", basecmd, args, csv_writer)
+    run_inference(case_name, "bf16", "fp32-jit", basecmd, args, csv_writer)
+    run_inference(case_name, "bf16", "bf16-jit", basecmd, args, csv_writer)
     return
 
 
@@ -217,6 +261,11 @@ def run_torch_fp32_finetune_evaluate(
     run_inference(case_name, "fp32", "ipex-fp32", basecmd, args, csv_writer)
     run_inference(case_name, "fp32", "fp32", basecmd, args, csv_writer)
     run_inference(case_name, "fp32", "bf16", basecmd, args, csv_writer)
+    # step3: run bf16 or fp32 inference on the finetune output model using jit
+    run_inference(case_name, "fp32", "ipex-bf16-jit", basecmd, args, csv_writer)
+    run_inference(case_name, "fp32", "ipex-fp32-jit", basecmd, args, csv_writer)
+    run_inference(case_name, "fp32", "fp32-jit", basecmd, args, csv_writer)
+    run_inference(case_name, "fp32", "bf16-jit", basecmd, args, csv_writer)
     return
 
 
