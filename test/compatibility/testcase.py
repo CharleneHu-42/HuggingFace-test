@@ -28,6 +28,7 @@ def run_finetune(
     csv_writer: csv.DictWriter,
 ):
     import psutil
+
     os.chdir(args.finetune_dir)
     output_dir = args.output + "/" + case_name + "-" + subname
     cmdstr = (
@@ -126,7 +127,7 @@ def run_inference(
         "model": args.model,
     }
     a["casename"] = case_name
-    a["subname"] = subname + "-finetune-model-inf-only-" + inf_subname
+    a["subname"] = subname + "-finetune-" + inf_subname + "-inf"
     if exit == 0:
         results = get_json_map(output_dir + "/eval_results.json")
         a["eval_f1"] = results["eval_f1"]
@@ -147,7 +148,7 @@ def run_optimum_intel_quantization(
 ):
     os.chdir(args.optimum_dir)
     model_dir = args.output + "/" + case_name + "-" + subname
-    output_dir = args.output + "/" + case_name + "-" + subname + "/ptq-" + qt_subname
+    output_dir = args.output + "/" + case_name + "-" + subname + "/" + qt_subname
     cmdstr = (
         basecmd
         + " --output_dir "
@@ -160,13 +161,66 @@ def run_optimum_intel_quantization(
         cmdstr += " --bf16"
     if "ipex" in qt_subname:
         cmdstr += " --use_ipex"
-    if "static" in qt_subname:
+    if "static-ptq" in qt_subname:
         cmdstr += " --apply_quantization --quantization_approach static"
-    if "dynamic" in qt_subname:
+    if "dyn-ptq" in qt_subname:
         cmdstr += " --apply_quantization --quantization_approach dynamic"
-    if "aware_training" in qt_subname:
+    if "qat" in qt_subname:
         cmdstr += " --apply_quantization --quantization_approach aware_training"
 
+    cmdstr = "numactl --cpunodebind 0 --membind 0 python3 " + cmdstr
+    logger.info(f"{cmdstr}")
+    exit, output = subprocess.getstatusoutput(cmdstr)
+    if exit != 0:
+        logger.error(f"{output}")
+    return
+
+
+def run_optimum_intel_quantization_deploy(
+    case_name: str,
+    subname: str,
+    qt_subname: str,
+    deploy_subname: str,
+    basecmd: str,
+    args: argparse.Namespace,
+    csv_writer: csv.DictWriter,
+):
+    os.chdir(args.optimum_dir)
+    model_dir = args.output + "/" + case_name + "-" + subname
+    loading_dir = args.output + "/" + case_name + "-" + subname + "/" + qt_subname
+    output_dir = (
+        args.output
+        + "/"
+        + case_name
+        + "-"
+        + subname
+        + "/"
+        + qt_subname
+        + "/"
+        + deploy_subname
+    )
+    cmdstr = (
+        basecmd
+        + " --output_dir "
+        + output_dir
+        + " --model_name_or_path "
+        + model_dir
+        + " --do_eval"
+        + " --loading_dir "
+        + loading_dir
+    )
+    jit = False
+    bf16 = False
+    ipex = False
+    if "bf16" in deploy_subname:
+        cmdstr += " --bf16"
+        bf16 = True
+    if "ipex" in deploy_subname:
+        cmdstr += " --use_ipex"
+        ipex = True
+    if "jit" in deploy_subname:
+        cmdstr += " --jit_mode_eval"
+        jit = True
     cmdstr = "taskset -c 0-3 python3 " + cmdstr
     logger.info(f"{cmdstr}")
     exit, output = subprocess.getstatusoutput(cmdstr)
@@ -179,13 +233,13 @@ def run_optimum_intel_quantization(
         "train_samples_per_second": None,
         "train_loss": None,
         "lcores": 4,
-        "jit_mode": False,
-        "bf16": False,
-        "use_ipex": False,
+        "jit_mode": jit,
+        "bf16": bf16,
+        "use_ipex": ipex,
         "model": args.model,
     }
     a["casename"] = case_name
-    a["subname"] = subname + "-finetune-model-only-qt-" + qt_subname
+    a["subname"] = subname + "-finetune-" + qt_subname + "-" + deploy_subname + "-inf"
     if exit == 0:
         results = get_json_map(output_dir + "/eval_results.json")
         if results:
@@ -197,161 +251,181 @@ def run_optimum_intel_quantization(
     return
 
 
+def run_finetune_evaluation(
+    finetune_case_name: str,
+    case_name: str,
+    basecmd: str,
+    args: argparse.Namespace,
+    csv_writer: csv.DictWriter,
+):
+    infer_cases = [
+        "ipex-eager-bf16",
+        "ipex-eager-fp32",
+        "pt-eager-fp32",
+        "pt-eager-bf16",
+        "ipex-jit-bf16",
+        "ipex-jit-fp32",
+        "pt-jit-fp32",
+        "pt-jit-bf16",
+    ]
+    # step1: finetune to get the model firstly
+    run_finetune(case_name, finetune_case_name, basecmd, args, csv_writer)
+    for infer_case in infer_cases:
+        # step2: run bf16 or fp32 inference on the finetune output model
+        run_inference(
+            case_name, finetune_case_name, infer_case, basecmd, args, csv_writer
+        )
+
+
 def run_ipex_bf16_finetune_evaluate(
     case_name: str, basecmd: str, args: argparse.Namespace, csv_writer: csv.DictWriter
 ):
-    # step1: finetune to get the model firstly
-    run_finetune(case_name, "ipex-bf16", basecmd, args, csv_writer)
-    # step2: run bf16 or fp32 inference on the finetune output model
-    run_inference(case_name, "ipex-bf16", "ipex-bf16", basecmd, args, csv_writer)
-    run_inference(case_name, "ipex-bf16", "ipex-fp32", basecmd, args, csv_writer)
-    run_inference(case_name, "ipex-bf16", "fp32", basecmd, args, csv_writer)
-    run_inference(case_name, "ipex-bf16", "bf16", basecmd, args, csv_writer)
-    # step3: run bf16 or fp32 inference on the finetune output model using jit
-    run_inference(case_name, "ipex-bf16", "ipex-bf16-jit", basecmd, args, csv_writer)
-    run_inference(case_name, "ipex-bf16", "ipex-fp32-jit", basecmd, args, csv_writer)
-    run_inference(case_name, "ipex-bf16", "fp32-jit", basecmd, args, csv_writer)
-    run_inference(case_name, "ipex-bf16", "bf16-jit", basecmd, args, csv_writer)
+    finetune_case_name = "0-ipex-bf16"
+    run_finetune_evaluation(finetune_case_name, case_name, basecmd, args, csv_writer)
     return
 
 
 def run_ipex_fp32_finetune_evaluate(
     case_name: str, basecmd: str, args: argparse.Namespace, csv_writer: csv.DictWriter
 ):
-    # step1: finetune to get the model firstly
-    run_finetune(case_name, "ipex-fp32", basecmd, args, csv_writer)
-    # step2: run bf16 or fp32 inference on the finetune output model
-    run_inference(case_name, "ipex-fp32", "ipex-bf16", basecmd, args, csv_writer)
-    run_inference(case_name, "ipex-fp32", "ipex-fp32", basecmd, args, csv_writer)
-    run_inference(case_name, "ipex-fp32", "fp32", basecmd, args, csv_writer)
-    run_inference(case_name, "ipex-fp32", "bf16", basecmd, args, csv_writer)
-    # step3: run bf16 or fp32 inference on the finetune output model using jit
-    run_inference(case_name, "ipex-fp32", "ipex-bf16-jit", basecmd, args, csv_writer)
-    run_inference(case_name, "ipex-fp32", "ipex-fp32-jit", basecmd, args, csv_writer)
-    run_inference(case_name, "ipex-fp32", "fp32-jit", basecmd, args, csv_writer)
-    run_inference(case_name, "ipex-fp32", "bf16-jit", basecmd, args, csv_writer)
+    finetune_case_name = "0-ipex-fp32"
+    run_finetune_evaluation(finetune_case_name, case_name, basecmd, args, csv_writer)
     return
 
 
-def run_torch_bf16_finetune_evaluate(
+def run_pt_bf16_finetune_evaluate(
     case_name: str, basecmd: str, args: argparse.Namespace, csv_writer: csv.DictWriter
 ):
-    # step1: finetune to get the model firstly
-    run_finetune(case_name, "bf16", basecmd, args, csv_writer)
-    # step2: run bf16 or fp32 inference on the finetune output model
-    run_inference(case_name, "bf16", "ipex-bf16", basecmd, args, csv_writer)
-    run_inference(case_name, "bf16", "ipex-fp32", basecmd, args, csv_writer)
-    run_inference(case_name, "bf16", "fp32", basecmd, args, csv_writer)
-    run_inference(case_name, "bf16", "bf16", basecmd, args, csv_writer)
-    # step3: run bf16 or fp32 inference on the finetune output model using jit
-    run_inference(case_name, "bf16", "ipex-bf16-jit", basecmd, args, csv_writer)
-    run_inference(case_name, "bf16", "ipex-fp32-jit", basecmd, args, csv_writer)
-    run_inference(case_name, "bf16", "fp32-jit", basecmd, args, csv_writer)
-    run_inference(case_name, "bf16", "bf16-jit", basecmd, args, csv_writer)
+    finetune_case_name = "0-pt-bf16"
+    run_finetune_evaluation(finetune_case_name, case_name, basecmd, args, csv_writer)
     return
 
 
-def run_torch_fp32_finetune_evaluate(
+def run_pt_fp32_finetune_evaluate(
     case_name: str, basecmd: str, args: argparse.Namespace, csv_writer: csv.DictWriter
 ):
-    # step1: finetune to get the model firstly
-    run_finetune(case_name, "fp32", basecmd, args, csv_writer)
-    # step2: run bf16 or fp32 inference on the finetune output model
-    run_inference(case_name, "fp32", "ipex-bf16", basecmd, args, csv_writer)
-    run_inference(case_name, "fp32", "ipex-fp32", basecmd, args, csv_writer)
-    run_inference(case_name, "fp32", "fp32", basecmd, args, csv_writer)
-    run_inference(case_name, "fp32", "bf16", basecmd, args, csv_writer)
-    # step3: run bf16 or fp32 inference on the finetune output model using jit
-    run_inference(case_name, "fp32", "ipex-bf16-jit", basecmd, args, csv_writer)
-    run_inference(case_name, "fp32", "ipex-fp32-jit", basecmd, args, csv_writer)
-    run_inference(case_name, "fp32", "fp32-jit", basecmd, args, csv_writer)
-    run_inference(case_name, "fp32", "bf16-jit", basecmd, args, csv_writer)
+    finetune_case_name = "0-pt-fp32"
+    run_finetune_evaluation(finetune_case_name, case_name, basecmd, args, csv_writer)
     return
 
 
-def run_ipex_bf16_finetune_quantization(
+def run_finetune_quantization_deploy(
+    finetune_case_name: str,
     case_name: str,
     finetune_cmd: str,
     optimum_cmd: str,
+    deploy_cmd: str,
     args: argparse.Namespace,
     csv_writer: csv.DictWriter,
 ):
+    qt_cases = [
+        "pt-fx-fp32int8-static-ptq",
+        "pt-fx-fp32int8-dyn-ptq",
+        "pt-fx-fp32int8-qat",
+    ]
+    infer_cases = [
+        "ipex-eager-fp32",
+        "pt-eager-fp32",
+        "ipex-jit-fp32",
+        "pt-jit-fp32",
+    ]
     # step1: finetune to get the model firstly
-    run_finetune(case_name, "ipex-bf16-1", finetune_cmd, args, csv_writer)
-    # step2: quantization using optimum-intel
-    run_optimum_intel_quantization(
-        case_name, "ipex-bf16-1", "static", optimum_cmd, args, csv_writer
-    )
-    run_optimum_intel_quantization(
-        case_name, "ipex-bf16-1", "dynamic", optimum_cmd, args, csv_writer
-    )
-    run_optimum_intel_quantization(
-        case_name, "ipex-bf16-1", "aware_training", optimum_cmd, args, csv_writer
-    )
+    run_finetune(case_name, finetune_case_name, finetune_cmd, args, csv_writer)
+    for qt_case in qt_cases:
+        # step2: use optimum-intel to quantitize the model
+        run_optimum_intel_quantization(
+            case_name, finetune_case_name, qt_case, optimum_cmd, args, csv_writer
+        )
+        for infer_case in infer_cases:
+            # step3: use optimum-intel to deploy the quantized model
+            run_optimum_intel_quantization_deploy(
+                case_name,
+                finetune_case_name,
+                qt_case,
+                infer_case,
+                deploy_cmd,
+                args,
+                csv_writer,
+            )
     return
 
 
-def run_ipex_fp32_finetune_quantization(
+def run_ipex_bf16_finetune_quantization_deploy(
     case_name: str,
     finetune_cmd: str,
     optimum_cmd: str,
+    deploy_cmd: str,
     args: argparse.Namespace,
     csv_writer: csv.DictWriter,
 ):
-    # step1: finetune to get the model firstly
-    run_finetune(case_name, "ipex-fp32-1", finetune_cmd, args, csv_writer)
-    # step2: quantization using optimum-intel
-    run_optimum_intel_quantization(
-        case_name, "ipex-fp32-1", "static", optimum_cmd, args, csv_writer
+    finetune_case_name = "1-ipex-bf16"
+    run_finetune_quantization_deploy(
+        finetune_case_name,
+        case_name,
+        finetune_cmd,
+        optimum_cmd,
+        deploy_cmd,
+        args,
+        csv_writer,
     )
-    run_optimum_intel_quantization(
-        case_name, "ipex-fp32-1", "dynamic", optimum_cmd, args, csv_writer
-    )
-    run_optimum_intel_quantization(
-        case_name, "ipex-fp32-1", "aware_training", optimum_cmd, args, csv_writer
-    )
-    return
 
 
-def run_torch_bf16_finetune_quantization(
+def run_ipex_fp32_finetune_quantization_deploy(
     case_name: str,
     finetune_cmd: str,
     optimum_cmd: str,
+    deploy_cmd: str,
     args: argparse.Namespace,
     csv_writer: csv.DictWriter,
 ):
-    # step1: finetune to get the model firstly
-    run_finetune(case_name, "bf16-1", finetune_cmd, args, csv_writer)
-    # step2: quantization using optimum-intel
-    run_optimum_intel_quantization(
-        case_name, "bf16-1", "static", optimum_cmd, args, csv_writer
+    finetune_case_name = "1-ipex-fp32"
+    run_finetune_quantization_deploy(
+        finetune_case_name,
+        case_name,
+        finetune_cmd,
+        optimum_cmd,
+        deploy_cmd,
+        args,
+        csv_writer,
     )
-    run_optimum_intel_quantization(
-        case_name, "bf16-1", "dynamic", optimum_cmd, args, csv_writer
-    )
-    run_optimum_intel_quantization(
-        case_name, "bf16-1", "aware_training", optimum_cmd, args, csv_writer
-    )
-    return
 
 
-def run_torch_fp32_finetune_quantization(
+def run_pt_bf16_finetune_quantization_deploy(
     case_name: str,
     finetune_cmd: str,
     optimum_cmd: str,
+    deploy_cmd: str,
     args: argparse.Namespace,
     csv_writer: csv.DictWriter,
 ):
-    # step1: finetune to get the model firstly
-    run_finetune(case_name, "fp32-1", finetune_cmd, args, csv_writer)
-    # step2: quantization using optimum-intel
-    run_optimum_intel_quantization(
-        case_name, "fp32-1", "static", optimum_cmd, args, csv_writer
-    )
-    run_optimum_intel_quantization(
-        case_name, "fp32-1", "dynamic", optimum_cmd, args, csv_writer
-    )
-    run_optimum_intel_quantization(
-        case_name, "fp32-1", "aware_training", optimum_cmd, args, csv_writer
+    finetune_case_name = "1-pt-bf16"
+    run_finetune_quantization_deploy(
+        finetune_case_name,
+        case_name,
+        finetune_cmd,
+        optimum_cmd,
+        deploy_cmd,
+        args,
+        csv_writer,
     )
     return
+
+
+def run_pt_fp32_finetune_quantization_deploy(
+    case_name: str,
+    finetune_cmd: str,
+    optimum_cmd: str,
+    deploy_cmd: str,
+    args: argparse.Namespace,
+    csv_writer: csv.DictWriter,
+):
+    finetune_case_name = "1-pt-fp32"
+    run_finetune_quantization_deploy(
+        finetune_case_name,
+        case_name,
+        finetune_cmd,
+        optimum_cmd,
+        deploy_cmd,
+        args,
+        csv_writer,
+    )

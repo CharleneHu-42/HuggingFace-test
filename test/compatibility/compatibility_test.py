@@ -56,8 +56,16 @@ def get_finetune_case_command(arg: argparse.Namespace):
 
 def get_optimum_case_command(arg: argparse.Namespace):
     switch = {
-        "text-classification-mrpc": "run_glue.py --task_name mrpc --max_seq_length 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir --verify_loading",
-        "text-classification-sst2": "run_glue.py --task_name sst2 --max_seq_length 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir --verify_loading",
+        "text-classification-mrpc": "run_glue.py --task_name mrpc --max_seq_length 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
+        "text-classification-sst2": "run_glue.py --task_name sst2 --max_seq_length 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
+    }
+    return switch[arg.case]
+
+
+def get_optimum_case_deploy_command(arg: argparse.Namespace):
+    switch = {
+        "text-classification-mrpc": "run_glue.py --task_name mrpc --max_seq_length 128 --per_device_eval_batch_size 64 --no_cuda --overwrite_output_dir --only_verify_loading",
+        "text-classification-sst2": "run_glue.py --task_name sst2 --max_seq_length 128 --per_device_eval_batch_size 64 --no_cuda --overwrite_output_dir --only_verify_loading",
     }
     return switch[arg.case]
 
@@ -92,6 +100,7 @@ def main():
         csv_writer.writeheader()
     finetune_base_cmd = get_finetune_case_command(args)
     optimum_base_cmd = get_optimum_case_command(args)
+    optimum_deploy_cmd = get_optimum_case_deploy_command(args)
 
     testcase.run_ipex_bf16_finetune_evaluate(
         args.case, finetune_base_cmd, args, csv_writer
@@ -99,24 +108,47 @@ def main():
     testcase.run_ipex_fp32_finetune_evaluate(
         args.case, finetune_base_cmd, args, csv_writer
     )
-    testcase.run_torch_bf16_finetune_evaluate(
+    testcase.run_pt_bf16_finetune_evaluate(
         args.case, finetune_base_cmd, args, csv_writer
     )
-    testcase.run_torch_fp32_finetune_evaluate(
+    testcase.run_pt_fp32_finetune_evaluate(
         args.case, finetune_base_cmd, args, csv_writer
     )
-    testcase.run_ipex_bf16_finetune_quantization(
-        args.case, finetune_base_cmd, optimum_base_cmd, args, csv_writer
+
+    testcase.run_ipex_bf16_finetune_quantization_deploy(
+        args.case,
+        finetune_base_cmd,
+        optimum_base_cmd,
+        optimum_deploy_cmd,
+        args,
+        csv_writer,
     )
-    testcase.run_torch_bf16_finetune_quantization(
-        args.case, finetune_base_cmd, optimum_base_cmd, args, csv_writer
+
+    testcase.run_ipex_fp32_finetune_quantization_deploy(
+        args.case,
+        finetune_base_cmd,
+        optimum_base_cmd,
+        optimum_deploy_cmd,
+        args,
+        csv_writer,
     )
-    testcase.run_ipex_fp32_finetune_quantization(
-        args.case, finetune_base_cmd, optimum_base_cmd, args, csv_writer
+    testcase.run_pt_bf16_finetune_quantization_deploy(
+        args.case,
+        finetune_base_cmd,
+        optimum_base_cmd,
+        optimum_deploy_cmd,
+        args,
+        csv_writer,
     )
-    testcase.run_torch_fp32_finetune_quantization(
-        args.case, finetune_base_cmd, optimum_base_cmd, args, csv_writer
+    testcase.run_pt_fp32_finetune_quantization_deploy(
+        args.case,
+        finetune_base_cmd,
+        optimum_base_cmd,
+        optimum_deploy_cmd,
+        args,
+        csv_writer,
     )
+
 
 if __name__ == "__main__":
     main()

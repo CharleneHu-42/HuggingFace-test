@@ -1,0 +1,49 @@
+From ab3a0e5bcaa06153f4edd19ab725e8956fcf6b4a Mon Sep 17 00:00:00 2001
+From: "Wang, Yi A" <yi.a.wang@intel.com>
+Date: Wed, 2 Nov 2022 17:53:03 -0700
+Subject: [PATCH] glue case add only verify loadding path
+
+Signed-off-by: Wang, Yi A <yi.a.wang@intel.com>
+---
+ .../text-classification/run_glue.py            | 18 +++++++++++++++++-
+ 1 file changed, 17 insertions(+), 1 deletion(-)
+
+diff --git a/examples/neural_compressor/text-classification/run_glue.py b/examples/neural_compressor/text-classification/run_glue.py
+index 7e05bff..edfd3d7 100644
+--- a/examples/neural_compressor/text-classification/run_glue.py
++++ b/examples/neural_compressor/text-classification/run_glue.py
+@@ -261,7 +261,14 @@ class OptimizationArguments:
+         default=False,
+         metadata={"help": "Whether or not to verify the loading of the quantized model."},
+     )
+-
++    only_verify_loading: bool = field(
++        default=False,
++        metadata={"help": "Whether or not to only verify the loading of the quantized model."},
++    )
++    loading_dir:Optional[str] = field(
++        default=None,
++        metadata={"help": "loading dir."},
++    )
+ 
+ def main():
+     # See all possible arguments in src/transformers/training_args.py
+@@ -575,6 +582,15 @@ def main():
+     pruner = None
+     distiller = None
+ 
++    if optim_args.only_verify_loading:
++        # Load the model obtained after Intel Neural Compressor quantization
++        loaded_model = IncQuantizedModelForSequenceClassification.from_pretrained(optim_args.loading_dir)
++        loaded_model.eval()
++        result_loaded_model = take_eval_steps(loaded_model, trainer, metric_name, save_metrics=True)
++        logger.info(f"The quantized model was successfully loaded.")
++        exit(0)
++
++
+     if not optim_args.apply_quantization and not optim_args.apply_pruning and not optim_args.apply_distillation:
+         raise ValueError("No optimization activated.")
+ 
+-- 
+2.25.1
+
