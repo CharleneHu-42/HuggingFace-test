@@ -167,6 +167,8 @@ def run_optimum_intel_quantization(
         cmdstr += " --apply_quantization --quantization_approach dynamic"
     if "qat" in qt_subname:
         cmdstr += " --apply_quantization --quantization_approach aware_training"
+    if "ipex" in qt_subname:
+        cmdstr += " --backend ipex"
 
     cmdstr = "numactl --cpunodebind 0 --membind 0 python3 " + cmdstr
     logger.info(f"{cmdstr}")
@@ -309,6 +311,37 @@ def run_pt_fp32_finetune_evaluate(
     return
 
 
+def get_infer_cases(qt_case: str):
+    infer_cases = []
+    if "pt-fx-fp32int8" in qt_case:
+        infer_cases = [
+            "ipex-eager-fp32int8",
+            "pt-eager-fp32int8",
+            #    "ipex-jit-fp32int8", #no-work
+            #    "pt-jit-fp32int8",   #no-work
+        ]
+    elif "ipex-fp32int8" in qt_case:
+        infer_cases = [
+            "ipex-eager-fp32int8",
+            "pt-eager-fp32int8",
+        ]
+    elif "ipex-bf16int8" in qt_case:
+        infer_cases = [
+            "ipex-eager-fp32int8",
+            "pt-eager-fp32int8",
+            "ipex-eager-bf16int8",
+            "pt-eager-bf16int8",
+        ]
+    if "pt-eager-fp32int8" in qt_case:
+        infer_cases = [
+            "ipex-eager-fp32int8",
+            "pt-eager-fp32int8",
+            "ipex-jit-fp32int8",
+            "pt-jit-fp32int8",
+        ]
+    return infer_cases
+
+
 def run_finetune_quantization_deploy(
     finetune_case_name: str,
     case_name: str,
@@ -320,14 +353,9 @@ def run_finetune_quantization_deploy(
 ):
     qt_cases = [
         "pt-fx-fp32int8-static-ptq",
-        "pt-fx-fp32int8-dyn-ptq",
+        "pt-eager-fp32int8-dyn-ptq",
         "pt-fx-fp32int8-qat",
-    ]
-    infer_cases = [
-        "ipex-eager-fp32",
-        "pt-eager-fp32",
-        "ipex-jit-fp32",
-        "pt-jit-fp32",
+        "ipex-fp32int8-static-ptq",
     ]
     # step1: finetune to get the model firstly
     run_finetune(case_name, finetune_case_name, finetune_cmd, args, csv_writer)
@@ -336,6 +364,7 @@ def run_finetune_quantization_deploy(
         run_optimum_intel_quantization(
             case_name, finetune_case_name, qt_case, optimum_cmd, args, csv_writer
         )
+        infer_cases = get_infer_cases(qt_case)
         for infer_case in infer_cases:
             # step3: use optimum-intel to deploy the quantized model
             run_optimum_intel_quantization_deploy(

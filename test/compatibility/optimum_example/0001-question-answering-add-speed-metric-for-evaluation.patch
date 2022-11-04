@@ -1,0 +1,126 @@
+From 3379c385ace1379c5f3989fa44c049e17ecb7fc2 Mon Sep 17 00:00:00 2001
+From: "Wang, Yi A" <yi.a.wang@intel.com>
+Date: Thu, 3 Nov 2022 22:58:09 -0700
+Subject: [PATCH] question-answering add speed metric for evaluation
+
+---
+ .../question-answering/run_qa.py              | 30 +++++++++++++++----
+ .../question-answering/trainer_qa.py          |  8 +++--
+ optimum/intel/neural_compressor/trainer.py    |  5 ++--
+ 3 files changed, 32 insertions(+), 11 deletions(-)
+
+diff --git a/examples/neural_compressor/question-answering/run_qa.py b/examples/neural_compressor/question-answering/run_qa.py
+index 72f7ddf..e2b3c56 100644
+--- a/examples/neural_compressor/question-answering/run_qa.py
++++ b/examples/neural_compressor/question-answering/run_qa.py
+@@ -287,6 +287,14 @@ class OptimizationArguments:
+         default="pytorch",
+         metadata={"help": "Backend used to quantize."},
+     )
++    only_verify_loading: bool = field(
++        default=False,
++        metadata={"help": "Whether or not to only verify the loading of the quantized model."},
++    )
++    loading_dir:Optional[str] = field(
++        default=None,
++        metadata={"help": "loading dir."},
++    )
+ 
+ 
+ def main():
+@@ -773,6 +781,15 @@ def main():
+     pruner = None
+     distiller = None
+ 
++    if optim_args.only_verify_loading:
++        # Load the model obtained after Intel Neural Compressor quantization
++        result_baseline_model = take_eval_steps(model, trainer, metric_name)
++        loaded_model = IncQuantizedModelForQuestionAnswering.from_pretrained(optim_args.loading_dir)
++        loaded_model.eval()
++        result_loaded_model = take_eval_steps(loaded_model, trainer, metric_name, save_metrics=True)
++        logger.info(f"The quantized model was successfully loaded.")
++        exit(0)
++
+     if not optim_args.apply_quantization and not optim_args.apply_pruning and not optim_args.apply_distillation:
+         raise ValueError("No optimization activated.")
+ 
+@@ -907,13 +924,14 @@ def main():
+ 
+     # Save the resulting model and its corresponding configuration in the given directory
+     optimizer.save_pretrained(training_args.output_dir)
+-    # Compute the model's sparsity
+-    sparsity = optimizer.get_sparsity()
++    if optim_args.apply_pruning:
++        # Compute the model's sparsity
++        sparsity = optimizer.get_sparsity()
+ 
+-    logger.info(
+-        f"Optimized model with {metric_name} of {result_optimized_model} and sparsity of {round(sparsity, 2)}% "
+-        f"saved to: {training_args.output_dir}. Original model had an {metric_name} of {result_baseline_model}."
+-    )
++        logger.info(
++            f"Optimized model with {metric_name} of {result_optimized_model} and sparsity of {round(sparsity, 2)}% "
++            f"saved to: {training_args.output_dir}. Original model had an {metric_name} of {result_baseline_model}."
++        )
+ 
+     if optim_args.apply_quantization and optim_args.verify_loading:
+ 
+diff --git a/examples/neural_compressor/question-answering/trainer_qa.py b/examples/neural_compressor/question-answering/trainer_qa.py
+index cd7255a..537c530 100644
+--- a/examples/neural_compressor/question-answering/trainer_qa.py
++++ b/examples/neural_compressor/question-answering/trainer_qa.py
+@@ -15,7 +15,7 @@
+ """
+ A subclass of `IncTrainer` specific to Question-Answering tasks
+ """
+-
++import torch
+ from transformers.trainer_utils import PredictionOutput
+ from transformers.utils import logging
+ 
+@@ -35,7 +35,7 @@ class QuestionAnsweringIncTrainer(IncTrainer):
+         eval_dataset = self.eval_dataset if eval_dataset is None else eval_dataset
+         eval_dataloader = self.get_eval_dataloader(eval_dataset)
+         eval_examples = self.eval_examples if eval_examples is None else eval_examples
+-        if hasattr(self.model, "config") and getattr(self.model.config, "torch_dtype", None) == "int8":
++        if hasattr(self.model, "config") and getattr(self.model.config, "torch_dtype", None) in ["int8", torch.int8]:
+             if self.model.config.framework in ["pytorch", "pytorch_fx"] and self.use_cpu_amp:
+                 logger.warn(
+                     f"{self.model.config.framework} quantized model doesn't support BFloat16 input, setting `use_cpu_amp` to False."
+@@ -61,7 +61,9 @@ class QuestionAnsweringIncTrainer(IncTrainer):
+         if self.post_process_function is not None and self.compute_metrics is not None:
+             eval_preds = self.post_process_function(eval_examples, eval_dataset, output.predictions)
+             metrics = self.compute_metrics(eval_preds)
+-
++            for key in list(output.metrics.keys()):
++                if key not in metrics:
++                    metrics[key] = output.metrics.pop(key)
+             # Prefix all keys with metric_key_prefix + '_'
+             for key in list(metrics.keys()):
+                 if not key.startswith(f"{metric_key_prefix}_"):
+diff --git a/optimum/intel/neural_compressor/trainer.py b/optimum/intel/neural_compressor/trainer.py
+index 3859c15..7e02cfb 100644
+--- a/optimum/intel/neural_compressor/trainer.py
++++ b/optimum/intel/neural_compressor/trainer.py
+@@ -536,7 +536,8 @@ class IncTrainer(Trainer):
+             return dataset
+         self._set_signature_columns_if_needed()
+         signature_columns = self._signature_columns
+-        signature_columns += ["teacher_logits"]
++        if "teacher_logits" not in signature_columns:
++            signature_columns += ["teacher_logits"]
+ 
+         ignored_columns = list(set(dataset.column_names) - set(signature_columns))
+         if len(ignored_columns) > 0:
+@@ -637,7 +638,7 @@ class IncTrainer(Trainer):
+         ignore_keys: Optional[List[str]] = None,
+         metric_key_prefix: str = "eval",
+     ) -> Dict[str, float]:
+-        if hasattr(self.model, "config") and getattr(self.model.config, "torch_dtype", None) == "int8":
++        if hasattr(self.model, "config") and getattr(self.model.config, "torch_dtype", None) in ["int8", torch.int8]:
+             if self.model.config.framework in ["pytorch", "pytorch_fx"] and self.use_cpu_amp:
+                 logger.warn(
+                     f"{self.model.config.framework} quantized model doesn't support BFloat16 input, setting `use_cpu_amp` to False."
+-- 
+2.25.1
+

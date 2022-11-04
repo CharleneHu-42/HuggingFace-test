@@ -23,9 +23,13 @@ def init_arguments_parser():
     parser.add_argument(
         "-c",
         "--case",
-        default="text-classification-mrpc",
-        choices=["text-classification-mrpc", "text-classification-sst2"],
-        help="choice test case, default is text-classification-mrpc",
+        default="question-answering",
+        choices=[
+            "text-classification-mrpc",
+            "text-classification-sst2",
+            "question-answering",
+        ],
+        help="choice test case, default is question-answering",
     )
     parser.add_argument(
         "-m",
@@ -35,12 +39,12 @@ def init_arguments_parser():
     )
     parser.add_argument(
         "--finetune_dir",
-        default="/home/wangyi/project/hugface/transformers/examples/pytorch/text-classification",
+        default="/home/wangyi/project/hugface/transformers/examples/pytorch/question-answering",
         help="huggingface finetune examples dir",
     )
     parser.add_argument(
         "--optimum_dir",
-        default="/home/wangyi/project/hugface/optimum-intel/examples/neural_compressor/text-classification",
+        default="/home/wangyi/project/hugface/optimum-intel/examples/neural_compressor/question-answering",
         help="Huggingface optimum-intel examples dir",
     )
     return parser
@@ -50,6 +54,7 @@ def get_finetune_case_command(arg: argparse.Namespace):
     switch = {
         "text-classification-mrpc": "run_glue.py --task_name mrpc --max_seq_length 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
         "text-classification-sst2": "run_glue.py --task_name sst2 --max_seq_length 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
+        "question-answering": "run_qa.py --dataset_name squad --max_seq_length 384 --doc_stride 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
     }
     return switch[arg.case]
 
@@ -58,6 +63,7 @@ def get_optimum_case_command(arg: argparse.Namespace):
     switch = {
         "text-classification-mrpc": "run_glue.py --task_name mrpc --max_seq_length 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
         "text-classification-sst2": "run_glue.py --task_name sst2 --max_seq_length 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
+        "question-answering": "run_qa.py --dataset_name squad --max_seq_length 384 --doc_stride 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
     }
     return switch[arg.case]
 
@@ -66,6 +72,7 @@ def get_optimum_case_deploy_command(arg: argparse.Namespace):
     switch = {
         "text-classification-mrpc": "run_glue.py --task_name mrpc --max_seq_length 128 --per_device_eval_batch_size 64 --no_cuda --overwrite_output_dir --only_verify_loading",
         "text-classification-sst2": "run_glue.py --task_name sst2 --max_seq_length 128 --per_device_eval_batch_size 64 --no_cuda --overwrite_output_dir --only_verify_loading",
+        "question-answering": "run_qa.py --dataset_name squad --max_seq_length 384 --doc_stride 128 --per_device_eval_batch_size 64 --no_cuda  --overwrite_output_dir --only_verify_loading",
     }
     return switch[arg.case]
 
