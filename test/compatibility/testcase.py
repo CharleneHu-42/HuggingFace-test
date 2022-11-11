@@ -49,7 +49,15 @@ def run_finetune(
         ipex = True
     cmdstr = "numactl --cpunodebind 0 --membind 0 python3 " + cmdstr
     logger.info(f"{cmdstr}")
-    exit, output = subprocess.getstatusoutput(cmdstr)
+    results = None
+    try:
+        results = get_json_map(output_dir + "/all_results.json")
+    except ValueError as e:
+        logger.info(f"{e}")
+    if results:
+        exit = 0
+    else:
+        exit, output = subprocess.getstatusoutput(cmdstr)
     a = {
         "optimum-intel": "wo",
         "casename": None,
@@ -111,7 +119,16 @@ def run_inference(
         jit = True
     cmdstr = "taskset -c 0-3 python3 " + cmdstr
     logger.info(f"{cmdstr}")
-    exit, output = subprocess.getstatusoutput(cmdstr)
+    results = None
+    try:
+        results = get_json_map(output_dir + "/eval_results.json")
+    except ValueError as e:
+        logger.info(f"{e}")
+
+    if results:
+        exit = 0
+    else:
+        exit, output = subprocess.getstatusoutput(cmdstr)
     a = {
         "optimum-intel": "wo",
         "casename": None,
@@ -157,8 +174,8 @@ def run_optimum_intel_quantization(
         + model_dir
         + " --do_eval --do_train"
     )
-    if "bf16" in qt_subname:
-        cmdstr += " --bf16"
+    # if "bf16" in qt_subname:
+    #    cmdstr += " --bf16"
     if "ipex" in qt_subname:
         cmdstr += " --use_ipex"
     if "static-ptq" in qt_subname:
@@ -172,7 +189,16 @@ def run_optimum_intel_quantization(
 
     cmdstr = "numactl --cpunodebind 0 --membind 0 python3 " + cmdstr
     logger.info(f"{cmdstr}")
-    exit, output = subprocess.getstatusoutput(cmdstr)
+    results = None
+    try:
+        results = get_json_map(output_dir + "/eval_results.json")
+    except ValueError as e:
+        logger.info(f"{e}")
+
+    if results:
+        exit = 0
+    else:
+        exit, output = subprocess.getstatusoutput(cmdstr)
     if exit != 0:
         logger.error(f"{output}")
     return
@@ -225,7 +251,15 @@ def run_optimum_intel_quantization_deploy(
         jit = True
     cmdstr = "taskset -c 0-3 python3 " + cmdstr
     logger.info(f"{cmdstr}")
-    exit, output = subprocess.getstatusoutput(cmdstr)
+    results = None
+    try:
+        results = get_json_map(output_dir + "/eval_results.json")
+    except ValueError as e:
+        logger.info(f"{e}")
+    if results:
+        exit = 0
+    else:
+        exit, output = subprocess.getstatusoutput(cmdstr)
     a = {
         "optimum-intel": "w",
         "casename": None,
@@ -327,10 +361,18 @@ def get_infer_cases(qt_case: str):
         ]
     elif "ipex-bf16int8" in qt_case:
         infer_cases = [
-            "ipex-eager-fp32int8",
-            "pt-eager-fp32int8",
             "ipex-eager-bf16int8",
             "pt-eager-bf16int8",
+            "pt-jit-bf16int8",
+            "ipex-jit-bf16int8",
+            "ipex-eager-fp32int8",
+            "pt-eager-fp32int8",
+            "pt-jit-fp32int8",
+            "ipex-jit-fp32int8",
+        ]
+    if "pt-eager-fp32int8" in qt_case:
+        infer_cases = [
+            "ipex-eager-fp32int8",
         ]
     if "pt-eager-fp32int8" in qt_case:
         infer_cases = [
@@ -356,6 +398,7 @@ def run_finetune_quantization_deploy(
         "pt-eager-fp32int8-dyn-ptq",
         "pt-fx-fp32int8-qat",
         "ipex-fp32int8-static-ptq",
+        "ipex-bf16int8-static-ptq",
     ]
     # step1: finetune to get the model firstly
     run_finetune(case_name, finetune_case_name, finetune_cmd, args, csv_writer)

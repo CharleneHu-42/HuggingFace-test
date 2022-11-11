@@ -54,7 +54,7 @@ def get_finetune_case_command(arg: argparse.Namespace):
     switch = {
         "text-classification-mrpc": "run_glue.py --task_name mrpc --max_seq_length 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
         "text-classification-sst2": "run_glue.py --task_name sst2 --max_seq_length 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
-        "question-answering": "run_qa.py --dataset_name squad --max_seq_length 384 --doc_stride 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
+        "question-answering": "run_qa.py --dataset_name squad --max_seq_length 384 --doc_stride 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 1 --overwrite_output_dir --max_train_samples 10000 --max_eval_samples 5000",
     }
     return switch[arg.case]
 
@@ -63,7 +63,7 @@ def get_optimum_case_command(arg: argparse.Namespace):
     switch = {
         "text-classification-mrpc": "run_glue.py --task_name mrpc --max_seq_length 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
         "text-classification-sst2": "run_glue.py --task_name sst2 --max_seq_length 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
-        "question-answering": "run_qa.py --dataset_name squad --max_seq_length 384 --doc_stride 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 2 --overwrite_output_dir",
+        "question-answering": "run_qa.py --dataset_name squad --max_seq_length 384 --doc_stride 128 --per_device_train_batch_size 64 --per_device_eval_batch_size 64 --no_cuda --num_train_epochs 1 --overwrite_output_dir --max_train_samples 10000 --max_eval_samples 5000",
     }
     return switch[arg.case]
 
@@ -72,7 +72,7 @@ def get_optimum_case_deploy_command(arg: argparse.Namespace):
     switch = {
         "text-classification-mrpc": "run_glue.py --task_name mrpc --max_seq_length 128 --per_device_eval_batch_size 64 --no_cuda --overwrite_output_dir --only_verify_loading",
         "text-classification-sst2": "run_glue.py --task_name sst2 --max_seq_length 128 --per_device_eval_batch_size 64 --no_cuda --overwrite_output_dir --only_verify_loading",
-        "question-answering": "run_qa.py --dataset_name squad --max_seq_length 384 --doc_stride 128 --per_device_eval_batch_size 64 --no_cuda  --overwrite_output_dir --only_verify_loading",
+        "question-answering": "run_qa.py --dataset_name squad --max_seq_length 384 --doc_stride 128 --per_device_eval_batch_size 64 --no_cuda  --overwrite_output_dir --only_verify_loading --max_eval_samples 5000",
     }
     return switch[arg.case]
 
