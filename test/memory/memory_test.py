@@ -2,6 +2,7 @@ import argparse
 import csv
 import logging
 import os
+import re
 import subprocess
 import time
 from multiprocessing import Process
@@ -83,7 +84,7 @@ def collect_memory(eval_pid: int, name: str, output: str):
 
 def run_and_collect_memory(case: dict, arg: argparse.Namespace):
     p_list = []
-    eval_p = subprocess.Popen(case["cmd"], shell=True, cwd=case["work_dir"])
+    eval_p = subprocess.Popen(re.split("\s+", case["cmd"]), cwd=case["work_dir"])
     time.sleep(case["warmup"])
     p_memory = Process(
         target=collect_memory, args=(eval_p.pid, case["title"], arg.output)

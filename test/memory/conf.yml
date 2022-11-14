@@ -1,13 +1,37 @@
 testcases:
 - case:
-     cmd: "python3 run_clm.py --model_name_or_path EleutherAI/gpt-j-6B  --dataset_name wikitext  --dataset_config_name wikitext-2-raw-v1  --per_device_eval_batch_size 4  --do_eval  --output_dir /run/wangyi/output/ --overwrite_output_dir --no_cuda --bf16_full_eval"
-     title: "gpt-j-6B-BS-4"
-     work_dir: "/home/intel/matrix/wangyi/transformers/examples/pytorch/language-modeling"
+     cmd: "python3 run_glue.py --task_name mrpc --max_seq_length 128  --per_device_eval_batch_size 8 --no_cuda --overwrite_output_dir --output_dir /skyrex01/wangyi/output/temp --model_name_or_path bigscience/bloomz-1b1 --do_eval --bf16_full_eval"
+     title: "bloomz-1b1-bs-8"
+     work_dir: "/home/wangyi/project/hugface/transformers/examples/pytorch/text-classification"
      timeout: 300
-     warmup: 100
+     warmup: 10
 - case:
-     cmd: "python3 run_clm.py --model_name_or_path EleutherAI/gpt-j-6B  --dataset_name wikitext  --dataset_config_name wikitext-2-raw-v1  --per_device_eval_batch_size 8  --do_eval  --output_dir /run/wangyi/output/ --overwrite_output_dir --no_cuda --bf16_full_eval"
-     title: "gpt-j-6B-BS-8"
-     work_dir: "/home/intel/matrix/wangyi/transformers/examples/pytorch/language-modeling"
+     cmd: "python3 run_glue.py --task_name mrpc --max_seq_length 128  --per_device_eval_batch_size 4 --no_cuda --overwrite_output_dir --output_dir /skyrex01/wangyi/output/temp --model_name_or_path bigscience/bloomz-1b1 --do_eval --bf16_full_eval"
+     title: "bloomz-1b1-bs-4"
+     work_dir: "/home/wangyi/project/hugface/transformers/examples/pytorch/text-classification"
+     timeout: 300
+     warmup: 10
+- case:
+     cmd: "python3 run_glue.py --task_name mrpc --max_seq_length 128  --per_device_eval_batch_size 8 --no_cuda --overwrite_output_dir --output_dir /skyrex01/wangyi/output/temp --model_name_or_path bigscience/bloomz-3b --do_eval --bf16_full_eval"
+     title: "bloomz-3b-bs-8"
+     work_dir: "/home/wangyi/project/hugface/transformers/examples/pytorch/text-classification"
+     timeout: 300
+     warmup: 10
+- case:
+     cmd: "python3 run_glue.py --task_name mrpc --max_seq_length 128  --per_device_eval_batch_size 4 --no_cuda --overwrite_output_dir --output_dir /skyrex01/wangyi/output/temp --model_name_or_path bigscience/bloomz-3b --do_eval --bf16_full_eval"
+     title: "bloomz-3b-bs-4"
+     work_dir: "/home/wangyi/project/hugface/transformers/examples/pytorch/text-classification"
+     timeout: 300
+     warmup: 10
+- case:
+     cmd: "python3 run_glue.py --task_name mrpc --max_seq_length 128  --per_device_eval_batch_size 8 --no_cuda --overwrite_output_dir --output_dir /skyrex01/wangyi/output/temp --model_name_or_path bigscience/bloomz-7b1 --do_eval --bf16_full_eval"
+     title: "bloomz-7b1-bs-8"
+     work_dir: "/home/wangyi/project/hugface/transformers/examples/pytorch/text-classification"
+     timeout: 300
+     warmup: 500
+- case:
+     cmd: "python3 run_glue.py --task_name mrpc --max_seq_length 128  --per_device_eval_batch_size 4 --no_cuda --overwrite_output_dir --output_dir /skyrex01/wangyi/output/temp --model_name_or_path bigscience/bloomz-7b1 --do_eval --bf16_full_eval"
+     title: "bloomz-7b1-bs-4"
+     work_dir: "/home/wangyi/project/hugface/transformers/examples/pytorch/text-classification"
      timeout: 300
      warmup: 100
