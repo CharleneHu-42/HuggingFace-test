@@ -157,6 +157,15 @@ torchrun --nproc_per_node=4 --master_port=<your_random_port> train.py \
     --tf32 True
 ```
 
+### Fine-tuning with PEFT
+
+#### llama-adapter
+https://arxiv.org/pdf/2303.16199.pdf  
+github: https://github.com/younesbelkada/peft/tree/fix-llama-adapter-mp  
+install peft and use it  
+in the command line, add `--peft llama_adapter`, meanwhile, FSDP could not work with llama-adapter.  
+
+
 ### Warning
 
 `fsdp_transformer_layer_cls_to_wrap` must be set to the name of the specific decoder layer.

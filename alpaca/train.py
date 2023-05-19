@@ -21,6 +21,10 @@ import torch
 import transformers
 from torch.utils.data import Dataset
 from transformers import Trainer
+from peft.mapping import get_peft_model
+from peft.peft_model import PeftModel
+from peft.tuners.adaption_prompt import AdaptionPromptConfig
+from transformers.modeling_utils import unwrap_model
 
 import utils
 
@@ -60,6 +64,15 @@ class TrainingArguments(transformers.TrainingArguments):
     model_max_length: int = field(
         default=512,
         metadata={"help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."},
+    )
+    peft: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": (
+                "apply peft."
+            ),
+            "choices": ["llama_adapter"],
+        },
     )
 
 
@@ -198,6 +211,10 @@ def train():
         cache_dir=training_args.cache_dir,
     )
 
+    if training_args.peft == "llama_adapter":
+        config = AdaptionPromptConfig(adapter_layers=30, adapter_len=10, task_type="CAUSAL_LM")
+        model = get_peft_model(model, config)
+
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         model_args.model_name_or_path,
         cache_dir=training_args.cache_dir,
@@ -223,9 +240,13 @@ def train():
     data_module = make_supervised_data_module(tokenizer=tokenizer, data_args=data_args)
     trainer = Trainer(model=model, tokenizer=tokenizer, args=training_args, **data_module)
     trainer.train()
-    trainer.save_state()
-    safe_save_model_for_hf_trainer(trainer=trainer, output_dir=training_args.output_dir)
 
+    if training_args.peft != None:
+        unwrapped_model = unwrap_model(model)
+        unwrapped_model.save_pretrained(training_args.output_dir, state_dict=unwrapped_model.state_dict())
+    else:
+        trainer.save_state()
+        safe_save_model_for_hf_trainer(trainer=trainer, output_dir=training_args.output_dir)
 
 if __name__ == "__main__":
     train()
