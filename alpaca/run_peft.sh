@@ -16,5 +16,5 @@ torchrun --nproc_per_node=6 --master_port=12345 train.py \
     --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \
     --logging_steps 1 \
-    --tf32 True \
     --peft llama_adapter \
+    --group_by_length True \

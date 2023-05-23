@@ -23,6 +23,7 @@ from torch.utils.data import Dataset
 from transformers import Trainer
 from peft.mapping import get_peft_model
 from peft.peft_model import PeftModel
+from peft import LoraConfig
 from peft.tuners.adaption_prompt import AdaptionPromptConfig
 from transformers.modeling_utils import unwrap_model
 
@@ -71,7 +72,7 @@ class TrainingArguments(transformers.TrainingArguments):
             "help": (
                 "apply peft."
             ),
-            "choices": ["llama_adapter"],
+            "choices": ["llama_adapter", "lora"],
         },
     )
 
@@ -214,6 +215,10 @@ def train():
     if training_args.peft == "llama_adapter":
         config = AdaptionPromptConfig(adapter_layers=30, adapter_len=10, task_type="CAUSAL_LM")
         model = get_peft_model(model, config)
+    elif training_args.peft == "lora":
+        config = LoraConfig(task_type="CAUSAL_LM", inference_mode=False, r=8, lora_alpha=16, lora_dropout=0.05)
+        model = get_peft_model(model, config)
+
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         model_args.model_name_or_path,
