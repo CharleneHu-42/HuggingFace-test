@@ -23,7 +23,7 @@ from torch.utils.data import Dataset
 from transformers import Trainer
 from peft.mapping import get_peft_model
 from peft.peft_model import PeftModel
-from peft import LoraConfig
+from peft import LoraConfig, PromptEncoderConfig, PrefixTuningConfig, PromptTuningConfig
 from peft.tuners.adaption_prompt import AdaptionPromptConfig
 from transformers.modeling_utils import unwrap_model
 
@@ -72,7 +72,7 @@ class TrainingArguments(transformers.TrainingArguments):
             "help": (
                 "apply peft."
             ),
-            "choices": ["llama_adapter", "lora"],
+            "choices": ["llama_adapter", "lora", "ptun", "prefix", "prompt"],
         },
     )
 
@@ -214,10 +214,14 @@ def train():
 
     if training_args.peft == "llama_adapter":
         config = AdaptionPromptConfig(adapter_layers=30, adapter_len=10, task_type="CAUSAL_LM")
-        model = get_peft_model(model, config)
     elif training_args.peft == "lora":
         config = LoraConfig(task_type="CAUSAL_LM", inference_mode=False, r=8, lora_alpha=16, lora_dropout=0.05)
-        model = get_peft_model(model, config)
+    elif training_args.peft == "ptun":
+        config = PromptEncoderConfig(task_type="CAUSAL_LM", num_virtual_tokens=30, encoder_hidden_size=1024)
+    elif training_args.peft == "prefix":
+        config = PrefixTuningConfig(task_type="CAUSAL_LM", num_virtual_tokens=30)
+    elif training_args.peft == "prompt":
+        config = PromptTuningConfig(task_type="CAUSAL_LM", num_virtual_tokens=30)
 
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(
@@ -241,6 +245,8 @@ def train():
                 "unk_token": DEFAULT_UNK_TOKEN,
             }
         )
+    if training_args.peft != None:
+        model = get_peft_model(model, config)
 
     data_module = make_supervised_data_module(tokenizer=tokenizer, data_args=data_args)
     trainer = Trainer(model=model, tokenizer=tokenizer, args=training_args, **data_module)
