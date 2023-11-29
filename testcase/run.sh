@@ -13,4 +13,4 @@ export LD_PRELOAD=${LD_PRELOAD}:${CONDA_PREFIX}/lib/libtcmalloc.so
 
 export OMP_NUM_THREADS=56
 
-numactl -C 0-55 --membind 0 python $1/run_$1.py --model_id $2
+numactl -C 0-55 --membind 0 python $1/run_$1.py --model_id $2 --bf16
