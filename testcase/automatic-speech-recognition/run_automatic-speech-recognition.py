@@ -7,17 +7,18 @@ from datasets import load_from_disk
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model_id", default=None, type=str, required=True)
+parser.add_argument("--bf16", action="store_true")
 args = parser.parse_args()
 model_id = args.model_id
 
-data = load_from_disk("./speech_demo")
+data = load_from_disk("/home/jiqingfe/datasets/speech_demo")
 
 if "pyannote" not in model_id:
     generator = pipeline("automatic-speech-recognition", model=model_id)
     print(data["train"][0])
 
     def generate(generator):
-        with torch.cpu.amp.autocast(enabled=True), torch.no_grad():
+        with torch.cpu.amp.autocast(enabled=args.bf16), torch.no_grad():
             for i in range(10):
                 pre = time.time()
                 out = generator(data["train"][0]["audio"]["array"])
