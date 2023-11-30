@@ -12,15 +12,12 @@ args = parser.parse_args()
 model_id = args.model_id
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 
-f = open("./prompt.json")
+f = open("/home/jiqingfe/datasets/prompt.json")
 prompt = json.load(f)
 
 generation_kwargs = dict(do_sample=False, num_beams=4, use_cache=True)
 torch_dtype = torch.bfloat16 if args.bf16 else torch.float32
 generator = pipeline("summarization", model=model_id, tokenizer=tokenizer, **generation_kwargs, torch_dtype=torch_dtype)
-
-
-# max_length=out_num+1, min_length=out_num, 
 
 
 def generate(generator, input_sentence):

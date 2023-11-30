@@ -7,6 +7,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model_id", default=None, type=str, required=True)
+parser.add_argument("--bf16", action="store_true")
 args = parser.parse_args()
 model_id = args.model_id
 
@@ -18,7 +19,7 @@ if "vilt" in model_id:
     processor = ViltProcessor.from_pretrained(model_id)
     model = ViltForQuestionAnswering.from_pretrained(model_id)
     inputs = processor(raw_image, question, return_tensors="pt")
-    with torch.cpu.amp.autocast(enabled=True), torch.no_grad():
+    with torch.cpu.amp.autocast(enabled=args.bf16), torch.no_grad():
         for i in range(10):
             pre = time.time()
             outputs = model(**inputs)
@@ -28,7 +29,8 @@ if "vilt" in model_id:
     print("Predicted answer:", model.config.id2label[idx])
 else:
     processor = BlipProcessor.from_pretrained(model_id)
-    model = BlipForQuestionAnswering.from_pretrained(model_id, torch_dtype=torch.bfloat16)
+    torch_dtype = torch.bfloat16 if args.bf16 else torch.float32
+    model = BlipForQuestionAnswering.from_pretrained(model_id, torch_dtype=torch_dtype)
 
     inputs = processor(raw_image, question, return_tensors="pt")
 

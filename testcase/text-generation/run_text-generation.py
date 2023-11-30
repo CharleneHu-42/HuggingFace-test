@@ -14,7 +14,7 @@ parser.add_argument("--torch_compile", action="store_true")
 args = parser.parse_args()
 model_id = args.model_id
 
-f = open("./prompt.json")
+f = open("/home/jiqingfe/datasets/prompt.json")
 prompt = json.load(f)
 
 generation_kwargs = dict(do_sample=False, num_beams=4, use_cache=True)

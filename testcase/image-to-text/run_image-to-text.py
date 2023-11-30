@@ -6,10 +6,12 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model_id", default=None, type=str, required=True)
+parser.add_argument("--bf16", action="store_true")
 args = parser.parse_args()
 model_id = args.model_id
 
-image_to_text = pipeline("image-to-text", model="nlpconnect/vit-gpt2-image-captioning", torch_dtype=torch.bfloat16)
+torch_dtype = torch.bfloat16 if args.bf16 else torch.float32
+image_to_text = pipeline("image-to-text", model="nlpconnect/vit-gpt2-image-captioning", torch_dtype=torch_dtype)
 
 for i in range(10):
     pre = time.time()
