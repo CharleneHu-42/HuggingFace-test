@@ -1,3 +1,9 @@
+script="$1"
+model_id="$2"
+bf16="$3"
+ipex_opt="$4"
+jit="$5"
+
 # Setup environment variables for performance on Xeon
 export LD_PRELOAD=${CONDA_PREFIX}/lib/libstdc++.so.6
 export KMP_BLOCKTIME=INF
@@ -13,4 +19,23 @@ export LD_PRELOAD=${LD_PRELOAD}:${CONDA_PREFIX}/lib/libtcmalloc.so
 
 export OMP_NUM_THREADS=56
 
-numactl -C 0-55 --membind 0 python $1/run_$1.py --model_id $2 --bf16
+if [[ -z "$model_id" ]]; then 
+    python $1/run_$1.py -h 
+    exit
+fi 
+
+
+if [[ "$bf16" == 'bf16' ]] && [[ "$ipex_opt" == 'ipex_opt' ]] && [[ "$jit" == 'jit' ]]; then
+    numactl -C 0-55 --membind 0 python $1/run_$1.py --model_id ${model_id} --bf16 --ipex_optimize --jit 
+elif [[ "$bf16" == 'bf16' ]] && [[ "$ipex_opt" == 'ipex_opt' ]] && [[ "$jit" != 'jit' ]]; then 
+    numactl -C 0-55 --membind 0 python $1/run_$1.py --model_id ${model_id} --bf16 --ipex_optimize
+elif [[ "$bf16" == 'bf16' ]] && [[ "$ipex_opt" != 'ipex_opt' ]] && [[ "$jit" != 'jit' ]]; then 
+    numactl -C 0-55 --membind 0 python $1/run_$1.py --model_id ${model_id} --bf16
+else
+    numactl -C 0-55 --membind 0 python $1/run_$1.py --model_id ${model_id}
+fi 
+ 
+
+
+
+
