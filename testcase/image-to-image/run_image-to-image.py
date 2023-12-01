@@ -60,6 +60,12 @@ def get_args():
         action="store_true",
         help="whether to use jit for acceleration on intel platforms"
     )
+
+    parser.add_argument(
+        "--torch_compile",
+        action="store_true",
+        help="whether to use torch.compile() for acceleration on intel platforms"
+    )
     
     args = parser.parse_args()   
     return args
@@ -187,6 +193,14 @@ def optimize_with_ipex(pipe, model_id):
     return pipe 
 
 
+def apply_torch_compile(pipe):
+
+    logging.info("using torch compile for acceleration...")
+    pipe.unet = torch.compile(pipe.unet, backend="ipex")
+    
+    return pipe 
+
+
 def load_image(model_id):
     if model_id == 'var':
         image_path = os.path.join(os.path.dirname(__file__), SAMPLE_IMAGE)
@@ -226,6 +240,7 @@ if __name__ == '__main__':
     use_bf16 = args.bf16
     use_ipex_optimize = args.ipex_optimize
     use_jit = args.jit
+    use_torch_compile = args.torch_compile
     
     model_dtype = get_model_dtype(model_id)
     
@@ -235,10 +250,11 @@ if __name__ == '__main__':
 
     if use_ipex_optimize:
         pipe = optimize_with_ipex(pipe, model_id)
-    
     if use_jit:
         pipe = apply_jit_trace(pipe, model_id, ['unet'])
-    
+    if use_torch_compile:
+        pipe = apply_torch_compile(pipe) 
+        
     if use_bf16:          
         logging.info("using BF16 for acceleration...")
         with torch.cpu.amp.autocast(enabled=True, dtype=torch.bfloat16):

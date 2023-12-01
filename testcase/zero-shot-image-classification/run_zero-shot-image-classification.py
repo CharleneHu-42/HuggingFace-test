@@ -54,6 +54,12 @@ def get_args():
         help="whether to use jit for acceleration on intel platforms"
     )
     
+    parser.add_argument(
+        "--torch_compile",
+        action="store_true",
+        help="whether to use torch.compile() for acceleration on intel platforms"
+    )
+    
     args = parser.parse_args()   
     return args
 
@@ -123,6 +129,14 @@ def optimize_with_ipex(model):
     return model 
 
 
+def apply_torch_compile(model):
+
+    logging.info("using torch compile for acceleration...")
+    model = torch.compile(model, backend="ipex")
+    
+    return model 
+ 
+ 
 def get_model_dtype(model_id):
     model_dtype = MODEL_DTYPE[model_id]
     if model_dtype == 'bf16':
@@ -140,6 +154,7 @@ if __name__ == '__main__':
     use_bf16 = args.bf16
     use_ipex_optimize = args.ipex_optimize
     use_jit = args.jit
+    use_torch_compile = args.torch_compile
     
     model_dtype = get_model_dtype(model_id)
     
@@ -150,10 +165,11 @@ if __name__ == '__main__':
     
     if use_ipex_optimize:
         model = optimize_with_ipex(model)
-    
     if use_jit:
         model = apply_jit_trace(model)
-    
+    if use_torch_compile:
+        model = apply_torch_compile(model) 
+        
     if use_bf16:          
         logging.info("using BF16 for acceleration...")
         with torch.cpu.amp.autocast(enabled=True, dtype=torch.bfloat16):

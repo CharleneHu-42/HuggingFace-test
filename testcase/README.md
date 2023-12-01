@@ -4,20 +4,19 @@
 If you cannot connect to huggingface model hub, please try `export HF_ENDPOINT=https://hf-mirror.com`
 
 ## Test commandline
-```
-sh run.sh task_name model_name
+```bash 
+sh run.sh --task task_name --model model_name
 ```
 note: `task_name` should be the same with folders name. For example: `text-generation`
 
-
-For some models that can be accelerated with bfloat16, ipex_optimize and jit, use the following command
+To accelerate inference with bfloat16, ipex_optimize and jit, use the following command
 ```
-# use bf16
-sh run.sh task_name model_name bf16 
-# use bf16 + ipex_optimize
-sh run.sh task_name model_name bf16 ipex_opt 
-# use bf16 + ipex_optimize + jit
-sh run.sh task_name model_name bf16 ipex_opt jit
+sh run.sh --task task_name --model model_name --bf16 --ipex_optimize --jit
+```
+
+For more options, run 
+```bash
+sh run.sh -h 
 ```
 
 ## Test data
