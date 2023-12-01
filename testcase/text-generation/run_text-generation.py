@@ -8,7 +8,7 @@ from transformers import pipeline, AutoTokenizer
 parser = argparse.ArgumentParser()
 parser.add_argument("--model_id", default=None, type=str, required=True)
 parser.add_argument("--bf16", action="store_true")
-parser.add_argument("--ipex_optimize", action="store_true")
+parser.add_argument("--ipex", action="store_true")
 parser.add_argument("--jit", action="store_true")
 parser.add_argument("--torch_compile", action="store_true")
 args = parser.parse_args()
@@ -28,16 +28,21 @@ def generate(generator, input_sentence):
     for i in range(5):
         out = generator(input_sentence, **generation_kwargs)
 
-    for i in range(10):
-        pre = time.time()
-        out = generator(input_sentence, **generation_kwargs)
-        latency.append((time.time()-pre)*1000)
+    with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(enabled=args.bf16):
+        for i in range(10):
+            pre = time.time()
+            out = generator(input_sentence, **generation_kwargs)
+            latency.append((time.time()-pre)*1000)
 
     return sum(latency)/len(latency), out
     
 def benchmark(generator, input_sentence):
     input_len = len(tokenizer(input_sentence)['input_ids'])
     print(f"input tokens num is {input_len}")
+
+    # warm up
+    generation_kwargs["max_new_tokens"] = 32
+    latency, out = generate(generator, input_sentence)
 
     generation_kwargs["max_new_tokens"] = 1
     first_latency, out = generate(generator, input_sentence)
@@ -53,10 +58,10 @@ def benchmark(generator, input_sentence):
     print(f"output = {out}")
 
 
-if not args.ipex_optimize and not args.torch_compile:
+if not args.ipex and not args.torch_compile:
     benchmark(generator, prompt["gpt-j"]["32"])
     benchmark(generator, prompt["gpt-j"]["512"])
-elif args.ipex_optimize:
+elif args.ipex:
     print("Use ipex optimization")
     from optimum.intel import inference_mode as ipex_inference_mode
 
@@ -66,7 +71,8 @@ elif args.ipex_optimize:
 elif args.torch_compile:
     print("Use torch compile with ipex backend")
     import intel_extension_for_pytorch
-    with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(enabled=True):
-        generator.model.generate = torch.compile(generator.model.generate, backend="ipex", dynamic=True)
-        benchmark(generator, prompt["gpt-j"]["32"])
+    with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(enabled=args.bf16):
+        generator.model.generate = torch.compile(generator.model.generate, backend="ipex")
+        # Can only choose one of them to run
+        # benchmark(generator, prompt["gpt-j"]["32"])
         benchmark(generator, prompt["gpt-j"]["512"])
