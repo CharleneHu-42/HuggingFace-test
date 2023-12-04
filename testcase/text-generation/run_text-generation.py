@@ -8,7 +8,7 @@ from transformers import pipeline, AutoTokenizer
 parser = argparse.ArgumentParser()
 parser.add_argument("--model_id", default=None, type=str, required=True)
 parser.add_argument("--bf16", action="store_true")
-parser.add_argument("--ipex", action="store_true")
+parser.add_argument("--ipex_optimize", action="store_true")
 parser.add_argument("--jit", action="store_true")
 parser.add_argument("--torch_compile", action="store_true")
 args = parser.parse_args()
@@ -61,7 +61,7 @@ def benchmark(generator, input_sentence):
 if not args.ipex and not args.torch_compile:
     benchmark(generator, prompt["gpt-j"]["32"])
     benchmark(generator, prompt["gpt-j"]["512"])
-elif args.ipex:
+elif args.ipex_optimize:
     print("Use ipex optimization")
     from optimum.intel import inference_mode as ipex_inference_mode
 
