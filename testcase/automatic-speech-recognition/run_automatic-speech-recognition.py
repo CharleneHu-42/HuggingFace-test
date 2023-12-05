@@ -51,7 +51,7 @@ else:
     if args.torch_compile:
         print("Use torch compile with ipex backend")
         import intel_extension_for_pytorch
-        with torch.inference_mode(), torch.no_grad():
+        with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(enabled=args.bf16):
             pipeline = torch.compile(pipeline, backend="ipex")
             for i in range(10):
                 pre = time.time()
@@ -60,7 +60,7 @@ else:
     elif args.ipex_optimize:
         print("Do not support ipex optimize")
     else:
-        with torch.inference_mode(), torch.no_grad():
+        with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(enabled=args.bf16):
             for i in range(10):
                 pre = time.time()
                 diarization = pipeline("/home/jiqingfe/datasets/speech.wav")
