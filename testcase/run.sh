@@ -1,12 +1,13 @@
 #!/bin/bash
 
 # Default variable values
-use_bf16=false
-use_ipex_optimize=false 
-use_jit=false 
-use_torch_compile=false
+use_bf16=False
+use_ipex_optimize=False
+use_jit=False
+use_torch_compile=False
 task_name=""
 model_id=""
+torch_dtype="float32"
 
 # Function to display script usage
 usage() {
@@ -17,7 +18,9 @@ usage() {
  echo " -m, --model     Specify model ID "
  echo " -i, --ipex      Use ipex optimize "
  echo " -m, --jit       Use iit "
- echo " -c, --compile   Use torch compile"
+ echo " -c, --torch_compile   Use torch compile"
+ echo " -b, --bf16      Use amp bf16"
+ echo " --torch_dtype   indicate the model dtype[float32, bfloat16]"
 }
 
 has_argument() {
@@ -59,16 +62,24 @@ handle_options() {
         shift
         ;;
       -b | --bf16)
-        use_bf16=true
+	      use_bf16=$(extract_argument $@)
+        shift
         ;;
       -i | --ipex_optimize)
-        use_ipex_optimize=true
+        use_ipex_optimize=$(extract_argument $@)
+        shift
         ;;
       -j | --jit)
-        use_jit=true
+        use_jit=$(extract_argument $@)
+        shift
         ;;
-      -c | --compile)
-        use_torch_compile=true
+      -c | --torch_compile)
+        use_torch_compile=$(extract_argument $@)
+        shift
+        ;;
+      --torch_dtype)
+        torch_dtype=$(extract_argument $@)
+        shift
         ;;
       *)
         echo "Invalid option: $1" >&2
@@ -100,20 +111,6 @@ export LD_PRELOAD=${LD_PRELOAD}:${CONDA_PREFIX}/lib/libtcmalloc.so
 export OMP_NUM_THREADS=56
 
 # Perform the desired actions based on the provided flags and arguments
-if [[ "$use_bf16" = false ]]; then
- numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py --model_id $model_id
- exit 0
-fi 
+numactl -C 56-111 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile
 
 
-if [[ "$use_ipex_optimize" = false ]] && [[ "$use_jit" = false ]] && [[ "$use_torch_compile" = false ]]; then
- numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --bf16
-elif [[ "$use_ipex_optimize" = true ]] && [[ "$use_jit" = false ]] && [[ "$use_torch_compile" = false ]]; then 
- numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --bf16 --ipex_optimize
-elif [[ "$use_ipex_optimize" = true ]] && [[ "$use_jit" = true ]] && [[ "$use_torch_compile" = false ]]; then 
- numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --bf16 --ipex_optimize --jit
-elif [[ "$use_ipex_optimize" = false ]] && [[ "$use_jit" = false ]] && [[ "$use_torch_compile" = true ]]; then 
- numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --bf16 --torch_compile
-else 
- echo "Invalid test case."
-fi 
