@@ -29,6 +29,7 @@ def get_args():
     parser.add_argument("--jit", default='False', type=str2bool)
     parser.add_argument("--torch_compile", default='False', type=str2bool)
     parser.add_argument("--torch_dtype", default="float32", type=str)
+    parser.add_argument("--backend", default="ipex", type=str)
     args = parser.parse_args()
     return args
 
@@ -116,9 +117,9 @@ def optimize_with_ipex(model, dtype):
     return model
 
 
-def apply_torch_compile(model):
-    logging.info("using torch compile for acceleration...")
-    model = torch.compile(model, backend="ipex")
+def apply_torch_compile(model, backend):
+    logging.info(f"using torch compile with {backend} backend for acceleration...")
+    model = torch.compile(model, backend=backend)
 
     return model
 
@@ -131,6 +132,7 @@ if __name__ == "__main__":
     use_ipex_optimize = args.ipex_optimize
     use_jit = args.jit
     use_torch_compile = args.torch_compile
+    backend = args.backend
 
     torch_dtype = torch.bfloat16 if args.torch_dtype == "bfloat16" else torch.float32
     model, processor = load_model(model_id, SEED, torch_dtype)
@@ -143,11 +145,11 @@ if __name__ == "__main__":
     if use_jit:
         model = apply_jit_trace(model, dtype=dtype)
     if use_torch_compile:
-        model = apply_torch_compile(model)
+        model = apply_torch_compile(model, backend)
 
     if use_bf16:
         logging.info("using BF16 for acceleration...")
-        with torch.cpu.amp.autocast(enabled=True, dtype=torch.bfloat16):
+        with torch.cpu.amp.autocast(enabled=True, dtype=torch.bfloat16), torch.no_grad():
             elapsed_time = benchmark(model, inputs, SEED, 10)
     else:
         elapsed_time = benchmark(model, inputs, SEED, 10)

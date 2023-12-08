@@ -16,6 +16,7 @@ parser.add_argument("--ipex_optimize", default='False', type=str2bool)
 parser.add_argument("--jit", default='False', type=str2bool)
 parser.add_argument("--torch_compile", default='False', type=str2bool)
 parser.add_argument("--torch_dtype", default="float32", type=str)
+parser.add_argument("--backend", default="ipex", type=str)
 args = parser.parse_args()
 logging.info(f"args = {args}")
 model_id = args.model_id
@@ -30,13 +31,13 @@ speaker_embedding = torch.tensor(embeddings_dataset[0]["xvector"]).unsqueeze(0)
 forward_params = {"speaker_embeddings": speaker_embedding} if "t5" in model_id else None
 
 if args.torch_compile:
-    logging.info("Use torch compile with ipex backend")
+    logging.info(f"Use torch compile with {args.backend} backend")
     import intel_extension_for_pytorch
 
     synthesiser.model.generate = torch.compile(
-        synthesiser.model.generate, backend="ipex"
+        synthesiser.model.generate, backend=args.backend
     )
-    synthesiser.model = torch.compile(synthesiser.model, backend="ipex")
+    synthesiser.model = torch.compile(synthesiser.model, backend=args.backend)
     with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
         enabled=args.bf16
     ):

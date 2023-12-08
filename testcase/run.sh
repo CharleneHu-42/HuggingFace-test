@@ -8,19 +8,21 @@ use_torch_compile=False
 task_name=""
 model_id=""
 torch_dtype="float32"
+backend="ipex"
 
 # Function to display script usage
 usage() {
  echo "Usage: $0 [OPTIONS]"
  echo "Options:"
- echo " -h, --help      Display this help message"
- echo " -t, --task      Specify task name"
- echo " -m, --model     Specify model ID "
- echo " -i, --ipex      Use ipex optimize "
- echo " -m, --jit       Use iit "
+ echo " -h, --help            Display this help message"
+ echo " -t, --task            Specify task name"
+ echo " -m, --model           Specify model ID "
+ echo " -i, --ipex            Use ipex optimize "
+ echo " -j, --jit             Use jit "
  echo " -c, --torch_compile   Use torch compile"
- echo " -b, --bf16      Use amp bf16"
- echo " --torch_dtype   indicate the model dtype[float32, bfloat16]"
+ echo " -b, --bf16            Use amp bf16"
+ echo " --torch_dtype         Indicate the model dtype[float32, bfloat16]"
+ echo " --backend             Indicate the torch compile backend[ipex, inductor]"
 }
 
 has_argument() {
@@ -81,6 +83,10 @@ handle_options() {
         torch_dtype=$(extract_argument $@)
         shift
         ;;
+      --backend)
+        backend=$(extract_argument $@)
+        shift
+        ;;
       *)
         echo "Invalid option: $1" >&2
         usage
@@ -107,10 +113,10 @@ export KMP_REDUCTION_BARRIER_PATTERN=dist,dist
 export LD_PRELOAD=${LD_PRELOAD}:${CONDA_PREFIX}/lib/libiomp5.so # Intel OpenMP
 # Tcmalloc is a recommended malloc implementation that emphasizes fragmentation avoidance and scalable concurrency support.
 export LD_PRELOAD=${LD_PRELOAD}:${CONDA_PREFIX}/lib/libtcmalloc.so
-
+export TORCHINDUCTOR_FREEZING=1
 export OMP_NUM_THREADS=56
 
 # Perform the desired actions based on the provided flags and arguments
-numactl -C 56-111 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile
+numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile --backend $backend
 
 

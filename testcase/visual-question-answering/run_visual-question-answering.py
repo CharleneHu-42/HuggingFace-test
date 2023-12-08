@@ -21,6 +21,7 @@ parser.add_argument("--ipex_optimize", default='False', type=str2bool)
 parser.add_argument("--jit", default='False', type=str2bool)
 parser.add_argument("--torch_compile", default='False', type=str2bool)
 parser.add_argument("--torch_dtype", default="float32", type=str)
+parser.add_argument("--backend", default="ipex", type=str)
 
 args = parser.parse_args()
 logging.info(f"args = {args}")
@@ -38,10 +39,10 @@ if "vilt" in model_id:
     inputs = processor(raw_image, question, return_tensors="pt")
 
     if args.torch_compile:
-        logging.info("Use torch compile with ipex backend")
+        logging.info(f"Use torch compile with {args.backend} backend")
         import intel_extension_for_pytorch
 
-        model = torch.compile(model, backend="ipex")
+        model = torch.compile(model, backend=args.backend)
         with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
             enabled=args.bf16
         ):
@@ -87,10 +88,10 @@ else:
     inputs = processor(raw_image, question, return_tensors="pt")
 
     if args.torch_compile:
-        logging.info("Use torch compile with ipex backend")
+        logging.info(f"Use torch compile with {args.backend} backend")
         import intel_extension_for_pytorch
 
-        model.generate = torch.compile(model.generate, backend="ipex")
+        model.generate = torch.compile(model.generate, backend=args.backend)
         with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
             enabled=args.bf16
         ):

@@ -8,17 +8,20 @@ use_torch_compile=False
 task_name=""
 model_id=""
 torch_dtype="float32"
+backend="ipex"
 
 # Function to display script usage
 usage() {
  echo "Usage: $0 [OPTIONS]"
  echo "Options:"
- echo " -h, --help      Display this help message"
- echo " -i, --ipex      Use ipex optimize "
- echo " -m, --jit       Use iit "
- echo " -c, --compile   Use torch compile"
- echo " -b, --bf16      Use amp bf16"
- echo " --torch_dtype   indicate the model dtype[float32, bfloat16]"
+ echo " -h, --help               Display this help message"
+ echo " -m, --model              Model ID"
+ echo " -i, --ipex_optimize      Use ipex optimize "
+ echo " -j, --jit                Use jit "
+ echo " -c, --compile            Use torch compile"
+ echo " -b, --bf16               Use amp bf16"
+ echo " --torch_dtype            Indicate the model dtype[float32, bfloat16]"
+ echo " --backend                Indicate the torch compile backend[ipex, inductor]"
 }
 
 has_argument() {
@@ -79,6 +82,10 @@ handle_options() {
         torch_dtype=$(extract_argument $@)
         shift
         ;;
+      --backend)
+        backend=$(extract_argument $@)
+        shift
+        ;;
       *)
         echo "Invalid option: $1" >&2
         usage
@@ -98,7 +105,7 @@ model_list=("stabilityai/stable-diffusion-xl-refiner-1.0" "timbrooks/instruct-pi
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task image-to-image --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile
+    ./run.sh --task image-to-image --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile --backend $backend
 done
 
 
@@ -107,7 +114,7 @@ model_list=("openai/clip-vit-large-patch14" "openai/clip-vit-base-patch16" "open
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task zero-shot-image-classification --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile
+    ./run.sh --task zero-shot-image-classification --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile --backend $backend
 done
 
 echo "test sentence similarity"
@@ -115,7 +122,7 @@ model_list=("sentence-transformers/all-mpnet-base-v2" "sentence-transformers/all
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task sentence-similarity --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile
+    ./run.sh --task sentence-similarity --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile --backend $backend
 done
 
 echo "test text-to-image"
@@ -123,7 +130,7 @@ model_list=("stabilityai/stable-diffusion-xl-base-1.0" "runwayml/stable-diffusio
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task text-to-image --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile
+    ./run.sh --task text-to-image --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile --backend $backend
 done
 
 
@@ -132,7 +139,7 @@ model_list=("gpt2" "tiiuae/falcon-7b-instruct" "distilgpt2")
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task text-generation --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile
+    ./run.sh --task text-generation --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile --backend $backend
 done
 
 echo "test summarization"
@@ -140,7 +147,7 @@ model_list=("facebook/bart-large-cnn" "sshleifer/distilbart-cnn-12-6" "philschmi
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task summarization --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile
+    ./run.sh --task summarization --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile --backend $backend
 done
 
 echo "test automatic-speech-recognition"
@@ -148,7 +155,7 @@ model_list=("jonatasgrosman/wav2vec2-large-xlsr-53-english" "jonatasgrosman/wav2
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task automatic-speech-recognition --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile
+    ./run.sh --task automatic-speech-recognition --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile --backend $backend
 done
 
 echo "test text-to-speech"
@@ -156,7 +163,7 @@ model_list=("microsoft/speecht5_tts" "suno/bark-small" "suno/bark")
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task text-to-speech --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile
+    ./run.sh --task text-to-speech --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile --backend $backend
 done
 
 echo "test image-to-text"
@@ -164,7 +171,7 @@ model_list=("nlpconnect/vit-gpt2-image-captioning" "Salesforce/blip-image-captio
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task image-to-text --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile
+    ./run.sh --task image-to-text --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile --backend $backend
 done
 
 echo "test visual-question-answering"
@@ -172,7 +179,7 @@ model_list=("Salesforce/blip-vqa-base" "dandelin/vilt-b32-finetuned-vqa" "Salesf
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task visual-question-answering --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile
+    ./run.sh --task visual-question-answering --model $model --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile --backend $backend
 done
 
 

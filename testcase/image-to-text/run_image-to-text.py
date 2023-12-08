@@ -14,6 +14,7 @@ parser.add_argument("--ipex_optimize", default='False', type=str2bool)
 parser.add_argument("--jit", default='False', type=str2bool)
 parser.add_argument("--torch_compile", default='False', type=str2bool)
 parser.add_argument("--torch_dtype", default="float32", type=str)
+parser.add_argument("--backend", default="ipex", type=str)
 args = parser.parse_args()
 logging.info(f"args = {args}")
 model_id = args.model_id
@@ -26,13 +27,13 @@ image_to_text = pipeline(
 )
 
 if args.torch_compile:
-    logging.info("Use torch compile with ipex backend")
+    logging.info(f"Use torch compile with {args.backend} backend")
     import intel_extension_for_pytorch
 
     image_to_text.model.generate = torch.compile(
-        image_to_text.model.generate, backend="ipex"
+        image_to_text.model.generate, backend=args.backend
     )
-    image_to_text.model = torch.compile(image_to_text.model, backend="ipex")
+    image_to_text.model = torch.compile(image_to_text.model, backend=args.backend)
     with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
         enabled=args.bf16
     ):

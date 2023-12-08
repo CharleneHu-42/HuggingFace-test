@@ -15,6 +15,7 @@ parser.add_argument("--ipex_optimize", default='False', type=str2bool)
 parser.add_argument("--jit", default='False', type=str2bool)
 parser.add_argument("--torch_compile", default='False', type=str2bool)
 parser.add_argument("--torch_dtype", default="float32", type=str)
+parser.add_argument("--backend", default="ipex", type=str)
 args = parser.parse_args()
 logging.info(f"args = {args}")
 model_id = args.model_id
@@ -39,16 +40,16 @@ if "pyannote" not in model_id:
                 logging.info(f"output = {out}")
 
     if args.torch_compile:
-        logging.info("Use torch compile with ipex backend")
+        logging.info(f"using torch compile with {args.backend} backend")
         import intel_extension_for_pytorch
 
         with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
             enabled=args.bf16
         ):
             generator.model.generate = torch.compile(
-                generator.model.generate, backend="ipex"
+                generator.model.generate, backend=args.backend
             )
-            generator.model = torch.compile(generator.model, backend="ipex")
+            generator.model = torch.compile(generator.model, backend=args.backend)
             generate(generator)
     elif args.ipex_optimize:
         logging.info("Use ipex optimize")
@@ -70,13 +71,13 @@ else:
 
     # numpy does not support bf16
     if args.torch_compile:
-        logging.info("Use torch compile with ipex backend")
+        logging.info(f"using torch compile with {args.backend} backend")
         import intel_extension_for_pytorch
 
         with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
             enabled=args.bf16
         ):
-            pipeline = torch.compile(pipeline, backend="ipex")
+            pipeline = torch.compile(pipeline, backend=args.backend)
             for i in range(10):
                 pre = time.time()
                 diarization = pipeline("./datasets/speech.wav")

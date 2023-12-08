@@ -52,6 +52,7 @@ def get_args():
     parser.add_argument("--jit", default='False', type=str2bool)
     parser.add_argument("--torch_compile", default='False', type=str2bool)
     parser.add_argument("--torch_dtype", default="float32", type=str)
+    parser.add_argument("--backend", default="ipex", type=str)
 
     args = parser.parse_args()
     return args
@@ -112,7 +113,7 @@ def benchmark(pipe, prompt, image, seed, nb_pass, model_id):
     return elapsed_time
 
 
-def prepare_jit_inputs(model_id, jit):
+def prepare_jit_inputs(model_id, jit, dtype):
     # import inspect
     # signature = inspect.signature(model.forward) if hasattr(model, "forward") else inspect.signature(model.__call__)
 
@@ -120,15 +121,16 @@ def prepare_jit_inputs(model_id, jit):
     timestep_size = MODEL_INPUT_SIZE[model_id]["timestep"]
     encoder_hidden_states_size = MODEL_INPUT_SIZE[model_id]["encoder_hidden_states"]
 
-    sample_example = torch.randn(sample_size)
-    timestep_example = torch.tensor(timestep_size)
-    encoder_hidden_states_example = torch.randn(encoder_hidden_states_size)
+    sample_example = torch.randn(sample_size, dtype=dtype)
+    timestemp_dtype = torch.int64 if isinstance(timestep_size, int) else torch.float32
+    timestep_example = torch.tensor(timestep_size, dtype=timestemp_dtype)
+    encoder_hidden_states_example = torch.randn(encoder_hidden_states_size, dtype=dtype)
 
     if model_id == "stabilityai/stable-diffusion-xl-refiner-1.0":
         text_embeds_size = MODEL_INPUT_SIZE[model_id]["text_embeds"]
         time_ids_size = MODEL_INPUT_SIZE[model_id]["time_ids"]
-        text_embeds_example = torch.randn(text_embeds_size)
-        time_ids_example = torch.randn(time_ids_size)
+        text_embeds_example = torch.randn(text_embeds_size, dtype=dtype)
+        time_ids_example = torch.randn(time_ids_size, dtype=dtype)
 
         if jit:
             example_inputs = {
@@ -173,7 +175,7 @@ def apply_jit_trace(pipeline, model_id, attr_list, dtype):
     for name in attr_list:
         model = getattr(pipeline, name)
         model.eval()
-        example_inputs = prepare_jit_inputs(model_id, True)
+        example_inputs = prepare_jit_inputs(model_id, True, dtype)
 
         with torch.cpu.amp.autocast(
             enabled=True if dtype == torch.bfloat16 else False, dtype=dtype
@@ -197,7 +199,7 @@ def optimize_with_ipex(pipe, model_id, dtype):
     pipe.unet = pipe.unet.to(memory_format=torch.channels_last)
     pipe.vae = pipe.vae.to(memory_format=torch.channels_last)
 
-    input_example = prepare_jit_inputs(model_id, False)
+    input_example = prepare_jit_inputs(model_id, False, dtype)
 
     # optimize with IPEX
     pipe.unet = ipex.optimize(
@@ -208,16 +210,15 @@ def optimize_with_ipex(pipe, model_id, dtype):
     return pipe
 
 
-def apply_torch_compile(pipe):
-    logging.info("using torch compile for acceleration...")
-    pipe.unet = torch.compile(pipe.unet, backend="ipex")
-
+def apply_torch_compile(pipe, backend):
+    logging.info(f"using torch compile with {backend} backend for acceleration...")
+    pipe.unet = torch.compile(pipe.unet, backend=backend)
     return pipe
 
 
 def load_image(model_id):
     if model_id == "lambdalabs/sd-image-variations-diffusers":
-        image_path = os.path.join(os.path.dirname(__file__), SAMPLE_IMAGE)
+        image_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'datasets', SAMPLE_IMAGE)
         image = PIL.Image.open(image_path)
         tform = transforms.Compose(
             [
@@ -247,6 +248,7 @@ if __name__ == "__main__":
     use_ipex_optimize = args.ipex_optimize
     use_jit = args.jit
     use_torch_compile = args.torch_compile
+    backend = args.backend
     logging.info(f"args = {args}")
     image = load_image(model_id)
     torch_dtype = torch.bfloat16 if args.torch_dtype == "bfloat16" else torch.float32
@@ -257,11 +259,11 @@ if __name__ == "__main__":
     if use_jit:
         pipe = apply_jit_trace(pipe, model_id, ["unet"], dtype=dtype)
     if use_torch_compile:
-        pipe = apply_torch_compile(pipe)
+        pipe = apply_torch_compile(pipe, backend)
 
     if use_bf16:
         logging.info("using BF16 for acceleration...")
-        with torch.cpu.amp.autocast(enabled=True, dtype=torch.bfloat16):
+        with torch.cpu.amp.autocast(enabled=True, dtype=torch.bfloat16), torch.no_grad():
             elapsed_time = benchmark(pipe, PROMPT, image, SEED, 5, model_id)
     else:
         elapsed_time = benchmark(pipe, PROMPT, image, SEED, 5, model_id)

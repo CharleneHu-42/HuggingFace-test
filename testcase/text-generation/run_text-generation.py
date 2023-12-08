@@ -17,7 +17,7 @@ parser.add_argument("--ipex_optimize", default='False', type=str2bool)
 parser.add_argument("--jit", default='False', type=str2bool)
 parser.add_argument("--torch_compile", default='False', type=str2bool)
 parser.add_argument("--torch_dtype", default="float32", type=str)
-
+parser.add_argument("--backend", default="ipex", type=str)
 args = parser.parse_args()
 model_id = args.model_id
 
@@ -88,14 +88,14 @@ elif args.ipex_optimize:
         benchmark(ipex_pipe, prompt["gpt-j"]["32"])
         benchmark(ipex_pipe, prompt["gpt-j"]["512"])
 elif args.torch_compile:
-    logging.info("Use torch compile with ipex backend")
+    logging.info(f"Use torch compile with {args.backend} backend")
     import intel_extension_for_pytorch
 
     with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
         enabled=args.bf16
     ):
         generator.model.generate = torch.compile(
-            generator.model.generate, backend="ipex"
+            generator.model.generate, backend=args.backend
         )
         # Can only choose one of them to run
         # benchmark(generator, prompt["gpt-j"]["32"])
