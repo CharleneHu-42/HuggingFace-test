@@ -23,6 +23,7 @@ model_id = args.model_id
 
 logging.info(f"args = {args}")
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 with open('./datasets/prompt.json','r') as f:
     prompt = json.load(f)
@@ -31,7 +32,7 @@ generation_kwargs = dict(do_sample=False, num_beams=4, use_cache=True)
 torch_dtype = torch.bfloat16 if args.torch_dtype == "bfloat16" else torch.float32
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 generator = pipeline(
-    "text-generation", model=model_id, torch_dtype=torch_dtype, tokenizer=tokenizer, **generation_kwargs
+    "text-generation", model=model_id, torch_dtype=torch_dtype, device=device, tokenizer=tokenizer, **generation_kwargs
 )
 
 
@@ -89,14 +90,12 @@ elif args.ipex_optimize:
         benchmark(ipex_pipe, prompt["gpt-j"]["512"])
 elif args.torch_compile:
     logging.info(f"Use torch compile with {args.backend} backend")
-    import intel_extension_for_pytorch
+    #import intel_extension_for_pytorch
 
-    with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
-        enabled=args.bf16
-    ):
+    with torch.inference_mode(), torch.no_grad(), torch.autocast(device_type=device, dtype=torch.bfloat16 if args.bf16 else torch.float32):
         generator.model.generate = torch.compile(
             generator.model.generate, backend=args.backend
         )
         # Can only choose one of them to run
-        # benchmark(generator, prompt["gpt-j"]["32"])
+        #benchmark(generator, prompt["gpt-j"]["32"])
         benchmark(generator, prompt["gpt-j"]["512"])

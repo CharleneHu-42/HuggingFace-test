@@ -10,6 +10,9 @@ import sys
 import argparse
 import logging
 logging.basicConfig(level=logging.INFO)
+import sys 
+sys.setrecursionlimit(100000)
+
 SEED = 20
 PROMPT = "An astronaut riding a green horse"
 
@@ -49,7 +52,7 @@ def get_args():
     args = parser.parse_args()
     return args
 
-def load_model(model_id, seed, model_dtype):
+def load_model(model_id, seed, model_dtype, device):
     torch.manual_seed(seed)
     if model_id == "stabilityai/stable-diffusion-xl-base-1.0":
         pipe = DiffusionPipeline.from_pretrained(
@@ -68,9 +71,8 @@ def load_model(model_id, seed, model_dtype):
         raise ValueError(
             "the given model id is incorrect. it should be one of [10, 15, 21]."
         )
-
-    pipe = pipe.to("cpu")
-
+        
+    pipe.to(device)
     return pipe
 
 
@@ -205,10 +207,12 @@ if __name__ == "__main__":
     use_jit = args.jit
     use_torch_compile = args.torch_compile
     backend = args.backend
+    
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     torch_dtype = torch.bfloat16 if args.torch_dtype == "bfloat16" else torch.float32
 
-    pipe = load_model(model_id, SEED, model_dtype=torch_dtype)
+    pipe = load_model(model_id, SEED, model_dtype=torch_dtype, device=device)
     dtype = torch.bfloat16 if use_bf16 else torch.float32
     if use_ipex_optimize:
         pipe = optimize_with_ipex(pipe, model_id, dtype=dtype)

@@ -20,13 +20,16 @@ args = parser.parse_args()
 logging.info(f"args = {args}")
 model_id = args.model_id
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 data = load_from_disk("./datasets/speech_demo")
 torch_dtype = torch.bfloat16 if args.torch_dtype == "bfloat16" else torch.float32
 
 if "pyannote" not in model_id:
     generator = pipeline(
-        "automatic-speech-recognition", model=model_id, torch_dtype=torch_dtype
+        "automatic-speech-recognition", model=model_id, device=device, torch_dtype=torch_dtype
     )
+        
     logging.info(data["train"][0])
 
     def generate(generator):
@@ -68,7 +71,9 @@ else:
     from pyannote.audio import Pipeline
 
     pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.0")
-
+    if device=='cuda':
+        pipeline.to(torch.device(device))
+    
     # numpy does not support bf16
     if args.torch_compile:
         logging.info(f"using torch compile with {args.backend} backend")

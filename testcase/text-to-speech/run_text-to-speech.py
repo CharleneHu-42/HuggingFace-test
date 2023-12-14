@@ -21,12 +21,15 @@ args = parser.parse_args()
 logging.info(f"args = {args}")
 model_id = args.model_id
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 torch.manual_seed(1024)
 torch_dtype = torch.bfloat16 if args.torch_dtype == "bfloat16" else torch.float32
-synthesiser = pipeline("text-to-speech", model_id, torch_dtype=torch_dtype)
+synthesiser = pipeline("text-to-speech", model_id, device=device, torch_dtype=torch_dtype)
 
 embeddings_dataset = load_from_disk("./datasets/speech_vector")
-speaker_embedding = torch.tensor(embeddings_dataset[0]["xvector"]).unsqueeze(0)
+speaker_embedding = torch.tensor(embeddings_dataset[0]["xvector"]).unsqueeze(0).to(device)
+
 # You can replace this embedding with your own as well.
 forward_params = {"speaker_embeddings": speaker_embedding} if "t5" in model_id else None
 
@@ -38,9 +41,8 @@ if args.torch_compile:
         synthesiser.model.generate, backend=args.backend
     )
     synthesiser.model = torch.compile(synthesiser.model, backend=args.backend)
-    with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
-        enabled=args.bf16
-    ):
+
+    with torch.autocast(device_type=device, dtype=torch.bfloat16 if args.bf16 else torch.float32), torch.no_grad(), torch.inference_mode():
         for i in range(10):
             torch.manual_seed(1024)
             pre = time.time()
@@ -68,9 +70,7 @@ elif args.ipex_optimize:
             )
             logging.info(f"Generate time costs {time.time()-pre} seconds")
 else:
-    with torch.cpu.amp.autocast(
-        enabled=args.bf16
-    ), torch.no_grad(), torch.inference_mode():
+    with torch.autocast(device_type=device, dtype=torch.bfloat16 if args.bf16 else torch.float32), torch.no_grad(), torch.inference_mode():
         for i in range(10):
             torch.manual_seed(1024)
             pre = time.time()

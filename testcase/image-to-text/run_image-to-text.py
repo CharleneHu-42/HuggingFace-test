@@ -19,10 +19,13 @@ args = parser.parse_args()
 logging.info(f"args = {args}")
 model_id = args.model_id
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 torch_dtype = torch.bfloat16 if args.bf16 else torch.float32
 image_to_text = pipeline(
     "image-to-text",
     model="nlpconnect/vit-gpt2-image-captioning",
+    device=device,
     torch_dtype=torch_dtype,
 )
 

@@ -26,12 +26,16 @@ logging.info(f"args = {args}")
 with open('./datasets/prompt.json','r') as f:
     prompt = json.load(f)
 
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 generation_kwargs = dict(do_sample=False, num_beams=4, use_cache=True)
 torch_dtype = torch.bfloat16 if args.torch_dtype == "bfloat16" else torch.float32
 generator = pipeline(
     "summarization",
     model=model_id,
     tokenizer=tokenizer,
+    device=device,
     **generation_kwargs,
     torch_dtype=torch_dtype,
 )

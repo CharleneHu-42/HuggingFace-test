@@ -34,13 +34,14 @@ def get_args():
     return args
 
 
-def load_model(model_id, seed, model_dtype):
+def load_model(model_id, seed, model_dtype, device):
     torch.manual_seed(seed)
     model = CLIPModel.from_pretrained(
         model_id, torch_dtype=model_dtype, return_dict=False
     )
     processor = CLIPProcessor.from_pretrained(model_id, torch_dtype=model_dtype)
 
+    model.to(device)
     return model, processor
 
 
@@ -134,11 +135,11 @@ if __name__ == "__main__":
     use_torch_compile = args.torch_compile
     backend = args.backend
 
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    
     torch_dtype = torch.bfloat16 if args.torch_dtype == "bfloat16" else torch.float32
-    model, processor = load_model(model_id, SEED, torch_dtype)
-
-    image = Image.open(requests.get(IMG_URL, stream=True).raw)
-    inputs = processor(text=TEXT, images=image, return_tensors="pt", padding=True)
+    model, processor = load_model(model_id, SEED, torch_dtype, device)
+    
     dtype = torch.bfloat16 if args.bf16 else torch.float32
     if use_ipex_optimize:
         model = optimize_with_ipex(model, dtype=dtype)
@@ -147,6 +148,12 @@ if __name__ == "__main__":
     if use_torch_compile:
         model = apply_torch_compile(model, backend)
 
+    image = Image.open(requests.get(IMG_URL, stream=True).raw)
+    inputs = processor(text=TEXT, images=image, return_tensors="pt", padding=True)
+    
+    if device == 'cuda':
+        inputs = inputs.to(device)
+        
     if use_bf16:
         logging.info("using BF16 for acceleration...")
         with torch.cpu.amp.autocast(enabled=True, dtype=torch.bfloat16), torch.no_grad():

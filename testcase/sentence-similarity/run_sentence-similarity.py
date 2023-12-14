@@ -33,13 +33,13 @@ def get_args():
     return args
 
 
-def load_model(model_id, seed, model_dtype):
+def load_model(model_id, seed, model_dtype, device):
     torch.manual_seed(seed)
     tokenizer = AutoTokenizer.from_pretrained(model_id, torch_dtype=model_dtype)
     model = AutoModel.from_pretrained(
         model_id, torch_dtype=model_dtype, return_dict=False
     )
-
+    model.to(device)
     return model, tokenizer
 
 
@@ -138,6 +138,8 @@ if __name__ == "__main__":
     use_torch_compile = args.torch_compile
     backend = args.backend
 
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
     torch_dtype = torch.bfloat16 if args.torch_dtype == "bfloat16" else torch.float32
 
     if "shibing624/text2vec-base-chinese" in model_id:
@@ -145,10 +147,8 @@ if __name__ == "__main__":
     else:
         sentences = SENTENCES
 
-    model, tokenizer = load_model(model_id, SEED, model_dtype=torch_dtype)
-    encoded_input = tokenizer(
-        sentences, padding=True, truncation=True, return_tensors="pt"
-    )
+    model, tokenizer = load_model(model_id, SEED, model_dtype=torch_dtype, device=device)
+    
     dtype = torch.bfloat16 if use_bf16 else torch.float32
     if use_ipex_optimize:
         model = optimize_with_ipex(model, dtype=dtype)
@@ -157,6 +157,12 @@ if __name__ == "__main__":
     if use_torch_compile:
         model = apply_torch_compile(model, backend)
 
+    encoded_input = tokenizer(
+        sentences, padding=True, truncation=True, return_tensors="pt"
+    )
+    if device == 'cuda':
+        encoded_input.to(device)
+    
     if use_bf16:
         logging.info("using BF16 for acceleration...")
         with torch.cpu.amp.autocast(enabled=True, dtype=torch.bfloat16), torch.no_grad():

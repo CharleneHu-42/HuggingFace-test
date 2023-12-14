@@ -27,6 +27,8 @@ args = parser.parse_args()
 logging.info(f"args = {args}")
 model_id = args.model_id
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 img_url = "https://storage.googleapis.com/sfr-vision-language-research/BLIP/demo.jpg"
 raw_image = Image.open(requests.get(img_url, stream=True).raw).convert("RGB")
 question = "how many dogs are in the picture?"
@@ -36,16 +38,19 @@ torch_dtype = torch.bfloat16 if args.torch_dtype == "bfloat16" else torch.float3
 if "vilt" in model_id:
     processor = ViltProcessor.from_pretrained(model_id)
     model = ViltForQuestionAnswering.from_pretrained(model_id, torch_dtype=torch_dtype)
-    inputs = processor(raw_image, question, return_tensors="pt")
-
+    model.to(device)
+    
+    if not args.torch_compile:
+        inputs = processor(raw_image, question, return_tensors="pt")
+        
     if args.torch_compile:
         logging.info(f"Use torch compile with {args.backend} backend")
         import intel_extension_for_pytorch
 
         model = torch.compile(model, backend=args.backend)
-        with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
-            enabled=args.bf16
-        ):
+        inputs = processor(raw_image, question, return_tensors="pt").to(device)
+        
+        with torch.autocast(device_type=device, dtype=torch.bfloat16 if args.bf16 else torch.float32), torch.inference_mode(), torch.no_grad():
             for i in range(20):
                 pre = time.time()
                 outputs = model(**inputs)
@@ -71,27 +76,28 @@ if "vilt" in model_id:
         idx = logits.argmax(-1).item()
         logging.info("Predicted answer:", model.config.id2label[idx])
     else:
-        with torch.cpu.amp.autocast(
-            enabled=args.bf16
-        ), torch.no_grad(), torch.inference_mode():
+        with torch.autocast(device_type=device, dtype=torch.bfloat16 if args.bf16 else torch.float32), torch.inference_mode(), torch.no_grad():
             for i in range(10):
                 pre = time.time()
                 outputs = model(**inputs)
                 logging.info(f"Generate time costs {time.time()-pre} seconds")
+
         logits = outputs.logits
         idx = logits.argmax(-1).item()
         logging.info("Predicted answer:", model.config.id2label[idx])
 else:
     processor = BlipProcessor.from_pretrained(model_id)
     model = BlipForQuestionAnswering.from_pretrained(model_id, torch_dtype=torch_dtype)
-
-    inputs = processor(raw_image, question, return_tensors="pt")
+    if not args.torch_compile:
+        inputs = processor(raw_image, question, return_tensors="pt")
 
     if args.torch_compile:
         logging.info(f"Use torch compile with {args.backend} backend")
         import intel_extension_for_pytorch
 
         model.generate = torch.compile(model.generate, backend=args.backend)
+        # Avoid using `tokenizers` before the fork if possible to avoid deadlock 
+        inputs = processor(raw_image, question, return_tensors="pt")
         with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
             enabled=args.bf16
         ):

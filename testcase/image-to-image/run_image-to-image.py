@@ -14,6 +14,8 @@ from torchvision import transforms
 import os
 import logging
 logging.basicConfig(level=logging.INFO)
+import sys 
+sys.setrecursionlimit(100000)
 
 SEED = 20
 IMG_URL = "https://raw.githubusercontent.com/timothybrooks/instruct-pix2pix/main/imgs/example.jpg"
@@ -53,18 +55,17 @@ def get_args():
     parser.add_argument("--torch_compile", default='False', type=str2bool)
     parser.add_argument("--torch_dtype", default="float32", type=str)
     parser.add_argument("--backend", default="ipex", type=str)
-
+    
     args = parser.parse_args()
     return args
 
 
-def load_model(model_id, seed, model_dtype):
+def load_model(model_id, seed, model_dtype, device):
     torch.manual_seed(seed)
     if model_id == "timbrooks/instruct-pix2pix":
         pipe = StableDiffusionInstructPix2PixPipeline.from_pretrained(
             model_id, torch_dtype=model_dtype, safety_checker=None
         )
-        pipe = pipe.to("cpu")
         pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(
             pipe.scheduler.config
         )
@@ -72,16 +73,17 @@ def load_model(model_id, seed, model_dtype):
         pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
             model_id, torch_dtype=model_dtype, use_safetensors=True
         )
-        pipe = pipe.to("cpu")
+
     elif model_id == "lambdalabs/sd-image-variations-diffusers":
         pipe = StableDiffusionImageVariationPipeline.from_pretrained(
             model_id, torch_dtype=model_dtype, revision="v2.0"
         )
-        pipe = pipe.to("cpu")
     else:
         raise ValueError(
             f"the given model id is incorrect. it is {model_id}"
         )
+
+    pipe.to(device)
 
     return pipe
 
@@ -216,7 +218,7 @@ def apply_torch_compile(pipe, backend):
     return pipe
 
 
-def load_image(model_id):
+def load_image(model_id, device):
     if model_id == "lambdalabs/sd-image-variations-diffusers":
         image_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'datasets', SAMPLE_IMAGE)
         image = PIL.Image.open(image_path)
@@ -234,7 +236,7 @@ def load_image(model_id):
                 ),
             ]
         )
-        image = tform(image).to("cpu").unsqueeze(0)
+        image = tform(image).to(device).unsqueeze(0)
     else:
         image = download_image(IMG_URL)
 
@@ -250,10 +252,13 @@ if __name__ == "__main__":
     use_torch_compile = args.torch_compile
     backend = args.backend
     logging.info(f"args = {args}")
-    image = load_image(model_id)
-    torch_dtype = torch.bfloat16 if args.torch_dtype == "bfloat16" else torch.float32
-    pipe = load_model(model_id, SEED, torch_dtype)
+    
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    image = load_image(model_id, device)
+    torch_dtype = torch.bfloat16 if args.torch_dtype == "bfloat16" else torch.float32 
+    pipe = load_model(model_id, SEED, torch_dtype, device)
     dtype = torch.bfloat16 if args.bf16 else torch.float32
+    
     if use_ipex_optimize:
         pipe = optimize_with_ipex(pipe, model_id, dtype=dtype)
     if use_jit:
