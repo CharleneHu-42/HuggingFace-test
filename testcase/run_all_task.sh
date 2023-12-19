@@ -151,7 +151,7 @@ do
 done
 
 echo "test automatic-speech-recognition"
-model_list=("jonatasgrosman/wav2vec2-large-xlsr-53-english" "jonatasgrosman/wav2vec2-large-xlsr-53-portuguese" "pyannote/speaker-diarization-3.0")
+model_list=("jonatasgrosman/wav2vec2-large-xlsr-53-english" "jonatasgrosman/wav2vec2-large-xlsr-53-portuguese" "facebook/wav2vec2-base-960h")
 
 for model in "${model_list[@]}"
 do
