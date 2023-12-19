@@ -1,11 +1,6 @@
 import requests
 from PIL import Image
-from transformers import (
-    BlipProcessor,
-    BlipForQuestionAnswering,
-    ViltProcessor,
-    ViltForQuestionAnswering,
-)
+from transformers import pipeline
 import torch
 import time
 import argparse
@@ -35,97 +30,28 @@ question = "how many dogs are in the picture?"
 
 torch_dtype = torch.bfloat16 if args.torch_dtype == "bfloat16" else torch.float32
 
-if "vilt" in model_id:
-    processor = ViltProcessor.from_pretrained(model_id)
-    model = ViltForQuestionAnswering.from_pretrained(model_id, torch_dtype=torch_dtype)
-    model.to(device)
+
+pipe = pipeline("visual-question-answering", model=model_id, torch_dtype=torch_dtype, device=device)
     
-    if not args.torch_compile:
-        inputs = processor(raw_image, question, return_tensors="pt")
-        
-    if args.torch_compile:
-        logging.info(f"Use torch compile with {args.backend} backend")
-        import intel_extension_for_pytorch
+if args.torch_compile:
+    logging.info(f"Use torch compile with {args.backend} backend")
+    import intel_extension_for_pytorch
 
-        model = torch.compile(model, backend=args.backend)
-        inputs = processor(raw_image, question, return_tensors="pt").to(device)
-        
-        with torch.autocast(device_type=device, dtype=torch.bfloat16 if args.bf16 else torch.float32), torch.inference_mode(), torch.no_grad():
-            for i in range(20):
-                pre = time.time()
-                outputs = model(**inputs)
-                logging.info(f"Generate time costs {time.time()-pre} seconds")
-        logits = outputs.logits
-        idx = logits.argmax(-1).item()
-        logging.info("Predicted answer:", model.config.id2label[idx])
-    elif args.ipex_optimize:
-        logging.info("Use ipex optimize")
-        import intel_extension_for_pytorch as ipex
-
-        model = ipex.optimize(
-            model, dtype=torch.bfloat16 if args.bf16 else torch.float32, inplace=True
-        )
-        with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
-            enabled=args.bf16
-        ):
-            for i in range(20):
-                pre = time.time()
-                outputs = model(**inputs)
-                logging.info(f"Generate time costs {time.time()-pre} seconds")
-        logits = outputs.logits
-        idx = logits.argmax(-1).item()
-        logging.info("Predicted answer:", model.config.id2label[idx])
-    else:
-        with torch.autocast(device_type=device, dtype=torch.bfloat16 if args.bf16 else torch.float32), torch.inference_mode(), torch.no_grad():
-            for i in range(10):
-                pre = time.time()
-                outputs = model(**inputs)
-                logging.info(f"Generate time costs {time.time()-pre} seconds")
-
-        logits = outputs.logits
-        idx = logits.argmax(-1).item()
-        logging.info("Predicted answer:", model.config.id2label[idx])
+    pipe.model = torch.compile(pipe.model, backend=args.backend)
+    pipe.model.generate = torch.compile(pipe.model.generate, backend=args.backend)
+elif args.ipex_optimize:
+    logging.info("Use ipex optimize")
+    import intel_extension_for_pytorch as ipex
+    pipe.model = ipex.optimize(
+        pipe.model, dtype=torch.bfloat16 if args.bf16 else torch.float32, inplace=True
+    )
 else:
-    processor = BlipProcessor.from_pretrained(model_id)
-    model = BlipForQuestionAnswering.from_pretrained(model_id, torch_dtype=torch_dtype)
-    if not args.torch_compile:
-        inputs = processor(raw_image, question, return_tensors="pt")
+    pass
 
-    if args.torch_compile:
-        logging.info(f"Use torch compile with {args.backend} backend")
-        import intel_extension_for_pytorch
-
-        model.generate = torch.compile(model.generate, backend=args.backend)
-        # Avoid using `tokenizers` before the fork if possible to avoid deadlock 
-        inputs = processor(raw_image, question, return_tensors="pt")
-        with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
-            enabled=args.bf16
-        ):
-            for i in range(20):
-                pre = time.time()
-                out = model.generate(**inputs)
-                logging.info(f"Generate time costs {time.time()-pre} seconds")
-    elif args.ipex_optimize:
-        logging.info("Use ipex optimize")
-        import intel_extension_for_pytorch as ipex
-
-        model = ipex.optimize(
-            model, dtype=torch.bfloat16 if args.bf16 else torch.float32, inplace=True
-        )
-        with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
-            enabled=args.bf16
-        ):
-            for i in range(20):
-                pre = time.time()
-                out = model.generate(**inputs)
-                logging.info(f"Generate time costs {time.time()-pre} seconds")
-    else:
-        with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
-            enabled=args.bf16
-        ):
-            for i in range(10):
-                pre = time.time()
-                out = model.generate(**inputs)
-                logging.info(f"Generate time costs {time.time()-pre} seconds")
-
-    logging.info(processor.decode(out[0], skip_special_tokens=True))
+with torch.autocast(device_type=device, dtype=torch.bfloat16 if args.bf16 else torch.float32), \
+    torch.inference_mode(), torch.no_grad():
+    for i in range(20):
+        pre = time.time()
+        outputs = pipe(raw_image, question, topk=1)
+        logging.info(f"Generate time costs {time.time()-pre} seconds")
+logging.info(outputs)

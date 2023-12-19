@@ -24,7 +24,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 torch_dtype = torch.bfloat16 if args.bf16 else torch.float32
 image_to_text = pipeline(
     "image-to-text",
-    model="nlpconnect/vit-gpt2-image-captioning",
+    model=model_id,
     device=device,
     torch_dtype=torch_dtype,
 )
@@ -37,16 +37,6 @@ if args.torch_compile:
         image_to_text.model.generate, backend=args.backend
     )
     image_to_text.model = torch.compile(image_to_text.model, backend=args.backend)
-    with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
-        enabled=args.bf16
-    ):
-        for i in range(10):
-            pre = time.time()
-            out = image_to_text(
-                "https://ankur3107.github.io/assets/images/image-captioning-example.png"
-            )
-            logging.info(f"Generate time costs {time.time()-pre} seconds")
-        logging.info(f"output = {out}")
 elif args.ipex_optimize:
     logging.info("Use ipex optimize")
     import intel_extension_for_pytorch as ipex
@@ -56,26 +46,16 @@ elif args.ipex_optimize:
         dtype=torch.bfloat16 if args.bf16 else torch.float32,
         inplace=True,
     )
-    with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
-        enabled=args.bf16
-    ):
-        for i in range(10):
-            pre = time.time()
-            out = image_to_text(
-                "https://ankur3107.github.io/assets/images/image-captioning-example.png"
-            )
-            logging.info(f"Generate time costs {time.time()-pre} seconds")
-        logging.info(f"output = {out}")
 else:
-    with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
-        enabled=args.bf16
-    ):
-        for i in range(10):
-            pre = time.time()
-            out = image_to_text(
-                "https://ankur3107.github.io/assets/images/image-captioning-example.png"
-            )
-            logging.info(f"Generate time costs {time.time()-pre} seconds")
-        logging.info(f"output = {out}")
+    pass
 
-# [{'generated_text': 'a soccer game with a player jumping to catch the ball '}]
+with torch.autocast(device_type=device, dtype=torch.bfloat16 if args.bf16 else torch.float32), \
+    torch.inference_mode(), torch.no_grad():
+    for i in range(10):
+        pre = time.time()
+        out = image_to_text(
+            "https://ankur3107.github.io/assets/images/image-captioning-example.png"
+        )
+        logging.info(f"Generate time costs {time.time()-pre} seconds")
+
+logging.info(f"output = {out}")
