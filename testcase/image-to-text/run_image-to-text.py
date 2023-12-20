@@ -3,6 +3,8 @@ import torch
 import time
 import argparse
 import logging
+import requests
+import PIL.Image
 logging.basicConfig(level=logging.INFO)
 def str2bool(str):
     return True if str.lower() == 'true' else False
@@ -49,13 +51,14 @@ elif args.ipex_optimize:
 else:
     pass
 
+timeout = 3000
+image_url = "https://ankur3107.github.io/assets/images/image-captioning-example.png"
+image = PIL.Image.open(requests.get(image_url, stream=True, timeout=timeout).raw)
 with torch.autocast(device_type=device, dtype=torch.bfloat16 if args.bf16 else torch.float32), \
     torch.inference_mode(), torch.no_grad():
     for i in range(10):
         pre = time.time()
-        out = image_to_text(
-            "https://ankur3107.github.io/assets/images/image-captioning-example.png"
-        )
+        out = image_to_text(image)
         logging.info(f"Generate time costs {time.time()-pre} seconds")
 
 logging.info(f"output = {out}")
