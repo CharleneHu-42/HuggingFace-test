@@ -24,8 +24,8 @@ model_id = args.model_id
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-img_url = "https://storage.googleapis.com/sfr-vision-language-research/BLIP/demo.jpg"
-raw_image = Image.open(requests.get(img_url, stream=True).raw).convert("RGB")
+image_path = "./datasets/vqa_cats.jpg"
+raw_image = Image.open(image_path).convert("RGB")
 question = "how many dogs are in the picture?"
 
 torch_dtype = torch.bfloat16 if args.torch_dtype == "bfloat16" else torch.float32
