@@ -10,14 +10,23 @@ logging.basicConfig(level=logging.INFO)
 def str2bool(str):
     return True if str.lower() == 'true' else False
 
+def get_torch_dtype(dtype):
+    if dtype == "bfloat16":
+        return torch.bfloat16
+    elif dtype == 'float16':
+        return torch.float16 
+    else:
+        return torch.float32
+    
 parser = argparse.ArgumentParser()
 parser.add_argument("--model_id", default=None, type=str, required=True)
-parser.add_argument("--bf16", default='False', type=str2bool)
+parser.add_argument("--compute_dtype", default="float32", type=str)
 parser.add_argument("--ipex_optimize", default='False', type=str2bool)
 parser.add_argument("--jit", default='False', type=str2bool)
 parser.add_argument("--torch_compile", default='False', type=str2bool)
-parser.add_argument("--torch_dtype", default="float32", type=str)
-parser.add_argument("--backend", default="ipex", type=str)
+parser.add_argument("--model_dtype", default="float32", type=str)
+parser.add_argument("--backend", default="inductor", type=str)
+parser.add_argument("--device", default="cpu", type=str)
 args = parser.parse_args()
 model_id = args.model_id
 tokenizer = AutoTokenizer.from_pretrained(model_id)
@@ -27,10 +36,14 @@ with open('./datasets/prompt.json','r') as f:
     prompt = json.load(f)
 
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
+device = args.device 
+if device == 'xpu':
+    import intel_extension_for_pytorch as ipex
+    
 generation_kwargs = dict(do_sample=False, num_beams=4, use_cache=True)
-torch_dtype = torch.bfloat16 if args.torch_dtype == "bfloat16" else torch.float32
+torch_dtype = get_torch_dtype(args.model_dtype)
+dtype = get_torch_dtype(args.compute_dtype)
+
 generator = pipeline(
     "summarization",
     model=model_id,
@@ -47,9 +60,7 @@ def generate(generator, input_sentence):
     for i in range(5):
         out = generator(input_sentence, **generation_kwargs)
 
-    with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
-        enabled=args.bf16
-    ):
+    with torch.autocast(device_type=device, dtype=dtype), torch.no_grad(), torch.inference_mode():
         for i in range(10):
             pre = time.time()
             out = generator(input_sentence, **generation_kwargs)
@@ -82,11 +93,9 @@ def benchmark(generator, input_sentence):
 
 if args.torch_compile:
     logging.info(f"Use torch compile with {args.backend} backend")
-    import intel_extension_for_pytorch
-
-    with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
-        enabled=args.bf16
-    ):
+    if args.backend == "ipex":
+        import intel_extension_for_pytorch as ipex
+    with torch.autocast(device_type=device, dtype=dtype), torch.no_grad(), torch.inference_mode():
         generator.model.generate = torch.compile(
             generator.model.generate, backend=args.backend
         )
@@ -94,12 +103,11 @@ if args.torch_compile:
         # benchmark(generator, prompt["gpt-j"]["32"])
         benchmark(generator, prompt["gpt-j"]["512"])
 elif args.ipex_optimize:
-    logging.info("Use ipex optimize")
+    logging.info("Use ipex optimize") 
     import intel_extension_for_pytorch as ipex
-
     generator.model = ipex.optimize(
         generator.model,
-        dtype=torch.bfloat16 if args.bf16 else torch.float32,
+        dtype=dtype,
         inplace=True,
     )
     benchmark(generator, prompt["gpt-j"]["32"])
@@ -107,3 +115,4 @@ elif args.ipex_optimize:
 else:
     benchmark(generator, prompt["gpt-j"]["32"])
     benchmark(generator, prompt["gpt-j"]["512"])
+

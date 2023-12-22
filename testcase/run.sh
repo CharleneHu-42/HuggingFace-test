@@ -1,14 +1,15 @@
 #!/bin/bash
 
 # Default variable values
-use_bf16=False
 use_ipex_optimize=False
 use_jit=False
 use_torch_compile=False
 task_name=""
 model_id=""
-torch_dtype="float32"
+model_dtype="float32"
+compute_dtype="float32"
 backend="ipex"
+device="cpu"
 
 # Function to display script usage
 usage() {
@@ -16,13 +17,14 @@ usage() {
  echo "Options:"
  echo " -h, --help            Display this help message"
  echo " -t, --task            Specify task name"
- echo " -m, --model           Specify model ID "
+ echo " -m, --model_id           Specify model ID "
  echo " -i, --ipex            Use ipex optimize "
  echo " -j, --jit             Use jit "
  echo " -c, --torch_compile   Use torch compile"
- echo " -b, --bf16            Use amp bf16"
- echo " --torch_dtype         Indicate the model dtype[float32, bfloat16]"
+ echo " --model_dtype         Indicate the model dtype[float32, bfloat16, float16]"
+ echo " --compute_dtype       Indicate the compute dtype[float32, bfloat16, float16]"
  echo " --backend             Indicate the torch compile backend[ipex, inductor]"
+ echo " --device              Indicate the computation device[cpu, cuda, xpu]"
 }
 
 has_argument() {
@@ -52,7 +54,7 @@ handle_options() {
 
         shift
         ;;
-      -m | --model*)
+      -m | --model_id*)
         if ! has_argument $@; then
           echo "Model ID not specified." >&2
           usage
@@ -61,10 +63,6 @@ handle_options() {
 
         model_id=$(extract_argument $@)
 
-        shift
-        ;;
-      -b | --bf16)
-	      use_bf16=$(extract_argument $@)
         shift
         ;;
       -i | --ipex_optimize)
@@ -79,12 +77,20 @@ handle_options() {
         use_torch_compile=$(extract_argument $@)
         shift
         ;;
-      --torch_dtype)
-        torch_dtype=$(extract_argument $@)
+      --model_dtype)
+        model_dtype=$(extract_argument $@)
+        shift
+        ;;
+      --compute_dtype)
+        compute_dtype=$(extract_argument $@)
         shift
         ;;
       --backend)
         backend=$(extract_argument $@)
+        shift
+        ;;
+      --device)
+        device=$(extract_argument $@)
         shift
         ;;
       *)
@@ -114,9 +120,8 @@ export LD_PRELOAD=${LD_PRELOAD}:${CONDA_PREFIX}/lib/libiomp5.so # Intel OpenMP
 # Tcmalloc is a recommended malloc implementation that emphasizes fragmentation avoidance and scalable concurrency support.
 export LD_PRELOAD=${LD_PRELOAD}:${CONDA_PREFIX}/lib/libtcmalloc.so
 export TORCHINDUCTOR_FREEZING=1
+export TRITON_CODEGEN_INTEL_XPU_BACKEND=1
 export OMP_NUM_THREADS=56
 
 # Perform the desired actions based on the provided flags and arguments
-numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --bf16 $use_bf16 --jit $use_jit --ipex_optimize $use_ipex_optimize --torch_dtype $torch_dtype --torch_compile $use_torch_compile --backend $backend
-
-
+numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --jit $use_jit --ipex_optimize $use_ipex_optimize --compute_dtype $compute_dtype --torch_compile $use_torch_compile --backend $backend --device $device

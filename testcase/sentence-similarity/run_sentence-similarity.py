@@ -1,15 +1,17 @@
 from transformers import AutoTokenizer, AutoModel
 import torch
-import intel_extension_for_pytorch as ipex
 import torch.nn.functional as F
 import time
 import sys
 import argparse
 import logging
+from transformers import pipeline 
+
 logging.basicConfig(level=logging.INFO)
 SEED = 20
-SENTENCES = ["This is an example sentence", "Each sentence is converted"]
-CHI_SENTENCES = ["如何更换花呗绑定银行卡", "花呗更改绑定银行卡"]
+#SENTENCES = ["This is an example sentence", "Each sentence is converted"]
+SENTENCES = "This is an example sentence"
+CHI_SENTENCES = "如何更换花呗绑定银行卡"
 
 MODEL_INPUT_SIZE = {
     "input_ids": (1, 7),
@@ -17,67 +19,47 @@ MODEL_INPUT_SIZE = {
     "attention_mask": (1, 7),
 }
 
-
 def str2bool(str):
     return True if str.lower() == 'true' else False
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_id", default=None, type=str, required=True)
-    parser.add_argument("--bf16", default='False', type=str2bool)
+    parser.add_argument("--compute_dtype", default="float32", type=str)
     parser.add_argument("--ipex_optimize", default='False', type=str2bool)
     parser.add_argument("--jit", default='False', type=str2bool)
     parser.add_argument("--torch_compile", default='False', type=str2bool)
-    parser.add_argument("--torch_dtype", default="float32", type=str)
-    parser.add_argument("--backend", default="ipex", type=str)
+    parser.add_argument("--model_dtype", default="float32", type=str)
+    parser.add_argument("--backend", default="inductor", type=str)
+    parser.add_argument("--device", default="cpu", type=str)
     args = parser.parse_args()
     return args
 
 
 def load_model(model_id, seed, model_dtype, device):
     torch.manual_seed(seed)
-    tokenizer = AutoTokenizer.from_pretrained(model_id, torch_dtype=model_dtype)
-    model = AutoModel.from_pretrained(
-        model_id, torch_dtype=model_dtype, return_dict=False
-    )
-    model.to(device)
-    return model, tokenizer
+    extractor = pipeline("feature-extraction", model=model_id, torch_dtype=model_dtype, device=device, return_dict=False)
+    return extractor
 
 
-# Mean Pooling - Take attention mask into account for correct averaging
-def mean_pooling(model_output, attention_mask):
-    token_embeddings = model_output[
-        0
-    ]  # First element of model_output contains all token embeddings
-    input_mask_expanded = (
-        attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-    )
-    return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(
-        input_mask_expanded.sum(1), min=1e-9
-    )
-
-
-def benchmark(model, encoded_input, seed, nb_pass, model_id):
+def benchmark(extractor, sentences, seed, nb_pass):
     elapsed_time = []
     for _ in range(nb_pass):
         start = time.time()
         torch.manual_seed(seed)
-        model_output = model(**encoded_input)
+        model_output = extractor(sentences, return_tensors=True)
         duration = time.time() - start
         elapsed_time.append(duration)
-        sentence_embeddings = mean_pooling(
-            model_output, encoded_input["attention_mask"]
-        )
-        if model_id != "shibing624/text2vec-base-chinese":
-            sentence_embeddings = F.normalize(sentence_embeddings, p=2, dim=1)
-        logging.info(sentence_embeddings[0][:10])
-
+        logging.info(model_output[0].shape)
     return elapsed_time
 
 
-def prepare_jit_inputs(model_id):
+def prepare_jit_inputs(model_id, device):
     input_ids_example = torch.randint(6000, size=MODEL_INPUT_SIZE["input_ids"])
     attention_mask_example = torch.randint(1, size=MODEL_INPUT_SIZE["attention_mask"])
 
+    input_ids_example = input_ids_example.to(device)
+    attention_mask_example = attention_mask_example.to(device)
+        
     if model_id == "sentence-transformers/all-mpnet-base-v2":
         example_inputs = {
             "input_ids": input_ids_example,
@@ -87,6 +69,7 @@ def prepare_jit_inputs(model_id):
         token_type_ids_example = torch.randint(
             1, size=MODEL_INPUT_SIZE["token_type_ids"]
         )
+        token_type_ids_example = token_type_ids_example.to(device)
         example_inputs = {
             "input_ids": input_ids_example,
             "token_type_ids": token_type_ids_example,
@@ -95,80 +78,90 @@ def prepare_jit_inputs(model_id):
     return example_inputs
 
 
-def apply_jit_trace(model, model_id, dtype):
+def apply_jit_trace(extractor, model_id, dtype, device):
     logging.info("using jit trace for acceleration...")
-    example_inputs = prepare_jit_inputs(model_id)
+    example_inputs = prepare_jit_inputs(model_id, device)
 
-    with torch.cpu.amp.autocast(
-        enabled=True if dtype == torch.bfloat16 else False, dtype=dtype
-    ), torch.no_grad():
-        model = torch.jit.trace(
-            model, example_kwarg_inputs=example_inputs, strict=False
+    with torch.autocast(device_type=device, dtype=dtype), torch.no_grad():
+        extractor.model = torch.jit.trace(
+            extractor.model, example_kwarg_inputs=example_inputs, strict=False
         )
 
-    model = torch.jit.freeze(model.eval())
+    extractor.model = torch.jit.freeze(extractor.model.eval())
 
-    model(**example_inputs)
-    model(**example_inputs)
+    extractor.model(**example_inputs)
+    extractor.model(**example_inputs)
 
-    return model
+    return extractor
 
 
-def optimize_with_ipex(model, dtype):
+def optimize_with_ipex(extractor, dtype):
     logging.info("using ipex optimize for acceleration...")
-    model = ipex.optimize(model, dtype=dtype)
+    import intel_extension_for_pytorch as ipex
+    extractor.model = ipex.optimize(extractor.model, dtype=dtype)
+    return extractor
 
-    return model
 
-
-def apply_torch_compile(model, backend):
+def apply_torch_compile(extractor, backend):
     logging.info(f"using torch compile with {backend} backend for acceleration...")
-    model = torch.compile(model, backend=backend)
+    if backend == "ipex":
+        import intel_extension_for_pytorch as ipex
+    extractor.model = torch.compile(extractor.model, backend=backend)
+    return extractor
 
-    return model
 
+def check_device():
+    if torch.cuda.is_available():
+        device = 'cuda'
+    elif torch.xpu.is_available():
+        device = 'xpu'
+    else: 
+        device = 'cpu'
+    logging.info(f"running on {device} device")
+    return device 
 
+def get_torch_dtype(dtype):
+    if dtype == "bfloat16":
+        return torch.bfloat16
+    elif dtype == 'float16':
+        return torch.float16 
+    else:
+        return torch.float32
+    
 if __name__ == "__main__":
     args = get_args()
-    logging.info("args={args}")
+    logging.info(f"args={args}")
     model_id = args.model_id
-    use_bf16 = args.bf16
     use_ipex_optimize = args.ipex_optimize
     use_jit = args.jit
     use_torch_compile = args.torch_compile
     backend = args.backend
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    torch_dtype = torch.bfloat16 if args.torch_dtype == "bfloat16" else torch.float32
+    device = args.device 
+    if device == 'xpu':
+        import intel_extension_for_pytorch as ipex
+        
+    torch_dtype = get_torch_dtype(args.model_dtype)
+    dtype = get_torch_dtype(args.compute_dtype)
 
     if "shibing624/text2vec-base-chinese" in model_id:
         sentences = CHI_SENTENCES
     else:
         sentences = SENTENCES
-
-    model, tokenizer = load_model(model_id, SEED, model_dtype=torch_dtype, device=device)
+        
+    extractor = load_model(model_id, SEED, model_dtype=torch_dtype, device=device)
     
-    dtype = torch.bfloat16 if use_bf16 else torch.float32
     if use_ipex_optimize:
-        model = optimize_with_ipex(model, dtype=dtype)
+        extractor = optimize_with_ipex(extractor, dtype=dtype)
     if use_jit:
-        model = apply_jit_trace(model, model_id, dtype=dtype)
+        extractor = apply_jit_trace(extractor, model_id, dtype=dtype, device=device)
     if use_torch_compile:
-        model = apply_torch_compile(model, backend)
-
-    encoded_input = tokenizer(
-        sentences, padding=True, truncation=True, return_tensors="pt"
-    )
-    if device == 'cuda':
-        encoded_input.to(device)
+        extractor = apply_torch_compile(extractor, backend)
     
-    if use_bf16:
-        logging.info("using BF16 for acceleration...")
-        with torch.cpu.amp.autocast(enabled=True, dtype=torch.bfloat16), torch.no_grad():
-            elapsed_time = benchmark(model, encoded_input, SEED, 10, model_id)
-    else:
-        elapsed_time = benchmark(model, encoded_input, SEED, 10, model_id)
 
-    logging.info(f"total time: {elapsed_time}")
-    logging.info(f"average time: {sum(elapsed_time[3:])/len(elapsed_time[3:])}")
+    with torch.autocast(device_type=device, dtype=dtype), torch.no_grad():
+        elapsed_time = benchmark(extractor, sentences, SEED, 20)
+
+    logging.info(f"total time [ms]: {elapsed_time}")
+    logging.info(f"average time [ms]: {round(sum(elapsed_time[10:])/len(elapsed_time[10:])*1000, 2)}")
+

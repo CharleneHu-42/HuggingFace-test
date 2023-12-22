@@ -4,7 +4,6 @@ from diffusers import (
     DPMSolverMultistepScheduler,
 )
 import torch
-import intel_extension_for_pytorch as ipex
 import time
 import sys
 import argparse
@@ -42,13 +41,13 @@ def str2bool(str):
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_id", default=None, type=str, required=True)
-    parser.add_argument("--bf16", default='False', type=str2bool)
+    parser.add_argument("--compute_dtype", default="float32", type=str)
     parser.add_argument("--ipex_optimize", default='False', type=str2bool)
     parser.add_argument("--jit", default='False', type=str2bool)
     parser.add_argument("--torch_compile", default='False', type=str2bool)
-    parser.add_argument("--torch_dtype", default="float32", type=str)
-    parser.add_argument("--backend", default="ipex", type=str)
-
+    parser.add_argument("--model_dtype", default="float32", type=str)
+    parser.add_argument("--backend", default="inductor", type=str)
+    parser.add_argument("--device", default="cpu", type=str)
     args = parser.parse_args()
     return args
 
@@ -71,7 +70,6 @@ def load_model(model_id, seed, model_dtype, device):
         raise ValueError(
             "the given model id is incorrect. it should be one of [10, 15, 21]."
         )
-        
     pipe.to(device)
     return pipe
 
@@ -83,13 +81,13 @@ def benchmark(pipe, prompt, seed, nb_pass):
         torch.manual_seed(seed)
         image = pipe(prompt=prompt).images[0]
         duration = time.time() - start
-        elapsed_time.append(duration)
+        elapsed_time.append(duration*1000)
         image.save(f"img_{i}.jpg", "JPEG")
 
     return elapsed_time
 
 
-def prepare_jit_inputs(model_id, jit, dtype):
+def prepare_jit_inputs(model_id, jit, dtype, device):
     # import inspect
     # signature = inspect.signature(model.forward) if hasattr(model, "forward") else inspect.signature(model.__call__)
 
@@ -101,13 +99,21 @@ def prepare_jit_inputs(model_id, jit, dtype):
     timestemp_dtype = torch.int64 if isinstance(timestep_size, int) else torch.float32
     timestep_example = torch.tensor(timestep_size, dtype=timestemp_dtype)
     encoder_hidden_states_example = torch.randn(encoder_hidden_states_size, dtype=dtype)
+    
 
+    sample_example = sample_example.to(device)
+    timestep_example = timestep_example.to(device)
+    encoder_hidden_states_example = encoder_hidden_states_example.to(device)
+        
     if model_id == "stabilityai/stable-diffusion-xl-base-1.0":
         text_embeds_size = MODEL_INPUT_SIZE[model_id]["text_embeds"]
         time_ids_size = MODEL_INPUT_SIZE[model_id]["time_ids"]
         text_embeds_example = torch.randn(text_embeds_size, dtype=dtype)
         time_ids_example = torch.randn(time_ids_size, dtype=dtype)
 
+        text_embeds_example = text_embeds_example.to(device)
+        time_ids_example = time_ids_example.to(device)
+            
         if jit:
             example_inputs = {
                 "sample": sample_example,
@@ -146,16 +152,14 @@ def prepare_jit_inputs(model_id, jit, dtype):
     return example_inputs
 
 
-def apply_jit_trace(pipeline, model_id, attr_list, dtype):
+def apply_jit_trace(pipeline, model_id, attr_list, dtype, device):
     logging.info("using jit trace for acceleration...")
     for name in attr_list:
         model = getattr(pipeline, name)
         model.eval()
-        example_inputs = prepare_jit_inputs(model_id, True, dtype)
+        example_inputs = prepare_jit_inputs(model_id, True, dtype, device)
 
-        with torch.cpu.amp.autocast(
-            enabled=True if dtype == torch.bfloat16 else False, dtype=dtype
-        ), torch.no_grad():
+        with torch.autocast(device_type=device, dtype=dtype), torch.no_grad():
             traced_model = torch.jit.trace(
                 model, example_kwarg_inputs=example_inputs, strict=False
             )
@@ -170,14 +174,14 @@ def apply_jit_trace(pipeline, model_id, attr_list, dtype):
     return pipeline
 
 
-def optimize_with_ipex(pipe, model_id, dtype):
+def optimize_with_ipex(pipe, model_id, dtype, device):
     logging.info("using ipex optimize for acceleration...")
-
+    
     pipe.unet = pipe.unet.to(memory_format=torch.channels_last)
     pipe.vae = pipe.vae.to(memory_format=torch.channels_last)
     pipe.text_encoder = pipe.text_encoder.to(memory_format=torch.channels_last)
 
-    input_example = prepare_jit_inputs(model_id, False, dtype)
+    input_example = prepare_jit_inputs(model_id, False, dtype, device)
 
     # optimize with IPEX
     pipe.unet = ipex.optimize(
@@ -193,40 +197,45 @@ def optimize_with_ipex(pipe, model_id, dtype):
 
 def apply_torch_compile(pipe, backend):
     logging.info(f"using torch compile with {backend} backend for acceleration...")
+    if backend == 'ipex':
+        import intel_extension_for_pytorch as ipex
     pipe.unet = torch.compile(pipe.unet, backend=backend)
 
     return pipe
 
+def get_torch_dtype(dtype):
+    if dtype == "bfloat16":
+        return torch.bfloat16
+    elif dtype == 'float16':
+        return torch.float16 
+    else:
+        return torch.float32
+    
 
 if __name__ == "__main__":
     args = get_args()
     logging.info(f"args={args}")
     model_id = args.model_id
-    use_bf16 = args.bf16
     use_ipex_optimize = args.ipex_optimize
     use_jit = args.jit
     use_torch_compile = args.torch_compile
     backend = args.backend
     
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    torch_dtype = torch.bfloat16 if args.torch_dtype == "bfloat16" else torch.float32
-
+    device = args.device 
+    if device == 'xpu':
+        import intel_extension_for_pytorch as ipex 
+    torch_dtype = get_torch_dtype(args.model_dtype)
     pipe = load_model(model_id, SEED, model_dtype=torch_dtype, device=device)
-    dtype = torch.bfloat16 if use_bf16 else torch.float32
+    dtype = get_torch_dtype(args.compute_dtype)
     if use_ipex_optimize:
-        pipe = optimize_with_ipex(pipe, model_id, dtype=dtype)
+        pipe = optimize_with_ipex(pipe, model_id, dtype=dtype, device=device)
     if use_jit:
-        pipe = apply_jit_trace(pipe, model_id, ["unet"], dtype=dtype)
+        pipe = apply_jit_trace(pipe, model_id, ["unet"], dtype=dtype, device=device)
     if use_torch_compile:
         pipe = apply_torch_compile(pipe, backend)
 
-    if use_bf16:
-        logging.info("using BF16 for acceleration...")
-        with torch.cpu.amp.autocast(enabled=True, dtype=torch.bfloat16), torch.no_grad():
-            elapsed_time = benchmark(pipe, PROMPT, SEED, 5)
-    else:
-        elapsed_time = benchmark(pipe, PROMPT, SEED, 5)
+    with torch.autocast(device_type=device, dtype=dtype), torch.no_grad():
+        elapsed_time = benchmark(pipe, PROMPT, SEED, 20)
 
-    logging.info(f"total time: {elapsed_time}")
-    logging.info(f"average time: {sum(elapsed_time[3:])/len(elapsed_time[3:])}")
+    logging.info(f"total time [s]: {elapsed_time}")
+    logging.info(f"average time [ms]: {sum(elapsed_time[10:])/len(elapsed_time[10:])}")
