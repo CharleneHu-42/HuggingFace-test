@@ -9,7 +9,6 @@ from transformers import pipeline
 
 logging.basicConfig(level=logging.INFO)
 SEED = 20
-#SENTENCES = ["This is an example sentence", "Each sentence is converted"]
 SENTENCES = "This is an example sentence"
 CHI_SENTENCES = "如何更换花呗绑定银行卡"
 
@@ -21,6 +20,7 @@ MODEL_INPUT_SIZE = {
 
 def str2bool(str):
     return True if str.lower() == 'true' else False
+
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_id", default=None, type=str, required=True)
@@ -33,12 +33,6 @@ def get_args():
     parser.add_argument("--device", default="cpu", type=str)
     args = parser.parse_args()
     return args
-
-
-def load_model(model_id, seed, model_dtype, device):
-    torch.manual_seed(seed)
-    extractor = pipeline("feature-extraction", model=model_id, torch_dtype=model_dtype, device=device, return_dict=False)
-    return extractor
 
 
 def benchmark(extractor, sentences, seed, nb_pass):
@@ -54,35 +48,28 @@ def benchmark(extractor, sentences, seed, nb_pass):
 
 
 def prepare_jit_inputs(model_id, device):
-    input_ids_example = torch.randint(6000, size=MODEL_INPUT_SIZE["input_ids"])
-    attention_mask_example = torch.randint(1, size=MODEL_INPUT_SIZE["attention_mask"])
+    input_ids_example = torch.randint(6000, size=MODEL_INPUT_SIZE["input_ids"]).to(device)
+    attention_mask_example = torch.randint(1, size=MODEL_INPUT_SIZE["attention_mask"]).to(device)
+    example_inputs = {
+        "input_ids": input_ids_example,
+        "attention_mask": attention_mask_example,
+    }
 
-    input_ids_example = input_ids_example.to(device)
-    attention_mask_example = attention_mask_example.to(device)
-        
-    if model_id == "sentence-transformers/all-mpnet-base-v2":
-        example_inputs = {
-            "input_ids": input_ids_example,
-            "attention_mask": attention_mask_example,
-        }
-    else:
+    if model_id != "sentence-transformers/all-mpnet-base-v2":
         token_type_ids_example = torch.randint(
             1, size=MODEL_INPUT_SIZE["token_type_ids"]
-        )
-        token_type_ids_example = token_type_ids_example.to(device)
-        example_inputs = {
-            "input_ids": input_ids_example,
-            "token_type_ids": token_type_ids_example,
-            "attention_mask": attention_mask_example,
-        }
+        ).to(device)
+        example_inputs["token_type_ids"] = token_type_ids_example
+
     return example_inputs
 
 
-def apply_jit_trace(extractor, model_id, dtype, device):
+def apply_jit_trace(extractor, model_id, dtype, device, enable):
     logging.info("using jit trace for acceleration...")
     example_inputs = prepare_jit_inputs(model_id, device)
 
-    with torch.autocast(device_type=device, dtype=dtype), torch.no_grad():
+    extractor.model.config.return_dict = False
+    with torch.autocast(device, dtype, enable), torch.no_grad():
         extractor.model = torch.jit.trace(
             extractor.model, example_kwarg_inputs=example_inputs, strict=False
         )
@@ -108,17 +95,7 @@ def apply_torch_compile(extractor, backend):
         import intel_extension_for_pytorch as ipex
     extractor.model = torch.compile(extractor.model, backend=backend)
     return extractor
-
-
-def check_device():
-    if torch.cuda.is_available():
-        device = 'cuda'
-    elif torch.xpu.is_available():
-        device = 'xpu'
-    else: 
-        device = 'cpu'
-    logging.info(f"running on {device} device")
-    return device 
+ 
 
 def get_torch_dtype(dtype):
     if dtype == "bfloat16":
@@ -143,23 +120,23 @@ if __name__ == "__main__":
         
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.compute_dtype)
+    enable = (dtype != torch.float32)
 
     if "shibing624/text2vec-base-chinese" in model_id:
         sentences = CHI_SENTENCES
     else:
         sentences = SENTENCES
-        
-    extractor = load_model(model_id, SEED, model_dtype=torch_dtype, device=device)
+
+    extractor = pipeline("feature-extraction", model=model_id, torch_dtype=torch_dtype, device=device, return_dict=False)
     
     if use_ipex_optimize:
         extractor = optimize_with_ipex(extractor, dtype=dtype)
     if use_jit:
-        extractor = apply_jit_trace(extractor, model_id, dtype=dtype, device=device)
+        extractor = apply_jit_trace(extractor, model_id, dtype=dtype, device=device, enable=enable)
     if use_torch_compile:
         extractor = apply_torch_compile(extractor, backend)
-    
 
-    with torch.autocast(device_type=device, dtype=dtype), torch.no_grad():
+    with torch.autocast(device, dtype, enable), torch.no_grad():
         elapsed_time = benchmark(extractor, sentences, SEED, 20)
 
     logging.info(f"total time [ms]: {elapsed_time}")

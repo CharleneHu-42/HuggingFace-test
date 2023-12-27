@@ -54,19 +54,20 @@ def benchmark(pipeline, image_url, labels, seed, nb_pass):
 
 
 def prepare_jit_inputs(device):
-    
-    input_ids_example = torch.randint(200, size=MODEL_INPUT_SIZE["input_ids"])
-    pixel_values_example = torch.randn(MODEL_INPUT_SIZE["pixel_values"])
-    attention_mask_example = torch.randint(1, size=MODEL_INPUT_SIZE["attention_mask"])
+    input_ids_example = torch.randint(200, size=MODEL_INPUT_SIZE["input_ids"]).to(device)
+    pixel_values_example = torch.randn(MODEL_INPUT_SIZE["pixel_values"]).to(device)
+    attention_mask_example = torch.randint(1, size=MODEL_INPUT_SIZE["attention_mask"]).to(device)
 
-    input_ids_example = input_ids_example.to(device)
-    pixel_values_example = pixel_values_example.to(device)
-    attention_mask_example = attention_mask_example.to(device)
+    example_inputs = {
+        "input_ids": input_ids_example,
+        "pixel_values": pixel_values_example,
+        "attention_mask": attention_mask_example,
+    }
         
-    return input_ids_example, pixel_values_example, attention_mask_example
+    return example_inputs
 
 
-def apply_jit_trace(classifier, dtype, device):
+def apply_jit_trace(classifier, dtype, device, enable):
     logging.info("using jit trace for acceleration...")
     (
         input_ids_example,
@@ -74,13 +75,9 @@ def apply_jit_trace(classifier, dtype, device):
         attention_mask_example,
     ) = prepare_jit_inputs(device)
     
-    example_inputs = {
-        "input_ids": input_ids_example,
-        "pixel_values": pixel_values_example,
-        "attention_mask": attention_mask_example,
-    }
-
-    with torch.autocast(device_type=device, dtype=dtype), torch.no_grad():
+    example_inputs = prepare_jit_inputs(device)
+    classifier.model.config.return_dict = False
+    with torch.autocast(device, dtype, enable), torch.no_grad():
         classifier.model = torch.jit.trace(
             classifier.model, example_kwarg_inputs=example_inputs, strict=False
         )
@@ -93,22 +90,18 @@ def apply_jit_trace(classifier, dtype, device):
     return classifier
 
 
-def optimize_with_ipex(classifier, dtype, device):
+def optimize_with_ipex(classifier, dtype, device, enable):
     logging.info("using ipex optimize for acceleration...")
     import intel_extension_for_pytorch as ipex
     
-    (
-        input_ids_example,
-        pixel_values_example,
-        attention_mask_example,
-    ) = prepare_jit_inputs(device)
-
-    classifier.model = ipex.optimize(
-        classifier.model,
-        dtype=dtype,
-        inplace=True,
-        sample_input=(input_ids_example, pixel_values_example, attention_mask_example),
-    )
+    sample_inputs = tuple(prepare_jit_inputs(device).values())
+    with torch.autocast(device, dtype, enable), torch.no_grad():
+        classifier.model = ipex.optimize(
+            classifier.model,
+            dtype=dtype,
+            inplace=True,
+            sample_input=sample_inputs,
+        )
 
     return classifier
 
@@ -143,16 +136,18 @@ if __name__ == "__main__":
     
     dtype = get_torch_dtype(args.compute_dtype)
     torch_dtype = get_torch_dtype(args.model_dtype)
+    enable = (dtype != torch.float32)
+
     classifier = load_model(model_id, SEED, torch_dtype, device)
     
     if use_ipex_optimize:
-        classifier = optimize_with_ipex(classifier, dtype=dtype, device=device)
+        classifier = optimize_with_ipex(classifier, dtype=dtype, device=device, enable=enable)
     if use_jit:
-        classifier = apply_jit_trace(classifier, dtype=dtype, device=device)
+        classifier = apply_jit_trace(classifier, dtype=dtype, device=device, enable=enable)
     if use_torch_compile:
         classifier = apply_torch_compile(classifier, backend)
 
-    with torch.autocast(device_type=device, dtype=dtype), torch.no_grad():
+    with torch.autocast(device, dtype, enable), torch.no_grad():
         elapsed_time = benchmark(classifier, IMG_URL, TEXT, SEED, 20)
 
     logging.info(f"total time [ms]: {elapsed_time}")

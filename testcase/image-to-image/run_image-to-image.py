@@ -70,21 +70,17 @@ def load_model(model_id, seed, model_dtype, device):
             pipe.scheduler.config
         )
     elif model_id == "stabilityai/stable-diffusion-xl-refiner-1.0":
-        if model_dtype == torch.float16:
-            pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
-                model_id, torch_dtype=model_dtype, use_safetensors=True, variant="fp16"
-            )
-        else:
-            pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
-                model_id, torch_dtype=model_dtype, use_safetensors=True, 
-            )
+        pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+            model_id, torch_dtype=model_dtype, use_safetensors=True,
+            variant="fp16" if model_dtype == torch.float16 else None
+        )
     elif model_id == "lambdalabs/sd-image-variations-diffusers":
         pipe = StableDiffusionImageVariationPipeline.from_pretrained(
             model_id, torch_dtype=model_dtype, revision="v2.0"
         )
     else:
         raise ValueError(
-            f"the given model id is incorrect. it is {model_id}"
+            f"the given model id is not supported currently. it is {model_id}"
         )
 
     pipe.to(device)
@@ -119,106 +115,73 @@ def benchmark(pipe, prompt, image, seed, nb_pass, model_id):
     return elapsed_time
 
 
-def prepare_jit_inputs(model_id, jit, dtype, device):
-    # import inspect
-    # signature = inspect.signature(model.forward) if hasattr(model, "forward") else inspect.signature(model.__call__)
-
+def prepare_inputs(model_id, jit, dtype, device):
     sample_size = MODEL_INPUT_SIZE[model_id]["sample"]
     timestep_size = MODEL_INPUT_SIZE[model_id]["timestep"]
     encoder_hidden_states_size = MODEL_INPUT_SIZE[model_id]["encoder_hidden_states"]
 
-    sample_example = torch.randn(sample_size, dtype=dtype)
+    sample_example = torch.randn(sample_size, dtype=dtype).to(device)
     timestemp_dtype = torch.int64 if isinstance(timestep_size, int) else torch.float32
-    timestep_example = torch.tensor(timestep_size, dtype=timestemp_dtype)
-    encoder_hidden_states_example = torch.randn(encoder_hidden_states_size, dtype=dtype)
-    
-    sample_example = sample_example.to(device)
-    timestep_example = timestep_example.to(device)
-    encoder_hidden_states_example = encoder_hidden_states_example.to(device)
-        
-        
+    timestep_example = torch.tensor(timestep_size, dtype=timestemp_dtype).to(device)
+    encoder_hidden_states_example = torch.randn(encoder_hidden_states_size, dtype=dtype).to(device)
+
+    example_inputs = {
+        "sample": sample_example,
+        "timestep": timestep_example,
+        "encoder_hidden_states": encoder_hidden_states_example,
+    }
+    if not jit:
+        example_inputs = tuple(example_inputs.values())
+
     if model_id == "stabilityai/stable-diffusion-xl-refiner-1.0":
         text_embeds_size = MODEL_INPUT_SIZE[model_id]["text_embeds"]
         time_ids_size = MODEL_INPUT_SIZE[model_id]["time_ids"]
-        text_embeds_example = torch.randn(text_embeds_size, dtype=dtype)
-        time_ids_example = torch.randn(time_ids_size, dtype=dtype)
+        text_embeds_example = torch.randn(text_embeds_size, dtype=dtype).to(device)
+        time_ids_example = torch.randn(time_ids_size, dtype=dtype).to(device)
 
-
-        text_embeds_example = text_embeds_example.to(device)
-        time_ids_example = time_ids_example.to(device)
-            
         if jit:
-            example_inputs = {
-                "sample": sample_example,
-                "timestep": timestep_example,
-                "encoder_hidden_states": encoder_hidden_states_example,
-                "added_cond_kwargs": {
-                    "text_embeds": text_embeds_example,
-                    "time_ids": time_ids_example,
-                },
+            example_inputs["added_cond_kwargs"] = {
+                "text_embeds": text_embeds_example,
+                "time_ids": time_ids_example,
             }
         else:
-            example_inputs = (
-                sample_example,
-                timestep_example,
-                encoder_hidden_states_example,
-                None,
-                None,
-                None,
-                None,
-                {"text_embeds": text_embeds_example, "time_ids": time_ids_example},
-            )
-    else:
-        if jit:
-            example_inputs = {
-                "sample": sample_example,
-                "timestep": timestep_example,
-                "encoder_hidden_states": encoder_hidden_states_example,
-            }
-        else:
-            example_inputs = (
-                sample_example,
-                timestep_example,
-                encoder_hidden_states_example,
-            )
-
+            example_inputs = example_inputs + (None,) * 4 + \
+                            ({"text_embeds": text_embeds_example, "time_ids": time_ids_example},)
     return example_inputs
 
 
-def apply_jit_trace(pipeline, model_id, attr_list, dtype, device):
+def apply_jit_trace(pipeline, model_id, attr_list, dtype, device, enable):
     logging.info("using jit trace for acceleration...")
     for name in attr_list:
         model = getattr(pipeline, name)
         model.eval()
-        example_inputs = prepare_jit_inputs(model_id, True, dtype, device)
-
-        with torch.autocast(device_type=device, dtype=dtype), torch.no_grad():
+        example_inputs = prepare_inputs(model_id, True, dtype, device)
+        with torch.autocast(device, dtype, enable), torch.no_grad():
             traced_model = torch.jit.trace(
                 model, example_kwarg_inputs=example_inputs, strict=False
             )
 
         traced_model = torch.jit.freeze(traced_model.eval())
-
         traced_model(**example_inputs)
         traced_model(**example_inputs)
-
         setattr(pipeline, name, traced_model)
 
     return pipeline
 
 
-def optimize_with_ipex(pipe, model_id, dtype, device):
+def optimize_with_ipex(pipe, model_id, dtype, device, enable):
     logging.info("using ipex optimize for acceleration...")
     import intel_extension_for_pytorch as ipex
     pipe.unet = pipe.unet.to(memory_format=torch.channels_last)
     pipe.vae = pipe.vae.to(memory_format=torch.channels_last)
 
-    input_example = prepare_jit_inputs(model_id, False, dtype, device)
+    input_example = prepare_inputs(model_id, False, dtype, device)
 
     # optimize with IPEX
-    pipe.unet = ipex.optimize(
-        pipe.unet.eval(), dtype=dtype, inplace=True, sample_input=input_example
-    )
+    with torch.autocast(device, dtype, enable), torch.no_grad():
+        pipe.unet = ipex.optimize(
+            pipe.unet.eval(), dtype=dtype, inplace=True, sample_input=input_example
+        )
     pipe.vae = ipex.optimize(pipe.vae.eval(), dtype=dtype, inplace=True)
 
     return pipe
@@ -264,7 +227,8 @@ def get_torch_dtype(dtype):
         return torch.float16 
     else:
         return torch.float32
-    
+
+
 if __name__ == "__main__":
     args = get_args()
     model_id = args.model_id
@@ -280,19 +244,20 @@ if __name__ == "__main__":
         
     image = read_image(model_id, device)
     torch_dtype = get_torch_dtype(args.model_dtype)
-    pipe = load_model(model_id, SEED, torch_dtype, device)
     dtype = get_torch_dtype(args.compute_dtype)
+    enable = (dtype != torch.float32)
+
+    pipe = load_model(model_id, SEED, torch_dtype, device)
     
     if use_ipex_optimize:
-        pipe = optimize_with_ipex(pipe, model_id, dtype=dtype, device=device)
+        pipe = optimize_with_ipex(pipe, model_id, dtype=dtype, device=device, enable=enable)
     if use_jit:
-        pipe = apply_jit_trace(pipe, model_id, ["unet"], dtype=dtype, device=device)
+        pipe = apply_jit_trace(pipe, model_id, ["unet"], dtype=dtype, device=device, enable=enable)
     if use_torch_compile:
         pipe = apply_torch_compile(pipe, backend)
 
-    with torch.autocast(device_type=device, dtype=dtype), torch.no_grad():
+    with torch.autocast(device, dtype, enable), torch.no_grad():
         elapsed_time = benchmark(pipe, PROMPT, image, SEED, 20, model_id)
 
     logging.info(f"total time [ms]: {elapsed_time}")
     logging.info(f"average time [ms]: {sum(elapsed_time[10:])/len(elapsed_time[10:])}")
-
