@@ -8,7 +8,7 @@ task_name=""
 model_id=""
 model_dtype="float32"
 compute_dtype="float32"
-backend="ipex"
+backend="inductor"
 device="cpu"
 
 # Function to display script usage
@@ -23,7 +23,7 @@ usage() {
  echo " --model_dtype            Indicate the model dtype[float32, bfloat16, float16]"
  echo " --compute_dtype          Indicate the compute dtype[float32, bfloat16, float16]"
  echo " --backend                Indicate the torch compile backend[ipex, inductor]"
- echo " --device              Indicate the computation device[cpu, cuda, xpu]"
+ echo " --device                 Indicate the computation device[cpu, cuda, xpu]"
 }
 
 has_argument() {

@@ -8,7 +8,7 @@ task_name=""
 model_id=""
 model_dtype="float32"
 compute_dtype="float32"
-backend="ipex"
+backend="inductor"
 device="cpu"
 
 # Function to display script usage
