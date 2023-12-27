@@ -4,6 +4,7 @@ import torch
 import time
 import logging
 import argparse
+import PIL.Image
 from transformers import pipeline
 
 logging.basicConfig(level=logging.INFO)
@@ -41,12 +42,12 @@ def load_model(model_id, seed, model_dtype, device):
     return classifier 
 
 
-def benchmark(pipeline, image_url, labels, seed, nb_pass):
+def benchmark(pipeline, image, labels, seed, nb_pass):
     elapsed_time = []
     for _ in range(nb_pass):
         start = time.time()
         torch.manual_seed(seed)
-        outputs = pipeline(image_url, candidate_labels=labels)
+        outputs = pipeline(image, candidate_labels=labels)
         duration = time.time() - start
         elapsed_time.append(duration*1000)
         logging.info(outputs)
@@ -138,6 +139,8 @@ if __name__ == "__main__":
     torch_dtype = get_torch_dtype(args.model_dtype)
     enable = (dtype != torch.float32)
 
+    image = PIL.Image.open(requests.get(IMG_URL, stream=True, timeout=3000).raw)
+
     classifier = load_model(model_id, SEED, torch_dtype, device)
     
     if use_ipex_optimize:
@@ -148,7 +151,7 @@ if __name__ == "__main__":
         classifier = apply_torch_compile(classifier, backend)
 
     with torch.autocast(device, dtype, enable), torch.no_grad():
-        elapsed_time = benchmark(classifier, IMG_URL, TEXT, SEED, 20)
+        elapsed_time = benchmark(classifier, image, TEXT, SEED, 20)
 
     logging.info(f"total time [ms]: {elapsed_time}")
     logging.info(f"average time [ms]: {sum(elapsed_time[10:])/len(elapsed_time[10:])}")
