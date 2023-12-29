@@ -47,13 +47,13 @@ def benchmark(generator, input_sentence, device, dtype, enable):
 
     generation_kwargs["max_new_tokens"] = 1
     first_latency, out = generate(generator, input_sentence, device, dtype, enable)
-    out_num = len(tokenizer(out[0]["summary_text"])["input_ids"]) - 2
+    out_num = 1
     logging.info(f"1st token latency = {first_latency} ms")
     logging.info(f"output token nums = {out_num}")
 
     generation_kwargs["max_new_tokens"] = 32
     second_latency, out = generate(generator, input_sentence, device, dtype, enable)
-    out_num = len(tokenizer(out[0]["summary_text"])["input_ids"]) - 2
+    out_num = len(tokenizer(out[0]["summary_text"])["input_ids"])
     logging.info(f"2nd+ token latency = {(second_latency - first_latency) / (out_num - 1)} ms")
     logging.info(f"output token nums = {out_num}")
     logging.info(f"output = {out}")
