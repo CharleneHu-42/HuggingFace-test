@@ -52,11 +52,12 @@ def benchmark(generator, input_sentence, device, dtype, enable):
     logging.info(f"output token nums = {out_num}")
 
     generation_kwargs["max_new_tokens"] = 32
-    second_latency, out = generate(generator, input_sentence, device, dtype, enable)
+    latency, out = generate(generator, input_sentence, device, dtype, enable)
     out_num = len(tokenizer(out[0]["generated_text"])["input_ids"]) - input_len
-    logging.info(f"2nd+ token latency = {(second_latency - first_latency) / (out_num - 1)} ms")
+    logging.info(f"2nd+ token latency = {(latency - first_latency) / (out_num - 1)} ms")
     logging.info(f"output token nums = {out_num}")
     logging.info(f"output = {out}")
+    logging.info(f"pipeline average time = {latency} ms")
 
 
 if __name__ == "__main__":
@@ -83,7 +84,6 @@ if __name__ == "__main__":
     )
 
     if not args.ipex_optimize and not args.torch_compile:
-        benchmark(generator, prompt["gpt-j"]["32"], device, dtype, enable)
         benchmark(generator, prompt["gpt-j"]["512"], device, dtype, enable)
     elif args.ipex_optimize:
         from optimum.intel import inference_mode as ipex_inference_mode
@@ -91,14 +91,11 @@ if __name__ == "__main__":
         with ipex_inference_mode(
             generator, dtype=dtype, verbose=False, jit=args.jit
         ) as ipex_pipe:
-            benchmark(ipex_pipe, prompt["gpt-j"]["32"], device, dtype, enable)
             benchmark(ipex_pipe, prompt["gpt-j"]["512"], device, dtype, enable)
     elif args.torch_compile:
         logging.info(f"Use torch compile with {args.backend} backend")
         if args.backend == "ipex":
             import intel_extension_for_pytorch as ipex
         generator.model.generate = torch.compile(generator.model.generate, backend=args.backend)
-        # Can only choose one of them to run
-        benchmark(generator, prompt["gpt-j"]["32"], device, dtype, enable)
-        #benchmark(generator, prompt["gpt-j"]["512"], device, dtype, enable)
+        benchmark(generator, prompt["gpt-j"]["512"], device, dtype, enable)
 

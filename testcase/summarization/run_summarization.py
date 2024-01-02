@@ -52,11 +52,12 @@ def benchmark(generator, input_sentence, device, dtype, enable):
     logging.info(f"output token nums = {out_num}")
 
     generation_kwargs["max_new_tokens"] = 32
-    second_latency, out = generate(generator, input_sentence, device, dtype, enable)
+    latency, out = generate(generator, input_sentence, device, dtype, enable)
     out_num = len(tokenizer(out[0]["summary_text"])["input_ids"])
-    logging.info(f"2nd+ token latency = {(second_latency - first_latency) / (out_num - 1)} ms")
+    logging.info(f"2nd+ token latency = {(latency - first_latency) / (out_num - 1)} ms")
     logging.info(f"output token nums = {out_num}")
     logging.info(f"output = {out}")
+    logging.info(f"pipeline average time = {latency} ms")
 
 
 if __name__ == "__main__":
@@ -98,9 +99,7 @@ if __name__ == "__main__":
         generator.model.generate = torch.compile(
             generator.model.generate, backend=args.backend
         )
-        # Can only choose one of them to run
-        benchmark(generator, prompt["gpt-j"]["32"], device, dtype, enable)
-        # benchmark(generator, prompt["gpt-j"]["512"], device, dtype, enable)
+        benchmark(generator, prompt["gpt-j"]["512"], device, dtype, enable)
     elif args.ipex_optimize:
         import intel_extension_for_pytorch as ipex
         logging.info("Use ipex optimize")
@@ -109,8 +108,6 @@ if __name__ == "__main__":
             dtype=dtype,
             inplace=True,
         )
-        benchmark(generator, prompt["gpt-j"]["32"], device, dtype, enable)
         benchmark(generator, prompt["gpt-j"]["512"], device, dtype, enable)
     else:
-        benchmark(generator, prompt["gpt-j"]["32"], device, dtype, enable)
         benchmark(generator, prompt["gpt-j"]["512"], device, dtype, enable)
