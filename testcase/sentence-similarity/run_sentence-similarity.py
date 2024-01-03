@@ -3,6 +3,7 @@ import time
 import sys
 import logging
 from transformers import pipeline
+import torch.nn.functional as F
 
 import os
 
@@ -24,6 +25,12 @@ WARMUP = 10
 RUN = 10
 
 
+# Mean Pooling - Take attention mask into account for correct averaging
+def mean_pooling(token_embeddings, attention_mask):
+    input_mask_expanded = (attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float())
+    return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+
+
 def benchmark(extractor, sentences, seed, nb_pass):
     elapsed_times = []
     forward_times = []
@@ -31,11 +38,15 @@ def benchmark(extractor, sentences, seed, nb_pass):
         torch.manual_seed(seed)
         extractor.forward_time = 0
         start = time.time()
+        encoded_input = extractor.tokenizer(sentences, padding=True, truncation=True, return_tensors="pt")
         model_output = extractor(sentences, return_tensors=True, batch_size=2)
+        sentence_embeddings_1 = F.normalize(mean_pooling(model_output[0], encoded_input["attention_mask"][0]))
+        sentence_embeddings_2 = F.normalize(mean_pooling(model_output[1], encoded_input["attention_mask"][1]))
+        score = torch.inner(sentence_embeddings_1, sentence_embeddings_2)
         duration = time.time() - start
         elapsed_times.append(duration * 1000)
         forward_times.append(extractor.forward_time * 1000)
-        logging.info(model_output[0].shape)
+        logging.info(score)
     return elapsed_times, forward_times
 
 
