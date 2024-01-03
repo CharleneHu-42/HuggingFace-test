@@ -1,30 +1,41 @@
 from transformers import pipeline
-from datasets import load_dataset, load_from_disk
-import soundfile as sf
+from datasets import load_from_disk
 import torch
 import time
-import argparse
 import logging
+
 logging.basicConfig(level=logging.INFO)
 
 import os
 import sys
-sys.path.append(os.path.dirname(__file__)+"/..")
 
-from common import get_args, get_torch_dtype
+sys.path.append(os.path.dirname(__file__) + "/..")
+
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
+
+WARMUP = 10
+RUN = 10
+
 
 def generate(generator, device, dtype, forward_params, enable):
     time_costs = []
+    forward_times = []
     with torch.autocast(device, dtype, enable), torch.no_grad(), torch.inference_mode():
-        for i in range(20):
+        for i in range(RUN + WARMUP):
+            generator.forward_time = 0
             pre = time.time()
             output = generator(
                 "Hello, my dog is cooler than you!", forward_params=forward_params
             )
-            time_costs.append((time.time()-pre)*1000)
+            time_costs.append((time.time() - pre) * 1000)
+            forward_times.append(generator.forward_time * 1000)
 
+    average_time = sum(time_costs[WARMUP:]) / RUN
+    average_fwd_time = sum(forward_times[WARMUP:]) / RUN
     logging.info(f"total time [ms]: {time_costs}")
-    logging.info(f"average time [ms] {sum(time_costs[10:]) / 10}")
+    logging.info(
+        f"average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}({average_fwd_time/average_time})"
+    )
     logging.info(f"output = {output}")
 
 
@@ -33,21 +44,28 @@ if __name__ == "__main__":
     logging.info(f"args = {args}")
     model_id = args.model_id
 
-    device = args.device 
-    if device == 'xpu':
-        import intel_extension_for_pytorch as ipex 
+    device = args.device
+    if device == "xpu":
+        import intel_extension_for_pytorch as ipex
 
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.compute_dtype)
-    enable = (dtype != torch.float32)
+    enable = dtype != torch.float32
 
-    synthesiser = pipeline("text-to-speech", model_id, device=device, torch_dtype=torch_dtype)
+    synthesiser = pipeline(
+        "text-to-speech", model_id, device=device, torch_dtype=torch_dtype
+    )
+    wrap_forward_for_benchmark(synthesiser)
 
     embeddings_dataset = load_from_disk("./datasets/speech_vector")
-    speaker_embedding = torch.tensor(embeddings_dataset[0]["xvector"]).unsqueeze(0).to(device)
+    speaker_embedding = (
+        torch.tensor(embeddings_dataset[0]["xvector"]).unsqueeze(0).to(device)
+    )
 
     # You can replace this embedding with your own as well.
-    forward_params = {"speaker_embeddings": speaker_embedding} if "t5" in model_id else {}
+    forward_params = (
+        {"speaker_embeddings": speaker_embedding} if "t5" in model_id else {}
+    )
     forward_params["do_sample"] = False
 
     if args.jit:
@@ -63,7 +81,8 @@ if __name__ == "__main__":
         synthesiser.model = torch.compile(synthesiser.model, backend=args.backend)
     elif args.ipex_optimize:
         logging.info("Use ipex optimize")
-        import intel_extension_for_pytorch as ipex 
+        import intel_extension_for_pytorch as ipex
+
         synthesiser.model = ipex.optimize(synthesiser.model, dtype=dtype, inplace=True)
 
     generate(synthesiser, device, dtype, forward_params, enable)

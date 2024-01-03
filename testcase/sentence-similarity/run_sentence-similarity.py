@@ -1,16 +1,14 @@
-from transformers import AutoTokenizer, AutoModel
 import torch
-import torch.nn.functional as F
 import time
 import sys
-import argparse
 import logging
 from transformers import pipeline
 
 import os
-sys.path.append(os.path.dirname(__file__)+"/..")
 
-from common import get_args, get_torch_dtype
+sys.path.append(os.path.dirname(__file__) + "/..")
+
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
 
 logging.basicConfig(level=logging.INFO)
 SEED = 20
@@ -22,23 +20,32 @@ MODEL_INPUT_SIZE = {
     "token_type_ids": (1, 7),
     "attention_mask": (1, 7),
 }
+WARMUP = 10
+RUN = 10
 
 
 def benchmark(extractor, sentences, seed, nb_pass):
-    elapsed_time = []
+    elapsed_times = []
+    forward_times = []
     for _ in range(nb_pass):
-        start = time.time()
         torch.manual_seed(seed)
+        extractor.forward_time = 0
+        start = time.time()
         model_output = extractor(sentences, return_tensors=True, batch_size=2)
         duration = time.time() - start
-        elapsed_time.append(duration)
+        elapsed_times.append(duration * 1000)
+        forward_times.append(extractor.forward_time * 1000)
         logging.info(model_output[0].shape)
-    return elapsed_time
+    return elapsed_times, forward_times
 
 
 def prepare_jit_inputs(model_id, device):
-    input_ids_example = torch.randint(6000, size=MODEL_INPUT_SIZE["input_ids"]).to(device)
-    attention_mask_example = torch.randint(1, size=MODEL_INPUT_SIZE["attention_mask"]).to(device)
+    input_ids_example = torch.randint(6000, size=MODEL_INPUT_SIZE["input_ids"]).to(
+        device
+    )
+    attention_mask_example = torch.randint(
+        1, size=MODEL_INPUT_SIZE["attention_mask"]
+    ).to(device)
     example_inputs = {
         "input_ids": input_ids_example,
         "attention_mask": attention_mask_example,
@@ -74,6 +81,7 @@ def apply_jit_trace(extractor, model_id, dtype, device, enable):
 def optimize_with_ipex(extractor, dtype):
     logging.info("using ipex optimize for acceleration...")
     import intel_extension_for_pytorch as ipex
+
     extractor.model = ipex.optimize(extractor.model, dtype=dtype)
     return extractor
 
@@ -84,7 +92,8 @@ def apply_torch_compile(extractor, backend):
         import intel_extension_for_pytorch as ipex
     extractor.model = torch.compile(extractor.model, backend=backend)
     return extractor
-    
+
+
 if __name__ == "__main__":
     args = get_args()
     logging.info(f"args={args}")
@@ -94,31 +103,45 @@ if __name__ == "__main__":
     use_torch_compile = args.torch_compile
     backend = args.backend
 
-    device = args.device 
-    if device == 'xpu':
+    device = args.device
+    if device == "xpu":
         import intel_extension_for_pytorch as ipex
-        
+
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.compute_dtype)
-    enable = (dtype != torch.float32)
+    enable = dtype != torch.float32
 
     if "shibing624/text2vec-base-chinese" in model_id:
         sentences = CHI_SENTENCES
     else:
         sentences = SENTENCES
 
-    extractor = pipeline("feature-extraction", model=model_id, torch_dtype=torch_dtype, device=device, return_dict=False)
-    
+    extractor = pipeline(
+        "feature-extraction",
+        model=model_id,
+        torch_dtype=torch_dtype,
+        device=device,
+        return_dict=False,
+    )
+    wrap_forward_for_benchmark(extractor)
+
     if use_ipex_optimize:
         extractor = optimize_with_ipex(extractor, dtype=dtype)
     if use_jit:
-        extractor = apply_jit_trace(extractor, model_id, dtype=dtype, device=device, enable=enable)
+        extractor = apply_jit_trace(
+            extractor, model_id, dtype=dtype, device=device, enable=enable
+        )
     if use_torch_compile:
         extractor = apply_torch_compile(extractor, backend)
 
     with torch.autocast(device, dtype, enable), torch.no_grad():
-        elapsed_time = benchmark(extractor, sentences, SEED, 20)
+        elapsed_times, forward_times = benchmark(
+            extractor, sentences, SEED, WARMUP + RUN
+        )
 
-    logging.info(f"total time [ms]: {elapsed_time}")
-    logging.info(f"average time [ms]: {round(sum(elapsed_time[10:])/len(elapsed_time[10:])*1000, 2)}")
-
+    average_time = sum(elapsed_times[WARMUP:]) / RUN
+    average_fwd_time = sum(forward_times[WARMUP:]) / RUN
+    logging.info(f"total time [ms]: {elapsed_times}")
+    logging.info(
+        f"average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}({average_fwd_time/average_time})"
+    )

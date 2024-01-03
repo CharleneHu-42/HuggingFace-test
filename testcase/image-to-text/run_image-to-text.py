@@ -1,29 +1,39 @@
 from transformers import pipeline
 import torch
 import time
-import argparse
 import logging
 import requests
 import PIL.Image
+
 logging.basicConfig(level=logging.INFO)
 
 import sys
 import os
-sys.path.append(os.path.dirname(__file__)+"/..")
 
-from common import get_args, get_torch_dtype
+sys.path.append(os.path.dirname(__file__) + "/..")
+
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
+
+WARMUP = 10
+RUN = 10
 
 
 def generate(generator, image, device, dtype, enable):
     time_costs = []
+    forward_times = []
     with torch.autocast(device, dtype, enable), torch.inference_mode(), torch.no_grad():
-        for i in range(20):
+        for i in range(WARMUP + RUN):
+            generator.forward_time = 0
             pre = time.time()
             output = generator(image)
-            time_costs.append((time.time()-pre)*1000)
-
+            time_costs.append((time.time() - pre) * 1000)
+            forward_times.append(generator.forward_time * 1000)
+    average_time = sum(time_costs[WARMUP:]) / RUN
+    average_fwd_time = sum(forward_times[WARMUP:]) / RUN
     logging.info(f"total time [ms]: {time_costs}")
-    logging.info(f"average time [ms] {sum(time_costs[10:]) / 10}")
+    logging.info(
+        f"average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}({average_fwd_time/average_time})"
+    )
     logging.info(f"output = {output}")
 
 
@@ -32,12 +42,12 @@ if __name__ == "__main__":
     logging.info(f"args = {args}")
     model_id = args.model_id
 
-    device = args.device 
+    device = args.device
     if device == "xpu":
         import intel_extension_for_pytorch as ipex
-    torch_dtype = get_torch_dtype(args.model_dtype) 
+    torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.compute_dtype)
-    enable = (dtype != torch.float32)
+    enable = dtype != torch.float32
 
     image_to_text = pipeline(
         "image-to-text",
@@ -46,6 +56,7 @@ if __name__ == "__main__":
         torch_dtype=torch_dtype,
     )
 
+    wrap_forward_for_benchmark(image_to_text)
     if args.jit:
         raise ValueError("Image-to-text does not support jit trace")
 
@@ -60,7 +71,7 @@ if __name__ == "__main__":
     elif args.ipex_optimize:
         logging.info("Use ipex optimize")
         import intel_extension_for_pytorch as ipex
-        
+
         image_to_text.model = ipex.optimize(
             image_to_text.model,
             dtype=dtype,
