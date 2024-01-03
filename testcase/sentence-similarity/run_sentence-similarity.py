@@ -9,8 +9,8 @@ from transformers import pipeline
 
 logging.basicConfig(level=logging.INFO)
 SEED = 20
-SENTENCES = "This is an example sentence"
-CHI_SENTENCES = "如何更换花呗绑定银行卡"
+SENTENCES = ["This is an example sentence", "Each sentence is converted"]
+CHI_SENTENCES = ["如何更换花呗绑定银行卡", "花呗更改绑定银行卡"]
 
 MODEL_INPUT_SIZE = {
     "input_ids": (1, 7),
@@ -40,7 +40,7 @@ def benchmark(extractor, sentences, seed, nb_pass):
     for _ in range(nb_pass):
         start = time.time()
         torch.manual_seed(seed)
-        model_output = extractor(sentences, return_tensors=True)
+        model_output = extractor(sentences, return_tensors=True, batch_size=2)
         duration = time.time() - start
         elapsed_time.append(duration)
         logging.info(model_output[0].shape)

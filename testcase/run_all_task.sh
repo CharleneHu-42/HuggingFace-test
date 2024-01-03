@@ -5,7 +5,6 @@ use_ipex_optimize=False
 use_jit=False
 use_torch_compile=False
 task_name=""
-model_id=""
 model_dtype="float32"
 compute_dtype="float32"
 backend="inductor"
@@ -16,7 +15,6 @@ usage() {
  echo "Usage: $0 [OPTIONS]"
  echo "Options:"
  echo " -h, --help               Display this help message"
- echo " -m, --model              Model ID"
  echo " -i, --ipex_optimize      Use ipex optimize "
  echo " -j, --jit                Use jit "
  echo " -c, --compile            Use torch compile"
@@ -50,17 +48,6 @@ handle_options() {
         fi
 
         task_name=$(extract_argument $@)
-
-        shift
-        ;;
-      -m | --model_id*)
-        if ! has_argument $@; then
-          echo "Model ID not specified." >&2
-          usage
-          exit 1
-        fi
-
-        model_id=$(extract_argument $@)
 
         shift
         ;;
