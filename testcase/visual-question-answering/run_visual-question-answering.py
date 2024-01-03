@@ -8,22 +8,11 @@ import logging
 import sys 
 sys.setrecursionlimit(10000000)
 
-logging.basicConfig(level=logging.INFO)
-def str2bool(str):
-    return True if str.lower() == 'true' else False
+import os
+sys.path.append(os.path.dirname(__file__)+"/..")
+from common import get_args, get_torch_dtype
 
-def get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model_id", default=None, type=str, required=True)
-    parser.add_argument("--compute_dtype", default="float32", type=str)
-    parser.add_argument("--ipex_optimize", default='False', type=str2bool)
-    parser.add_argument("--jit", default='False', type=str2bool)
-    parser.add_argument("--torch_compile", default='False', type=str2bool)
-    parser.add_argument("--model_dtype", default="float32", type=str)
-    parser.add_argument("--backend", default="inductor", type=str)
-    parser.add_argument("--device", default="cpu", type=str)
-    args = parser.parse_args()
-    return args
+logging.basicConfig(level=logging.INFO)
 
 def generate(generator, device, dtype, raw_image, question, enable):
     time_costs = []
@@ -36,15 +25,6 @@ def generate(generator, device, dtype, raw_image, question, enable):
     logging.info(f"total time [ms]: {time_costs}")
     logging.info(f"average time [ms] {sum(time_costs[10:]) / 10}")
     logging.info(f"output = {output}")
-
-def get_torch_dtype(dtype):
-    if dtype == "bfloat16":
-        return torch.bfloat16
-    elif dtype == 'float16':
-        return torch.float16 
-    else:
-        return torch.float32
-
 
 if __name__ == "__main__":
     args = get_args()

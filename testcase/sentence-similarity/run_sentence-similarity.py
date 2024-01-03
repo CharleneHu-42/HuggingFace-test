@@ -5,7 +5,12 @@ import time
 import sys
 import argparse
 import logging
-from transformers import pipeline 
+from transformers import pipeline
+
+import os
+sys.path.append(os.path.dirname(__file__)+"/..")
+
+from common import get_args, get_torch_dtype
 
 logging.basicConfig(level=logging.INFO)
 SEED = 20
@@ -17,22 +22,6 @@ MODEL_INPUT_SIZE = {
     "token_type_ids": (1, 7),
     "attention_mask": (1, 7),
 }
-
-def str2bool(str):
-    return True if str.lower() == 'true' else False
-
-def get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model_id", default=None, type=str, required=True)
-    parser.add_argument("--compute_dtype", default="float32", type=str)
-    parser.add_argument("--ipex_optimize", default='False', type=str2bool)
-    parser.add_argument("--jit", default='False', type=str2bool)
-    parser.add_argument("--torch_compile", default='False', type=str2bool)
-    parser.add_argument("--model_dtype", default="float32", type=str)
-    parser.add_argument("--backend", default="inductor", type=str)
-    parser.add_argument("--device", default="cpu", type=str)
-    args = parser.parse_args()
-    return args
 
 
 def benchmark(extractor, sentences, seed, nb_pass):
@@ -95,15 +84,6 @@ def apply_torch_compile(extractor, backend):
         import intel_extension_for_pytorch as ipex
     extractor.model = torch.compile(extractor.model, backend=backend)
     return extractor
- 
-
-def get_torch_dtype(dtype):
-    if dtype == "bfloat16":
-        return torch.bfloat16
-    elif dtype == 'float16':
-        return torch.float16 
-    else:
-        return torch.float32
     
 if __name__ == "__main__":
     args = get_args()

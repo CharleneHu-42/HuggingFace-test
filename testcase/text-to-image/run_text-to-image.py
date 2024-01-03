@@ -9,8 +9,12 @@ import sys
 import argparse
 import logging
 logging.basicConfig(level=logging.INFO)
-import sys 
 sys.setrecursionlimit(100000)
+
+import os
+sys.path.append(os.path.dirname(__file__)+"/..")
+
+from common import get_args, get_torch_dtype
 
 SEED = 20
 PROMPT = "An astronaut riding a green horse"
@@ -35,21 +39,6 @@ MODEL_INPUT_SIZE = {
     },
 }
 
-def str2bool(str):
-    return True if str.lower() == 'true' else False
-
-def get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model_id", default=None, type=str, required=True)
-    parser.add_argument("--compute_dtype", default="float32", type=str)
-    parser.add_argument("--ipex_optimize", default='False', type=str2bool)
-    parser.add_argument("--jit", default='False', type=str2bool)
-    parser.add_argument("--torch_compile", default='False', type=str2bool)
-    parser.add_argument("--model_dtype", default="float32", type=str)
-    parser.add_argument("--backend", default="inductor", type=str)
-    parser.add_argument("--device", default="cpu", type=str)
-    args = parser.parse_args()
-    return args
 
 def load_model(model_id, seed, model_dtype, device):
     torch.manual_seed(seed)
@@ -175,14 +164,6 @@ def apply_torch_compile(pipe, backend):
 
     return pipe
 
-def get_torch_dtype(dtype):
-    if dtype == "bfloat16":
-        return torch.bfloat16
-    elif dtype == 'float16':
-        return torch.float16 
-    else:
-        return torch.float32
-    
 
 if __name__ == "__main__":
     args = get_args()
