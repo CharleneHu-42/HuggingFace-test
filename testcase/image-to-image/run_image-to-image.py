@@ -8,13 +8,17 @@ from diffusers import (
     StableDiffusionImageVariationPipeline,
 )
 import time
-import argparse
 from torchvision import transforms
 import os
 import logging
+
 logging.basicConfig(level=logging.INFO)
-import sys 
+import sys
+
 sys.setrecursionlimit(100000)
+sys.path.append(os.path.dirname(__file__) + "/..")
+
+from common import get_args, get_torch_dtype
 
 SEED = 20
 IMG_URL = "https://raw.githubusercontent.com/timothybrooks/instruct-pix2pix/main/imgs/example.jpg"
@@ -40,24 +44,8 @@ MODEL_INPUT_SIZE = {
         "encoder_hidden_states": (2, 1, 768),
     },
 }
-
-
-def str2bool(str):
-    return True if str.lower() == 'true' else False
-
-
-def get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model_id", default=None, type=str, required=True)
-    parser.add_argument("--compute_dtype", default="float32", type=str)
-    parser.add_argument("--ipex_optimize", default='False', type=str2bool)
-    parser.add_argument("--jit", default='False', type=str2bool)
-    parser.add_argument("--torch_compile", default='False', type=str2bool)
-    parser.add_argument("--model_dtype", default="float32", type=str)
-    parser.add_argument("--backend", default="inductor", type=str)
-    parser.add_argument("--device", default="cpu", type=str)
-    args = parser.parse_args()
-    return args
+WARMUP = 10
+RUN = 10
 
 
 def load_model(model_id, seed, model_dtype, device):
@@ -71,8 +59,10 @@ def load_model(model_id, seed, model_dtype, device):
         )
     elif model_id == "stabilityai/stable-diffusion-xl-refiner-1.0":
         pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
-            model_id, torch_dtype=model_dtype, use_safetensors=True,
-            variant="fp16" if model_dtype == torch.float16 else None
+            model_id,
+            torch_dtype=model_dtype,
+            use_safetensors=True,
+            variant="fp16" if model_dtype == torch.float16 else None,
         )
     elif model_id == "lambdalabs/sd-image-variations-diffusers":
         pipe = StableDiffusionImageVariationPipeline.from_pretrained(
@@ -109,7 +99,7 @@ def benchmark(pipe, prompt, image, seed, nb_pass, model_id):
         else:
             new_image = pipe(prompt=prompt, image=image).images[0]
         duration = time.time() - start
-        elapsed_time.append(duration*1000)
+        elapsed_time.append(duration * 1000)
         new_image.save(f"img_{i}.jpg", "JPEG")
 
     return elapsed_time
@@ -123,7 +113,9 @@ def prepare_inputs(model_id, jit, dtype, device):
     sample_example = torch.randn(sample_size, dtype=dtype).to(device)
     timestemp_dtype = torch.int64 if isinstance(timestep_size, int) else torch.float32
     timestep_example = torch.tensor(timestep_size, dtype=timestemp_dtype).to(device)
-    encoder_hidden_states_example = torch.randn(encoder_hidden_states_size, dtype=dtype).to(device)
+    encoder_hidden_states_example = torch.randn(
+        encoder_hidden_states_size, dtype=dtype
+    ).to(device)
 
     example_inputs = {
         "sample": sample_example,
@@ -145,8 +137,11 @@ def prepare_inputs(model_id, jit, dtype, device):
                 "time_ids": time_ids_example,
             }
         else:
-            example_inputs = example_inputs + (None,) * 4 + \
-                            ({"text_embeds": text_embeds_example, "time_ids": time_ids_example},)
+            example_inputs = (
+                example_inputs
+                + (None,) * 4
+                + ({"text_embeds": text_embeds_example, "time_ids": time_ids_example},)
+            )
     return example_inputs
 
 
@@ -172,6 +167,7 @@ def apply_jit_trace(pipeline, model_id, attr_list, dtype, device, enable):
 def optimize_with_ipex(pipe, model_id, dtype, device, enable):
     logging.info("using ipex optimize for acceleration...")
     import intel_extension_for_pytorch as ipex
+
     pipe.unet = pipe.unet.to(memory_format=torch.channels_last)
     pipe.vae = pipe.vae.to(memory_format=torch.channels_last)
 
@@ -197,7 +193,9 @@ def apply_torch_compile(pipe, backend):
 
 def read_image(model_id, device):
     if model_id == "lambdalabs/sd-image-variations-diffusers":
-        image_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'datasets', SAMPLE_IMAGE)
+        image_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "datasets", SAMPLE_IMAGE
+        )
         image = PIL.Image.open(image_path)
         tform = transforms.Compose(
             [
@@ -220,15 +218,6 @@ def read_image(model_id, device):
     return image
 
 
-def get_torch_dtype(dtype):
-    if dtype == "bfloat16":
-        return torch.bfloat16
-    elif dtype == 'float16':
-        return torch.float16 
-    else:
-        return torch.float32
-
-
 if __name__ == "__main__":
     args = get_args()
     model_id = args.model_id
@@ -237,27 +226,31 @@ if __name__ == "__main__":
     use_torch_compile = args.torch_compile
     backend = args.backend
     logging.info(f"args = {args}")
-    
+
     device = args.device
-    if device == 'xpu':
+    if device == "xpu":
         import intel_extension_for_pytorch as ipex
-        
+
     image = read_image(model_id, device)
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.compute_dtype)
-    enable = (dtype != torch.float32)
+    enable = dtype != torch.float32
 
     pipe = load_model(model_id, SEED, torch_dtype, device)
-    
+
     if use_ipex_optimize:
-        pipe = optimize_with_ipex(pipe, model_id, dtype=dtype, device=device, enable=enable)
+        pipe = optimize_with_ipex(
+            pipe, model_id, dtype=dtype, device=device, enable=enable
+        )
     if use_jit:
-        pipe = apply_jit_trace(pipe, model_id, ["unet"], dtype=dtype, device=device, enable=enable)
+        pipe = apply_jit_trace(
+            pipe, model_id, ["unet"], dtype=dtype, device=device, enable=enable
+        )
     if use_torch_compile:
         pipe = apply_torch_compile(pipe, backend)
 
     with torch.autocast(device, dtype, enable), torch.no_grad():
-        elapsed_time = benchmark(pipe, PROMPT, image, SEED, 20, model_id)
+        elapsed_time = benchmark(pipe, PROMPT, image, SEED, WARMUP + RUN, model_id)
 
     logging.info(f"total time [ms]: {elapsed_time}")
-    logging.info(f"average time [ms]: {sum(elapsed_time[10:])/len(elapsed_time[10:])}")
+    logging.info(f"average time [ms]: {sum(elapsed_time[WARMUP:])/RUN}")
