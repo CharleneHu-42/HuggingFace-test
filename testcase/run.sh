@@ -10,6 +10,11 @@ model_dtype="float32"
 compute_dtype="float32"
 backend="inductor"
 device="cpu"
+batch_size=1
+num_beams=4
+input_tokens=32
+output_tokens=32
+ipex_optimize_transformers="False"
 
 # Function to display script usage
 usage() {
@@ -17,7 +22,7 @@ usage() {
  echo "Options:"
  echo " -h, --help            Display this help message"
  echo " -t, --task            Specify task name"
- echo " -m, --model_id           Specify model ID "
+ echo " -m, --model_id        Specify model ID "
  echo " -i, --ipex            Use ipex optimize "
  echo " -j, --jit             Use jit "
  echo " -c, --torch_compile   Use torch compile"
@@ -25,6 +30,11 @@ usage() {
  echo " --compute_dtype       Indicate the compute dtype[float32, bfloat16, float16]"
  echo " --backend             Indicate the torch compile backend[ipex, inductor]"
  echo " --device              Indicate the computation device[cpu, cuda, xpu]"
+ echo " --batch_size          Input batch size for text-generation"
+ echo " --num_beams           The num_beams for text-generation"
+ echo " --input_tokens        The input token length for text-generation[32, 64, 128, 256, 512, 1024]"
+ echo " --output_tokens       The output token length for text-generation"
+ echo " --ipex_optimize_transformers              Ipex optimize_transformers for text-generation"
 }
 
 has_argument() {
@@ -93,6 +103,26 @@ handle_options() {
         device=$(extract_argument $@)
         shift
         ;;
+      --batch_size)
+        batch_size=$(extract_argument $@)
+        shift
+        ;;
+      --num_beams)
+        num_beams=$(extract_argument $@)
+        shift
+        ;;
+      --input_tokens)
+        input_tokens=$(extract_argument $@)
+        shift
+        ;;
+      --output_tokens)
+        output_tokens=$(extract_argument $@)
+        shift
+        ;;
+      --ipex_optimize_transformers)
+        ipex_optimize_transformers=$(extract_argument $@)
+        shift
+        ;;
       *)
         echo "Invalid option: $1" >&2
         usage
@@ -126,4 +156,4 @@ export TRITON_CODEGEN_INTEL_XPU_BACKEND=1
 export OMP_NUM_THREADS=56
 
 # Perform the desired actions based on the provided flags and arguments
-numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --jit $use_jit --ipex_optimize $use_ipex_optimize --compute_dtype $compute_dtype --torch_compile $use_torch_compile --backend $backend --device $device
+numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --jit $use_jit --ipex_optimize $use_ipex_optimize --compute_dtype $compute_dtype --torch_compile $use_torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers

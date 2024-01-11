@@ -9,6 +9,11 @@ model_dtype="float32"
 compute_dtype="float32"
 backend="inductor"
 device="cpu"
+batch_size=1
+num_beams=4
+input_tokens=32
+output_tokens=32
+ipex_optimize_transformers="False"
 
 # Function to display script usage
 usage() {
@@ -22,6 +27,11 @@ usage() {
  echo " --compute_dtype          Indicate the compute dtype[float32, bfloat16, float16]"
  echo " --backend                Indicate the torch compile backend[ipex, inductor]"
  echo " --device                 Indicate the computation device[cpu, cuda, xpu]"
+ echo " --batch_size             Input batch size for text-generation"
+ echo " --num_beams              The num_beams for text-generation"
+ echo " --input_tokens           The input token length for text-generation[32, 64, 128, 256, 512, 1024]"
+ echo " --output_tokens          The output token length for text-generation"
+ echo " --ipex_optimize_transformers              Ipex optimize_transformers for text-generation"
 }
 
 has_argument() {
@@ -79,6 +89,26 @@ handle_options() {
         device=$(extract_argument $@)
         shift
         ;;
+      --batch_size)
+        batch_size=$(extract_argument $@)
+        shift
+        ;;
+      --num_beams)
+        num_beams=$(extract_argument $@)
+        shift
+        ;;
+      --input_tokens)
+        input_tokens=$(extract_argument $@)
+        shift
+        ;;
+      --output_tokens)
+        output_tokens=$(extract_argument $@)
+        shift
+        ;;
+      --ipex_optimize_transformers)
+        ipex_optimize_transformers=$(extract_argument $@)
+        shift
+        ;;
       *)
         echo "Invalid option: $1" >&2
         usage
@@ -132,11 +162,11 @@ done
 
 
 echo "test text-generation"
-model_list=("gpt2" "tiiuae/falcon-7b-instruct" "distilgpt2")
+model_list=("gpt2" "tiiuae/falcon-7b-instruct" "distilgpt2" "meta-llama/Llama-2-7b-chat-hf")
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task text-generation --model_id $model --model_dtype $model_dtype --jit $use_jit --ipex_optimize $use_ipex_optimize --compute_dtype $compute_dtype --torch_compile $use_torch_compile --backend $backend --device $device
+    ./run.sh --task text-generation --model_id $model --model_dtype $model_dtype --jit $use_jit --ipex_optimize $use_ipex_optimize --compute_dtype $compute_dtype --torch_compile $use_torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers
     echo "----------------------------"
 done
 
@@ -182,5 +212,23 @@ model_list=("Salesforce/blip-vqa-base" "dandelin/vilt-b32-finetuned-vqa" "Salesf
 for model in "${model_list[@]}"
 do
     ./run.sh --task visual-question-answering --model_id $model --model_dtype $model_dtype --jit $use_jit --ipex_optimize $use_ipex_optimize --compute_dtype $compute_dtype --torch_compile $use_torch_compile --backend $backend --device $device
+    echo "----------------------------"
+done
+
+echo "test question-answering"
+model_list=("bert-large-uncased-whole-word-masking-finetuned-squad")
+
+for model in "${model_list[@]}"
+do
+    ./run.sh --task question-answering --model_id $model --model_dtype $model_dtype --jit $use_jit --ipex_optimize $use_ipex_optimize --compute_dtype $compute_dtype --torch_compile $use_torch_compile --backend $backend --device $device
+    echo "----------------------------"
+done
+
+echo "test image-classification"
+model_list=("google/vit-base-patch16-224")
+
+for model in "${model_list[@]}"
+do
+    ./run.sh --task image-classification --model_id $model --model_dtype $model_dtype --jit $use_jit --ipex_optimize $use_ipex_optimize --compute_dtype $compute_dtype --torch_compile $use_torch_compile --backend $backend --device $device
     echo "----------------------------"
 done

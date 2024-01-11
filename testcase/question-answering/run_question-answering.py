@@ -1,0 +1,98 @@
+from PIL import Image
+from transformers import pipeline
+import torch
+import time
+import logging
+import sys
+
+sys.setrecursionlimit(10000000)
+
+import os
+
+sys.path.append(os.path.dirname(__file__) + "/..")
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
+
+logging.basicConfig(level=logging.INFO)
+WARMUP = 10
+RUN = 10
+
+
+def prepare_jit_inputs(device):
+    example_inputs = {
+        "input_ids": torch.randint(100, (1, 19)).to(device),
+        "token_type_ids": torch.randint(1, (1, 19)).to(device),
+        "attention_mask": torch.randint(1, (1, 19)).to(device),
+    }
+
+    return example_inputs
+
+
+def benchmark(pipe, device, dtype, question, context, enable):
+    time_costs = []
+    forward_times = []
+    with torch.autocast(device, dtype, enable), torch.no_grad(), torch.inference_mode():
+        for i in range(WARMUP + RUN):
+            pipe.forward_time = 0
+            pre = time.time()
+            output = pipe(question=question, context=context)
+            time_costs.append((time.time() - pre) * 1000)
+            forward_times.append(pipe.forward_time * 1000)
+
+    average_time = sum(time_costs[WARMUP:]) / RUN
+    average_fwd_time = sum(forward_times[WARMUP:]) / RUN
+    logging.info(f"total time [ms]: {time_costs}")
+    logging.info(
+        f"average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}({average_fwd_time/average_time})"
+    )
+    logging.info(f"output = {output}")
+
+
+if __name__ == "__main__":
+    args = get_args()
+    logging.info(f"args = {args}")
+    model_id = args.model_id
+
+    device = args.device
+    if device == "xpu":
+        import intel_extension_for_pytorch as ipex
+
+    question = "Where do I live?"
+    context = "My name is Merve and I live in İstanbul."
+
+    torch_dtype = get_torch_dtype(args.model_dtype)
+    dtype = get_torch_dtype(args.compute_dtype)
+    enable = dtype != torch.float32
+
+    pipe = pipeline(
+        "question-answering",
+        model=model_id,
+        torch_dtype=torch_dtype,
+        device=device,
+    )
+    wrap_forward_for_benchmark(pipe)
+
+    if args.torch_compile:
+        logging.info(f"Use torch compile with {args.backend} backend")
+        if args.backend == "ipex":
+            import intel_extension_for_pytorch as ipex
+        pipe.model = torch.compile(pipe.model, backend=args.backend)
+        pipe.model.generate = torch.compile(pipe.model.generate, backend=args.backend)
+    if args.ipex_optimize:
+        logging.info("Use ipex optimize")
+        import intel_extension_for_pytorch as ipex
+
+        pipe.model = ipex.optimize(pipe.model, dtype=dtype, inplace=True)
+    if args.jit:
+        logging.info("using jit trace for acceleration...")
+        example_inputs = prepare_jit_inputs(device)
+        pipe.model.config.return_dict = False
+        with torch.autocast(device, dtype, enable), torch.no_grad():
+            pipe.model = torch.jit.trace(
+                pipe.model, example_kwarg_inputs=example_inputs, strict=False
+            )
+
+        pipe.model = torch.jit.freeze(pipe.model.eval())
+        pipe.model(**example_inputs)
+        pipe.model(**example_inputs)
+
+    benchmark(pipe, device, dtype, question, context, enable)

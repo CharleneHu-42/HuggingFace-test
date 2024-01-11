@@ -17,6 +17,11 @@ def get_args():
     parser.add_argument("--model_dtype", default="float32", type=str)
     parser.add_argument("--backend", default="inductor", type=str)
     parser.add_argument("--device", default="cpu", type=str)
+    parser.add_argument("--batch_size", default=1, type=int)
+    parser.add_argument("--num_beams", default=4, type=int)
+    parser.add_argument("--input_tokens", default=32, type=int, help="choose from [32, 64, 128, 256, 512, 1024]")
+    parser.add_argument("--output_tokens", default=32, type=int)
+    parser.add_argument("--ipex_optimize_transformers", default="False", type=str2bool)
     args = parser.parse_args()
     return args
 

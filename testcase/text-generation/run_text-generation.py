@@ -31,7 +31,7 @@ def generate(generator, input_sentence, device, dtype, enable):
     return sum(latency[WARMUP:]) / RUN, output, sum(forward_latency[WARMUP:]) / RUN
 
 
-def benchmark(generator, input_sentence, device, dtype, enable):
+def benchmark(generator, input_sentence, device, dtype, enable, output_tokens=32):
     input_len = len(tokenizer(input_sentence)["input_ids"])
     logging.info(f"input tokens length is {input_len}")
 
@@ -46,7 +46,7 @@ def benchmark(generator, input_sentence, device, dtype, enable):
     )
     logging.info(f"output token nums = {out_num}")
 
-    generation_kwargs["max_new_tokens"] = 32
+    generation_kwargs["max_new_tokens"] = output_tokens
     latency, out, forward_latency = generate(
         generator, input_sentence, device, dtype, enable
     )
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     with open("./datasets/prompt.json", "r") as f:
         prompt = json.load(f)
 
-    generation_kwargs = dict(do_sample=False, num_beams=4, use_cache=True)
+    generation_kwargs = dict(do_sample=False, num_beams=args.num_beams, use_cache=True)
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.compute_dtype)
     enable = dtype != torch.float32
@@ -88,16 +88,22 @@ if __name__ == "__main__":
     )
     wrap_forward_for_benchmark(generator)
 
-    if not args.ipex_optimize and not args.torch_compile:
-        benchmark(generator, prompt["gpt-j"]["512"], device, dtype, enable)
-    elif args.ipex_optimize:
+    input_seq = prompt["gpt-j"][str(args.input_tokens)]
+    if args.batch_size > 1:
+        input_seq = [input_seq] * args.batch_size
+
+    if args.ipex_optimize:
         from optimum.intel import inference_mode as ipex_inference_mode
 
         logging.info("Use ipex optimization")
         with ipex_inference_mode(
             generator, dtype=dtype, verbose=False, jit=args.jit
         ) as ipex_pipe:
-            benchmark(ipex_pipe, prompt["gpt-j"]["512"], device, dtype, enable)
+            benchmark(ipex_pipe, input_seq, device, dtype, enable, output_tokens=args.output_tokens)
+    elif args.ipex_optimize_transformers and args.batch_size == 1 and args.num_beams == 1:
+        import intel_extension_for_pytorch as ipex
+        generator.model = ipex.optimize_transformers(generator.model, dtype=dtype, device=device)
+        benchmark(generator, input_seq, device, dtype, enable, output_tokens=args.output_tokens)
     elif args.torch_compile:
         logging.info(f"Use torch compile with {args.backend} backend")
         if args.backend == "ipex":
@@ -105,4 +111,6 @@ if __name__ == "__main__":
         generator.model.generate = torch.compile(
             generator.model.generate, backend=args.backend
         )
-        benchmark(generator, prompt["gpt-j"]["512"], device, dtype, enable)
+        benchmark(generator, input_seq, device, dtype, enable, output_tokens=args.output_tokens)
+    else:
+        benchmark(generator, input_seq, device, dtype, enable, output_tokens=args.output_tokens)
