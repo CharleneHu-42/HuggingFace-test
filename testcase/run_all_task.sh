@@ -14,6 +14,7 @@ num_beams=4
 input_tokens=32
 output_tokens=32
 ipex_optimize_transformers="False"
+distributed=False
 
 # Function to display script usage
 usage() {
@@ -32,6 +33,7 @@ usage() {
  echo " --input_tokens           The input token length for text-generation[32, 64, 128, 256, 512, 1024]"
  echo " --output_tokens          The output token length for text-generation"
  echo " --ipex_optimize_transformers              Ipex optimize_transformers for text-generation"
+ echo " --distributed         Whether to run fine-tuning in distributed mode, only used for fine-tune task"
 }
 
 has_argument() {
@@ -107,6 +109,10 @@ handle_options() {
         ;;
       --ipex_optimize_transformers)
         ipex_optimize_transformers=$(extract_argument $@)
+        shift
+        ;;
+      --distributed)
+        distributed=$(extract_argument $@)
         shift
         ;;
       *)
@@ -232,3 +238,7 @@ do
     ./run.sh --task image-classification --model_id $model --model_dtype $model_dtype --jit $use_jit --ipex_optimize $use_ipex_optimize --compute_dtype $compute_dtype --torch_compile $use_torch_compile --backend $backend --device $device
     echo "----------------------------"
 done
+
+echo "test fine-tune"
+cd fine-tune
+./run.sh --task fine-tune --device $device --distributed $distributed 

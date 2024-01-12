@@ -15,6 +15,7 @@ num_beams=4
 input_tokens=32
 output_tokens=32
 ipex_optimize_transformers="False"
+distributed="False"
 
 # Function to display script usage
 usage() {
@@ -35,6 +36,7 @@ usage() {
  echo " --input_tokens        The input token length for text-generation[32, 64, 128, 256, 512, 1024]"
  echo " --output_tokens       The output token length for text-generation"
  echo " --ipex_optimize_transformers              Ipex optimize_transformers for text-generation"
+ echo " --distributed         Whether to run fine-tuning in distributed mode, only used for fine-tune task"
 }
 
 has_argument() {
@@ -123,6 +125,10 @@ handle_options() {
         ipex_optimize_transformers=$(extract_argument $@)
         shift
         ;;
+      --distributed)
+        distributed=$(extract_argument $@)
+        shift
+        ;;
       *)
         echo "Invalid option: $1" >&2
         usage
@@ -156,4 +162,13 @@ export TRITON_CODEGEN_INTEL_XPU_BACKEND=1
 export OMP_NUM_THREADS=56
 
 # Perform the desired actions based on the provided flags and arguments
-numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --jit $use_jit --ipex_optimize $use_ipex_optimize --compute_dtype $compute_dtype --torch_compile $use_torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers
+if [[ "$task_name" == "fine-tune" ]]; then
+  export CCL_ZE_IPC_EXCHANGE=sockets
+  if [[ "$distributed" == "False" || "$distributed" == "false" ]]; then
+      numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py
+  else 
+      accelerate launch --config_file $task_name/${device}_config.yaml $task_name/run_$task_name.py
+  fi
+else
+  numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --jit $use_jit --ipex_optimize $use_ipex_optimize --compute_dtype $compute_dtype --torch_compile $use_torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers
+fi 
