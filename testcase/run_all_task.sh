@@ -240,5 +240,4 @@ do
 done
 
 echo "test fine-tune"
-cd fine-tune
 ./run.sh --task fine-tune --device $device --distributed $distributed 

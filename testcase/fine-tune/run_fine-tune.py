@@ -140,7 +140,6 @@ def train(
     learning_rate: float = 3e-4,
     cutoff_len: int = 256,
     split_ratio: float = 0.8,
-    mixed_precision_dtype: str = "fp16",
     gradient_checkpointing: bool = False,
     compile: bool = False,
     # lora hyperparams
@@ -169,7 +168,6 @@ def train(
             f"  micro_batch_size: {micro_batch_size}\n"
             f"  num_epochs: {num_epochs}\n"
             f"  max_steps: {max_steps}\n"
-            f"  mixed_precision_dtype: {mixed_precision_dtype}\n"
             f"  gradient_checkpointing: {gradient_checkpointing}\n"
             f"  compile: {compile}\n"
             f"  learning_rate: {learning_rate}\n"
@@ -210,13 +208,6 @@ def train(
         split_ratio,
     )
 
-    if mixed_precision_dtype == "fp16":
-        use_fp16, use_bf16 = True, False
-    elif mixed_precision_dtype == "bf16":
-        use_fp16, use_bf16 = False, True
-    else:
-        use_fp16, use_bf16 = False, False
-
     training_args = TrainingArguments(
         per_device_train_batch_size=micro_batch_size,
         gradient_accumulation_steps=gradient_accumulation_steps,
@@ -224,8 +215,6 @@ def train(
         max_steps=max_steps,
         num_train_epochs=num_epochs,
         learning_rate=learning_rate,
-        fp16=use_fp16,
-        bf16=use_bf16,
         logging_steps=10,
         optim="adamw_torch",
         evaluation_strategy="steps",
