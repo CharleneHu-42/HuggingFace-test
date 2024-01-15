@@ -4,6 +4,7 @@
 If you cannot connect to huggingface model hub, please try `export HF_ENDPOINT=https://hf-mirror.com`
 
 ## Test commandline
+### All tasks
 ```bash 
 sh run.sh --task task_name --model_id model_name
 ```
@@ -41,6 +42,14 @@ To run the test scripts on XPU, please activate the oneAPI environment, e.g.
 source env.sh
 sh run.sh --task task_name --model_id model_name --device xpu
 ```
+
+### Finetune
+We use `accelerate launch` to start finetune on XPU and GPU, use `mpirun python` on CPU to enable distributed finetune(need to install one-ccl on CPU). 
+The finetune task defaultly use `fp16` and `ipex` on XPU and GPU, `bf16` on CPU. If you want to run finetune separately and use `ipex` on CPU, please run the follwing script:
+```
+sh run.sh -t fine-tune --ipex_optimize True
+``` 
+You can also add `--gradient_checkpointing True` to use gradient checkpointing.
 
 ## Test data
 For text prompts and speech demos can be found [here](https://drive.google.com/drive/folders/1PbGjFGuPgSxTqK3tC1UKP7sF0cib1pyd?usp=drive_link)
