@@ -109,7 +109,7 @@ def get_dataset_and_collator(
 
 
 def get_lora_model(base_model, lora_r, lora_alpha, lora_target_modules, lora_dropout):
-    model = LlamaForCausalLM.from_pretrained(base_model)
+    model = LlamaForCausalLM.from_pretrained(base_model, low_cpu_mem_usage=True)
     config = LoraConfig(
         r=lora_r,
         lora_alpha=lora_alpha,
@@ -157,6 +157,7 @@ def train(
     # wandb params
     use_wandb: bool = False,
     prompt_template_name: str = "alpaca",  # The prompt template to use, will default to alpaca.
+    **kwargs
 ):
     if int(os.environ.get("LOCAL_RANK", 0)) == 0:
         print(
@@ -195,19 +196,6 @@ def train(
     if use_wandb:
         set_wandb_env()
 
-    model = get_lora_model(
-        base_model, lora_r, lora_alpha, lora_target_modules, lora_dropout
-    )
-    train_data, val_data, collator = get_dataset_and_collator(
-        data_path,
-        prompt_template_name,
-        base_model,
-        cutoff_len,
-        add_eos_token,
-        train_on_inputs,
-        split_ratio,
-    )
-
     training_args = TrainingArguments(
         per_device_train_batch_size=micro_batch_size,
         gradient_accumulation_steps=gradient_accumulation_steps,
@@ -228,6 +216,20 @@ def train(
         ddp_find_unused_parameters=False if ddp else None,
         group_by_length=group_by_length,
         report_to="wandb" if use_wandb else "none",
+        **kwargs
+    )
+
+    model = get_lora_model(
+        base_model, lora_r, lora_alpha, lora_target_modules, lora_dropout
+    )
+    train_data, val_data, collator = get_dataset_and_collator(
+        data_path,
+        prompt_template_name,
+        base_model,
+        cutoff_len,
+        add_eos_token,
+        train_on_inputs,
+        split_ratio,
     )
 
     trainer = Trainer(

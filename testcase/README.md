@@ -1,9 +1,23 @@
 # TEST GUIDE
 
+## Envs on CPU
+Please use conda env.
+We recommend you to use the preview version of [pytorch](https://pytorch.org/get-started/locally/), and build [ipex](https://github.com/intel-innersource/frameworks.ai.pytorch.ipex-cpu) from source by (use gcc-11):
+```bash
+git clone --recursive https://github.com/intel-innersource/frameworks.ai.pytorch.ipex-cpu.git
+git submodule sync && git submodule update --init --recursive
+source /opt/rh/gcc-toolset-11/enable
+export LD_LIBRARY_PATH=${CONDA_PREFIX}/lib/
+cd frameworks.ai.pytorch.ipex-cpu/
+python setup.py develop
+```
+
 ## Model
 If you cannot connect to huggingface model hub, please try `export HF_ENDPOINT=https://hf-mirror.com`
 
 ## Test commandline
+### All tasks
+
 ```bash 
 sh run.sh --task task_name --model_id model_name
 ```
@@ -41,6 +55,14 @@ To run the test scripts on XPU, please activate the oneAPI environment, e.g.
 source env.sh
 sh run.sh --task task_name --model_id model_name --device xpu
 ```
+
+### Finetune
+We defaultly use `fp16` and `ipex` on XPU and GPU, `bf16` on CPU. If you want to run finetune separately and use `ipex` on CPU, please run the follwing script:
+```
+sh run.sh -t fine-tune --ipex_optimize True
+``` 
+You can also add `--gradient_checkpointing` to use gradient checkpointing.
+**___Note: IPEX has bug with bf16 on the newest version(2.3).___**
 
 ## Test data
 For text prompts and speech demos can be found [here](https://drive.google.com/drive/folders/1PbGjFGuPgSxTqK3tC1UKP7sF0cib1pyd?usp=drive_link)
