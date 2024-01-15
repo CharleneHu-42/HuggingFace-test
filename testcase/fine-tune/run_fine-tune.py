@@ -222,6 +222,8 @@ def train(
     model = get_lora_model(
         base_model, lora_r, lora_alpha, lora_target_modules, lora_dropout
     )
+    if training_args.gradient_checkpointing:
+        model.enable_input_require_grads()
     train_data, val_data, collator = get_dataset_and_collator(
         data_path,
         prompt_template_name,
