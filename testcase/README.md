@@ -61,7 +61,7 @@ We defaultly use `fp16` and `ipex` on XPU and GPU, `bf16` on CPU. If you want to
 ```
 sh run.sh -t fine-tune --ipex_optimize True
 ``` 
-You can also add `--gradient_checkpointing` to use gradient checkpointing.
+You can also add `--gradient_checkpointing True` to use gradient checkpointing.
 **___Note: IPEX has bug with bf16 on the newest version(2.3).___**
 
 ## Test data
