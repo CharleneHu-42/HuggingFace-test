@@ -37,19 +37,32 @@ To accelerate all task with bfloat16, ipex_optimize and jit, use the following c
 sh run_all_task.sh --compute_dtype bfloat16 --model_dtype bfloat16 --ipex_optimize True --jit True
 ```
 
-To run the test scripts on XPU, please activate the oneAPI environment, e.g. 
+To run the test scripts on XPU, please activate the oneAPI environment first: 
 ```bash
 source env.sh
-sh run.sh --task task_name --model_id model_name --device xpu
 ```
+Then use the following command for Intel Native Experience:
+```bash
+sh run_all_task.sh --model_dtype float16 --compute_dtype float16 --device xpu
+```
+For Intel Intermediate Experience, add `--ipex_optimize True` to the command above.
+
+To run the test scripts on NV GPU, use the flag `--device cuda`. 
 
 ### Finetune
 We use `accelerate launch` to start finetune on XPU and GPU, use `mpirun python` on CPU to enable distributed finetune(need to install one-ccl on CPU). 
 The finetune task defaultly use `fp16` and `ipex` on XPU and GPU, `bf16` on CPU. If you want to run finetune separately and use `ipex` on CPU, please run the follwing script:
 ```
-sh run.sh -t fine-tune --ipex_optimize True
+sh run.sh --task_name fine-tune --ipex_optimize True --device cpu 
 ``` 
 You can also add `--gradient_checkpointing True` to use gradient checkpointing.
+
+To run fine-tuning on XPU:
+```bash
+source env.sh
+sh run.sh --task_name fine-tune --device xpu  
+```
+
 
 ## Test data
 For text prompts and speech demos can be found [here](https://drive.google.com/drive/folders/1PbGjFGuPgSxTqK3tC1UKP7sF0cib1pyd?usp=drive_link)
