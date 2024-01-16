@@ -172,7 +172,7 @@ if [[ "$task_name" == "fine-tune" ]]; then
   if [[ "$device" == "cpu" ]]; then
     oneccl_bindings_for_pytorch_path=$(python -c "from oneccl_bindings_for_pytorch import cwd; print(cwd)")
     source $oneccl_bindings_for_pytorch_path/env/setvars.sh
-    mpirun -n $num_processes -ppn 1 -genv OMP_NUM_THREADS=$(($OMP_NUM_THREADS/$num_processes)) -genv MASTER_ADDR=127.0.0.1 -genv MASTER_PORT=29500 python $task_name/run_$task_name.py --gradient_checkpointing $gradient_checkpointing --bf16 True --use_ipex $ipex_optimize
+    mpirun -n $num_processes -ppn 1 -genv OMP_NUM_THREADS=$(($OMP_NUM_THREADS*2/$num_processes)) -genv MASTER_ADDR=127.0.0.1 -genv MASTER_PORT=29500 python $task_name/run_$task_name.py --gradient_checkpointing $gradient_checkpointing --bf16 True --use_ipex $ipex_optimize
   else
     export CCL_PROCESS_LAUNCHER=none
     accelerate launch --config_file $task_name/xpu_config.yaml $task_name/run_$task_name.py --gradient_checkpointing $gradient_checkpointing
