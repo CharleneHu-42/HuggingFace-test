@@ -234,4 +234,4 @@ do
 done
 
 echo "test fine-tune"
-./run.sh --task fine-tune --device $device
+./run.sh --task fine-tune --device $device --torch_compile $torch_compile
