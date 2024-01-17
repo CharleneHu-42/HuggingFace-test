@@ -208,6 +208,7 @@ def train(
         save_steps=200,
         output_dir=output_dir,
         save_total_limit=3,
+        torch_compile=compile,
         gradient_checkpointing=gradient_checkpointing,
         load_best_model_at_end=False,
         ddp_find_unused_parameters=False if ddp else None,
@@ -245,9 +246,6 @@ def train(
     model.state_dict = (
         lambda self, *_, **__: get_peft_model_state_dict(self, old_state_dict())
     ).__get__(model, type(model))
-
-    if compile and torch.__version__ >= "2" and sys.platform != "win32":
-        model = torch.compile(model)
 
     start = time.time()
     trainer.train()
