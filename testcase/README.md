@@ -1,4 +1,4 @@
-# HF Test Guide For Intel Native Experience 
+# HF Test Guide
 
 ## Inference
 
