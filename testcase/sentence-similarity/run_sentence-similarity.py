@@ -4,6 +4,7 @@ import sys
 import logging
 from transformers import pipeline
 import torch.nn.functional as F
+from transformers.utils import ContextManagers
 
 import os
 
@@ -23,7 +24,7 @@ MODEL_INPUT_SIZE = {
 }
 WARMUP = 10
 RUN = 10
-
+inference_context = [torch.inference_mode()]
 
 # Mean Pooling - Take attention mask into account for correct averaging
 def mean_pooling(token_embeddings, attention_mask):
@@ -76,7 +77,7 @@ def apply_jit_trace(extractor, model_id, dtype, device, enable):
     example_inputs = prepare_jit_inputs(model_id, device)
 
     extractor.model.config.return_dict = False
-    with torch.autocast(device, dtype, enable), torch.no_grad():
+    with ContextManagers(inference_context):
         extractor.model = torch.jit.trace(
             extractor.model, example_kwarg_inputs=example_inputs, strict=False
         )
@@ -121,6 +122,8 @@ if __name__ == "__main__":
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32
+    if enable:
+        inference_context.append(torch.autocast(device, dtype, enable))
 
     if "shibing624/text2vec-base-chinese" in model_id:
         sentences = CHI_SENTENCES
@@ -145,7 +148,7 @@ if __name__ == "__main__":
     if use_torch_compile:
         extractor = apply_torch_compile(extractor, backend)
 
-    with torch.autocast(device, dtype, enable), torch.no_grad():
+    with ContextManagers(inference_context):
         elapsed_times, forward_times = benchmark(
             extractor, sentences, SEED, WARMUP + RUN
         )

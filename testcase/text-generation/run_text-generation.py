@@ -3,6 +3,7 @@ import torch
 import json
 from transformers import pipeline, AutoTokenizer
 import logging
+from transformers.utils import ContextManagers
 
 logging.basicConfig(level=logging.INFO)
 
@@ -15,12 +16,12 @@ from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
 
 WARMUP = 10
 RUN = 10
-
+inference_context = [torch.inference_mode()]
 
 def generate(generator, input_sentence, device, dtype, enable, batch_size):
     latency = []
     forward_latency = []
-    with torch.autocast(device, dtype, enable), torch.no_grad(), torch.inference_mode():
+    with ContextManagers(inference_context):
         for i in range(WARMUP + RUN):
             generator.forward_time = 0
             pre = time.time()
@@ -77,6 +78,8 @@ if __name__ == "__main__":
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32
+    if enable:
+        inference_context.append(torch.autocast(device, dtype, enable))
 
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     generator = pipeline(

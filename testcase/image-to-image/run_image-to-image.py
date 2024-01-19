@@ -11,6 +11,7 @@ import time
 from torchvision import transforms
 import os
 import logging
+from transformers.utils import ContextManagers
 
 logging.basicConfig(level=logging.INFO)
 import sys
@@ -46,6 +47,7 @@ MODEL_INPUT_SIZE = {
 }
 WARMUP = 10
 RUN = 10
+inference_context = [torch.no_grad()]
 
 
 def load_model(model_id, seed, model_dtype, device):
@@ -151,7 +153,7 @@ def apply_jit_trace(pipeline, model_id, attr_list, dtype, device, enable):
         model = getattr(pipeline, name)
         model.eval()
         example_inputs = prepare_inputs(model_id, True, dtype, device)
-        with torch.autocast(device, dtype, enable), torch.no_grad():
+        with ContextManagers(inference_context):
             traced_model = torch.jit.trace(
                 model, example_kwarg_inputs=example_inputs, strict=False
             )
@@ -174,7 +176,7 @@ def optimize_with_ipex(pipe, model_id, dtype, device, enable):
     input_example = prepare_inputs(model_id, False, dtype, device)
 
     # optimize with IPEX
-    with torch.autocast(device, dtype, enable), torch.no_grad():
+    with ContextManagers(inference_context):
         pipe.unet = ipex.optimize(
             pipe.unet.eval(), dtype=dtype, inplace=True, sample_input=input_example
         )
@@ -235,6 +237,8 @@ if __name__ == "__main__":
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32
+    if enable:
+        inference_context.append(torch.autocast(device, dtype, enable))
 
     pipe = load_model(model_id, SEED, torch_dtype, device)
 
@@ -249,7 +253,7 @@ if __name__ == "__main__":
     if use_torch_compile:
         pipe = apply_torch_compile(pipe, backend)
 
-    with torch.autocast(device, dtype, enable), torch.no_grad():
+    with ContextManagers(inference_context):
         elapsed_time = benchmark(pipe, PROMPT, image, SEED, WARMUP + RUN, model_id)
 
     logging.info(f"total time [ms]: {elapsed_time}")

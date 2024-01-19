@@ -4,6 +4,7 @@ import time
 import logging
 import requests
 import PIL.Image
+from transformers.utils import ContextManagers
 
 logging.basicConfig(level=logging.INFO)
 
@@ -16,12 +17,12 @@ from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
 
 WARMUP = 10
 RUN = 10
-
+inference_context = [torch.inference_mode()]
 
 def generate(generator, image, device, dtype, enable):
     time_costs = []
     forward_times = []
-    with torch.autocast(device, dtype, enable), torch.inference_mode(), torch.no_grad():
+    with ContextManagers(inference_context):
         for i in range(WARMUP + RUN):
             generator.forward_time = 0
             pre = time.time()
@@ -48,6 +49,8 @@ if __name__ == "__main__":
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32
+    if enable:
+        inference_context.append(torch.autocast(device, dtype, enable))
 
     image_to_text = pipeline(
         "image-to-text",
