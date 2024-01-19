@@ -19,8 +19,7 @@ import sys
 sys.setrecursionlimit(100000)
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype
-import common
+from common import get_args, get_torch_dtype, WARMUP, RUN
 
 SEED = 20
 IMG_URL = "https://raw.githubusercontent.com/timothybrooks/instruct-pix2pix/main/imgs/example.jpg"

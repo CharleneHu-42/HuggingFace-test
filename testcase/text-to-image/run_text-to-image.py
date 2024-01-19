@@ -15,8 +15,7 @@ sys.setrecursionlimit(100000)
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype
-import common
+from common import get_args, get_torch_dtype, WARMUP, RUN
 
 SEED = 20
 PROMPT = "An astronaut riding a green horse"

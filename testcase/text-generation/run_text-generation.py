@@ -12,9 +12,7 @@ import os
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
-import common
-
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, WARMUP, RUN
 inference_context = [torch.inference_mode()]
 
 def generate(generator, input_sentence, device, dtype, enable, batch_size):

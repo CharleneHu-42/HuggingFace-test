@@ -11,8 +11,7 @@ sys.setrecursionlimit(10000000)
 import os
 
 sys.path.append(os.path.dirname(__file__) + "/..")
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
-import common
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, WARMUP, RUN
 
 logging.basicConfig(level=logging.INFO)
 inference_context = [torch.inference_mode()]
