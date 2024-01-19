@@ -1,2 +1,2 @@
-./run_all_task.sh
-./run_all_task.sh --torch_compile True
+./run_all_task_cpu.sh
+./run_all_task_cpu.sh --torch_compile True
