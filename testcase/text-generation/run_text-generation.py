@@ -54,7 +54,7 @@ def benchmark(generator, input_sentence, device, dtype, enable, output_tokens, b
     logging.info(f"output token nums = {out_num}")
     logging.info(f"output = {out}")
     logging.info(
-        f"pipeline average time = {latency} ms, pipeline_forward_time = {forward_latency} ms({forward_latency/latency})"
+        f"pipeline average time = {latency} ms, pipeline_forward_time = {forward_latency} ms"
     )
 
 

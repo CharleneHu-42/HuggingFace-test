@@ -33,7 +33,7 @@ def generate(generator, device, dtype, forward_params, enable):
     average_fwd_time = sum(forward_times[WARMUP:]) / RUN
     logging.info(f"total time [ms]: {time_costs}")
     logging.info(
-        f"pipeline average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}({average_fwd_time/average_time})"
+        f"pipeline average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}"
     )
     logging.info(f"output = {output}")
 

@@ -3,6 +3,12 @@
 ## Inference
 
 ### CPU
+We defaultly running BF16 OOB and BF16 + torch.compile in CPU, run the following command:
+```bash
+sh run_cpu.sh
+```
+After running this command, you can find the data in the `cpu_benmark.log`. Make sure you read the instruuction at the beginning of the log.
+
 
 ### XPU
 Before running the testcases, please run the following command to first verify whether you are in the right XPU environment:
@@ -22,6 +28,10 @@ If you want to compare the performance with NV GPU, just add the flag `--device 
 
 ## Fine-tune
 ### CPU
+We defaultly use bf16 training with 4 DDP in a single instance, run the following command.
+```bash
+./run.sh --task fine-tune --device cpu
+```
 
 ### XPU 
 ```bash
@@ -32,41 +42,3 @@ If you want to compare the performance with NV GPU, just add the flag `--device 
 ## Notes
 ### Connection Error
 If you cannot connect to huggingface model hub, please try `export HF_ENDPOINT=https://hf-mirror.com`
-
-### Command Usage 
-To run individual task:
-```bash 
-sh run.sh --task task_name --model_id model_name
-```
-`task_name` should be the same with folders name. For example: `text-generation`
-
-To accelerate inference with bfloat16, ipex_optimize and jit, use the following command
-```
-sh run.sh --task task_name --model_id model_name --model_dtype bfloat16 --compute_dtype bfloat16 --ipex_optimize True --jit True
-```
-**___Note: The ipex and jit optimizations may failed in some tasks.___**
-
-
-### Text-Generation
-For text-genetation task, you can control the input and output and use greedy search by add the follwing flags:
-```
---batch_size 1 --num_beams 1 --input_tokens 1024 --output_tokens 32
-```
-**___Note: Default values are batch_size=1, num_beams=4, input_tokens=32, output_tokens=32.___**
-
-You can also use ipex optimize transformers by adding the flag `--ipex_optimize_transformers True`, but it doesn't work for now.
-
-### Finetune
-We use `accelerate launch` to start finetune on XPU and GPU, use `mpirun python` on CPU to enable distributed finetune(need to install one-ccl on CPU). 
-The finetune task defaultly use `fp16` and `ipex` on XPU and GPU, `bf16` on CPU. If you want to run finetune separately and use `ipex` on CPU, please run the follwing script:
-```
-sh run.sh --task_name fine-tune --ipex_optimize True --device cpu 
-``` 
-You can also add `--gradient_checkpointing True` to use gradient checkpointing.
-
-
-### Test Data 
-For text prompts and speech demos can be found [here](https://drive.google.com/drive/folders/1PbGjFGuPgSxTqK3tC1UKP7sF0cib1pyd?usp=drive_link).
-
-
-

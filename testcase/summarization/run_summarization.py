@@ -40,7 +40,7 @@ def benchmark(generator, input_sentence, device, dtype, enable, output_tokens, b
     )
     out_num = 1 * batch_size
     logging.info(
-        f"1st token latency = {first_latency/out_num} ms, pipeline_forward_time = {first_forward_latency/out_num} ms ({first_forward_latency/first_latency})"
+        f"1st token latency = {first_latency/out_num} ms, pipeline_forward_time = {first_forward_latency/out_num} ms"
     )
     logging.info(f"output token nums = {out_num}")
 
