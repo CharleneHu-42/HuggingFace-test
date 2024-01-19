@@ -187,7 +187,7 @@ model_list=("facebook/bart-large-cnn" "sshleifer/distilbart-cnn-12-6" "philschmi
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task summarization --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    ./run.sh --task summarization --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens
     echo "----------------------------"
 done
 
