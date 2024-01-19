@@ -119,7 +119,7 @@ if __name__ == "__main__":
         import intel_extension_for_pytorch as ipex
 
     torch_dtype = get_torch_dtype(args.model_dtype)
-    dtype = get_torch_dtype(args.compute_dtype)
+    dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32
 
     if "shibing624/text2vec-base-chinese" in model_id:

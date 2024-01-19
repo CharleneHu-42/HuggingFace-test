@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     data = load_from_disk("./datasets/speech_demo")
     torch_dtype = get_torch_dtype(args.model_dtype)
-    dtype = get_torch_dtype(args.compute_dtype)
+    dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32
 
     if args.jit:

@@ -51,7 +51,7 @@ if __name__ == "__main__":
     question = "how many dogs are in the picture?"
 
     torch_dtype = get_torch_dtype(args.model_dtype)
-    dtype = get_torch_dtype(args.compute_dtype)
+    dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32
 
     pipe = pipeline(

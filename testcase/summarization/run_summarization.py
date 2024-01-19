@@ -73,7 +73,7 @@ if __name__ == "__main__":
 
     generation_kwargs = dict(do_sample=False, num_beams=4, use_cache=True)
     torch_dtype = get_torch_dtype(args.model_dtype)
-    dtype = get_torch_dtype(args.compute_dtype)
+    dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32
 
     generator = pipeline(

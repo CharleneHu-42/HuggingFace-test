@@ -60,7 +60,7 @@ if __name__ == "__main__":
     context = "My name is Merve and I live in İstanbul."
 
     torch_dtype = get_torch_dtype(args.model_dtype)
-    dtype = get_torch_dtype(args.compute_dtype)
+    dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32
 
     pipe = pipeline(

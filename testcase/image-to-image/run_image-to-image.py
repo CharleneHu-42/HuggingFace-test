@@ -233,7 +233,7 @@ if __name__ == "__main__":
 
     image = read_image(model_id, device)
     torch_dtype = get_torch_dtype(args.model_dtype)
-    dtype = get_torch_dtype(args.compute_dtype)
+    dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32
 
     pipe = load_model(model_id, SEED, torch_dtype, device)
