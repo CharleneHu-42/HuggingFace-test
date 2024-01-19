@@ -5,7 +5,7 @@
 ### CPU
 
 ### XPU
-Before running the testcases, please run the following command to first verify whether you are in the right environment:
+Before running the testcases, please run the following command to first verify whether you are in the right XPU environment:
 ```bash
 source {DPCPPROOT}/env/vars.sh
 source {MKLROOT}/env/vars.sh
