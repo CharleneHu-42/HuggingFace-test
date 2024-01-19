@@ -10,7 +10,7 @@ def str2bool(str):
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_id", default=None, type=str, required=True)
-    parser.add_argument("--compute_dtype", default="float32", type=str)
+    parser.add_argument("--autocast_dtype", default="float32", type=str)
     parser.add_argument("--ipex_optimize", default="False", type=str2bool)
     parser.add_argument("--jit", default="False", type=str2bool)
     parser.add_argument("--torch_compile", default="False", type=str2bool)

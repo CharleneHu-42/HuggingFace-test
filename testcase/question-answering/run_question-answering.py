@@ -4,6 +4,7 @@ import torch
 import time
 import logging
 import sys
+from transformers.utils import ContextManagers
 
 sys.setrecursionlimit(10000000)
 
@@ -15,7 +16,7 @@ from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
 logging.basicConfig(level=logging.INFO)
 WARMUP = 10
 RUN = 10
-
+inference_context = [torch.inference_mode()]
 
 def prepare_jit_inputs(device):
     example_inputs = {
@@ -30,7 +31,7 @@ def prepare_jit_inputs(device):
 def benchmark(pipe, device, dtype, question, context, enable):
     time_costs = []
     forward_times = []
-    with torch.autocast(device, dtype, enable), torch.no_grad(), torch.inference_mode():
+    with ContextManagers(inference_context):
         for i in range(WARMUP + RUN):
             pipe.forward_time = 0
             pre = time.time()
@@ -60,8 +61,10 @@ if __name__ == "__main__":
     context = "My name is Merve and I live in İstanbul."
 
     torch_dtype = get_torch_dtype(args.model_dtype)
-    dtype = get_torch_dtype(args.compute_dtype)
+    dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32
+    if enable:
+        inference_context.append(torch.autocast(device, dtype, enable))
 
     pipe = pipeline(
         "question-answering",
@@ -86,7 +89,7 @@ if __name__ == "__main__":
         logging.info("using jit trace for acceleration...")
         example_inputs = prepare_jit_inputs(device)
         pipe.model.config.return_dict = False
-        with torch.autocast(device, dtype, enable), torch.no_grad():
+        with ContextManagers(inference_context):
             pipe.model = torch.jit.trace(
                 pipe.model, example_kwarg_inputs=example_inputs, strict=False
             )

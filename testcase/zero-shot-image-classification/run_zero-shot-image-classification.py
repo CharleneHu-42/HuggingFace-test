@@ -4,6 +4,7 @@ import time
 import logging
 import PIL.Image
 from transformers import pipeline
+from transformers.utils import ContextManagers
 
 logging.basicConfig(level=logging.INFO)
 
@@ -12,7 +13,7 @@ import sys
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
-
+inference_context = [torch.inference_mode()]
 
 SEED = 24
 TEXT = ["a photo of a cat", "a photo of a dog"]
@@ -82,7 +83,7 @@ def apply_jit_trace(classifier, dtype, device, enable):
 
     example_inputs = prepare_jit_inputs(device)
     classifier.model.config.return_dict = False
-    with torch.autocast(device, dtype, enable), torch.no_grad():
+    with ContextManagers(inference_context):
         classifier.model = torch.jit.trace(
             classifier.model, example_kwarg_inputs=example_inputs, strict=False
         )
@@ -100,7 +101,7 @@ def optimize_with_ipex(classifier, dtype, device, enable):
     import intel_extension_for_pytorch as ipex
 
     sample_inputs = tuple(prepare_jit_inputs(device).values())
-    with torch.autocast(device, dtype, enable), torch.no_grad():
+    with ContextManagers(inference_context):
         classifier.model = ipex.optimize(
             classifier.model,
             dtype=dtype,
@@ -132,9 +133,11 @@ if __name__ == "__main__":
     if device == "xpu":
         import intel_extension_for_pytorch as ipex
 
-    dtype = get_torch_dtype(args.compute_dtype)
+    dtype = get_torch_dtype(args.autocast_dtype)
     torch_dtype = get_torch_dtype(args.model_dtype)
     enable = dtype != torch.float32
+    if enable:
+        inference_context.append(torch.autocast(device, dtype, enable))
 
     image = PIL.Image.open(requests.get(IMG_URL, stream=True, timeout=3000).raw)
 
@@ -152,7 +155,7 @@ if __name__ == "__main__":
     if use_torch_compile:
         classifier = apply_torch_compile(classifier, backend)
 
-    with torch.autocast(device, dtype, enable), torch.no_grad():
+    with ContextManagers(inference_context):
         elapsed_times, forward_times = benchmark(
             classifier, image, TEXT, SEED, WARMUP + RUN
         )

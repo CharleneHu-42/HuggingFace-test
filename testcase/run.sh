@@ -7,7 +7,7 @@ torch_compile=False
 task_name=""
 model_id=""
 model_dtype="float32"
-compute_dtype="float32"
+autocast_dtype="float32"
 backend="inductor"
 device="cpu"
 batch_size=1
@@ -29,7 +29,7 @@ usage() {
  echo " -j, --jit             Use jit "
  echo " -c, --torch_compile   Use torch compile"
  echo " --model_dtype         Indicate the model dtype[float32, bfloat16, float16]"
- echo " --compute_dtype       Indicate the compute dtype[float32, bfloat16, float16]"
+ echo " --autocast_dtype       Indicate the compute dtype[float32, bfloat16, float16]"
  echo " --backend             Indicate the torch compile backend[ipex, inductor]"
  echo " --device              Indicate the computation device[cpu, cuda, xpu]"
  echo " --batch_size          Input batch size for text-generation"
@@ -95,8 +95,8 @@ handle_options() {
         model_dtype=$(extract_argument $@)
         shift
         ;;
-      --compute_dtype)
-        compute_dtype=$(extract_argument $@)
+      --autocast_dtype)
+        autocast_dtype=$(extract_argument $@)
         shift
         ;;
       --backend)
@@ -177,5 +177,5 @@ if [[ "$task_name" == "fine-tune" ]]; then
     accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --gradient_checkpointing $gradient_checkpointing --compile $torch_compile
   fi
 else
-  numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --compute_dtype $compute_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers
+  numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers
 fi
