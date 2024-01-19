@@ -16,6 +16,7 @@ sys.setrecursionlimit(100000)
 sys.path.append(os.path.dirname(__file__) + "/..")
 
 from common import get_args, get_torch_dtype
+import common
 
 SEED = 20
 PROMPT = "An astronaut riding a green horse"
@@ -40,8 +41,6 @@ MODEL_INPUT_SIZE = {
     },
 }
 
-WARMUP = 10
-RUN = 10
 inference_context = [torch.no_grad()]
 
 def load_model(model_id, seed, model_dtype, device):

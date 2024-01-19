@@ -14,9 +14,7 @@ import os
 sys.path.append(os.path.dirname(__file__) + "/..")
 
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
-
-WARMUP = 10
-RUN = 10
+import common
 
 inference_context = [torch.inference_mode()]
 

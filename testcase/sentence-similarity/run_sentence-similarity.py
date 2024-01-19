@@ -11,6 +11,7 @@ import os
 sys.path.append(os.path.dirname(__file__) + "/..")
 
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
+import common
 
 logging.basicConfig(level=logging.INFO)
 SEED = 20
@@ -22,8 +23,6 @@ MODEL_INPUT_SIZE = {
     "token_type_ids": (1, 7),
     "attention_mask": (1, 7),
 }
-WARMUP = 10
-RUN = 10
 inference_context = [torch.inference_mode()]
 
 # Mean Pooling - Take attention mask into account for correct averaging

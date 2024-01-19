@@ -13,12 +13,11 @@ import sys
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
+import common
 
 
 SEED = 24
 IMG_URL = "http://images.cocodataset.org/val2017/000000039769.jpg"
-WARMUP = 10
-RUN = 10
 
 inference_context = [torch.no_grad()]
 

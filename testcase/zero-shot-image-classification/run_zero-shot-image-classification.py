@@ -13,13 +13,13 @@ import sys
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
+import common
+
 inference_context = [torch.inference_mode()]
 
 SEED = 24
 TEXT = ["a photo of a cat", "a photo of a dog"]
 IMG_URL = "http://images.cocodataset.org/val2017/000000039769.jpg"
-WARMUP = 10
-RUN = 10
 
 MODEL_INPUT_SIZE = {
     "input_ids": (1, 7),

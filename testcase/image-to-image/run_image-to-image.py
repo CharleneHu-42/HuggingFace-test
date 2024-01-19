@@ -20,6 +20,7 @@ sys.setrecursionlimit(100000)
 sys.path.append(os.path.dirname(__file__) + "/..")
 
 from common import get_args, get_torch_dtype
+import common
 
 SEED = 20
 IMG_URL = "https://raw.githubusercontent.com/timothybrooks/instruct-pix2pix/main/imgs/example.jpg"
@@ -45,8 +46,7 @@ MODEL_INPUT_SIZE = {
         "encoder_hidden_states": (2, 1, 768),
     },
 }
-WARMUP = 10
-RUN = 10
+
 inference_context = [torch.no_grad()]
 
 

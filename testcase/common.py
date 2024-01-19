@@ -47,3 +47,7 @@ def wrap_forward_for_benchmark(pipeline):
     pipeline.forward_time = 0
     pipeline.__class__._orig_forward = pipeline.__class__._forward
     pipeline.__class__._forward = wrapped_forward
+
+
+WARMUP = 10
+RUN = 10
