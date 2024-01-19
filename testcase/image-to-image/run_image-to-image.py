@@ -257,4 +257,4 @@ if __name__ == "__main__":
         elapsed_time = benchmark(pipe, PROMPT, image, SEED, WARMUP + RUN, model_id)
 
     logging.info(f"total time [ms]: {elapsed_time}")
-    logging.info(f"average time [ms]: {sum(elapsed_time[WARMUP:])/RUN}")
+    logging.info(f"pipeline average time [ms]: {sum(elapsed_time[WARMUP:])/RUN}")

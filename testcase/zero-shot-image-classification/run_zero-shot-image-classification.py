@@ -164,5 +164,5 @@ if __name__ == "__main__":
     average_fwd_time = sum(forward_times[WARMUP:]) / RUN
     logging.info(f"total time [ms]: {elapsed_times}")
     logging.info(
-        f"average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}({average_fwd_time/average_time})"
+        f"pipeline average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}({average_fwd_time/average_time})"
     )
