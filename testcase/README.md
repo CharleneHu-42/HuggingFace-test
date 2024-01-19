@@ -32,7 +32,7 @@ To run individual task:
 ```bash 
 sh run.sh --task task_name --model_id model_name
 ```
-note: `task_name` should be the same with folders name. For example: `text-generation`
+`task_name` should be the same with folders name. For example: `text-generation`
 
 To accelerate inference with bfloat16, ipex_optimize and jit, use the following command
 ```
@@ -47,6 +47,7 @@ For text-genetation task, you can control the input and output and use greedy se
 --batch_size 1 --num_beams 1 --input_tokens 1024 --output_tokens 32
 ```
 **___Note: Default values are batch_size=1, num_beams=4, input_tokens=32, output_tokens=32.___**
+
 You can also use ipex optimize transformers by adding the flag `--ipex_optimize_transformers True`, but it doesn't work for now.
 
 ### Finetune
@@ -59,7 +60,7 @@ You can also add `--gradient_checkpointing True` to use gradient checkpointing.
 
 
 ### Test Data 
-For text prompts and speech demos can be found [here](https://drive.google.com/drive/folders/1PbGjFGuPgSxTqK3tC1UKP7sF0cib1pyd?usp=drive_link)
+For text prompts and speech demos can be found [here](https://drive.google.com/drive/folders/1PbGjFGuPgSxTqK3tC1UKP7sF0cib1pyd?usp=drive_link).
 
 
 
