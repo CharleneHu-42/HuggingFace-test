@@ -24,9 +24,9 @@ usage() {
  echo " -h, --help               Display this help message"
  echo " -i, --ipex_optimize      Use ipex optimize "
  echo " -j, --jit                Use jit "
- echo " -c, --compile            Use torch compile"
+ echo " -c, --torch_compile      Use torch compile"
  echo " --model_dtype            Indicate the model dtype[float32, bfloat16, float16]"
- echo " --autocast_dtype          Indicate the compute dtype[float32, bfloat16, float16]"
+ echo " --autocast_dtype         Indicate the compute dtype[float32, bfloat16, float16]"
  echo " --backend                Indicate the torch compile backend[ipex, inductor]"
  echo " --device                 Indicate the computation device[cpu, cuda, xpu]"
  echo " --batch_size             Input batch size for text-generation"
@@ -34,8 +34,8 @@ usage() {
  echo " --input_tokens           The input token length for text-generation[32, 64, 128, 256, 512, 1024]"
  echo " --output_tokens          The output token length for text-generation"
  echo " --ipex_optimize_transformers              Ipex optimize_transformers for text-generation"
- echo " --warm_up_steps         The benchmark warm up steps for all tasks"
- echo " --run_steps             The benchmark run steps for all tasks"
+ echo " --warm_up_steps          The benchmark warm up steps for all tasks"
+ echo " --run_steps              The benchmark run steps for all tasks"
 }
 
 has_argument() {
@@ -73,7 +73,7 @@ handle_options() {
         jit=$(extract_argument $@)
         shift
         ;;
-      -c | --compile)
+      -c | --torch_compile)
         torch_compile=$(extract_argument $@)
         shift
         ;;
