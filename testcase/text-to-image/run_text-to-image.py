@@ -15,7 +15,7 @@ sys.setrecursionlimit(100000)
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype
+from common import get_args, get_torch_dtype, WARMUP, RUN
 
 SEED = 20
 PROMPT = "An astronaut riding a green horse"
@@ -40,8 +40,6 @@ MODEL_INPUT_SIZE = {
     },
 }
 
-WARMUP = 10
-RUN = 10
 inference_context = [torch.no_grad()]
 
 def load_model(model_id, seed, model_dtype, device):
@@ -207,4 +205,4 @@ if __name__ == "__main__":
         elapsed_time = benchmark(pipe, PROMPT, SEED, WARMUP + RUN)
 
     logging.info(f"total time [s]: {elapsed_time}")
-    logging.info(f"average time [ms]: {sum(elapsed_time[WARMUP:])/RUN}")
+    logging.info(f"pipeline average time [ms]: {sum(elapsed_time[WARMUP:])/RUN}")

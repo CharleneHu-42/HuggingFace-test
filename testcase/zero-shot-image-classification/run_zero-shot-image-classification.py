@@ -12,14 +12,13 @@ import os
 import sys
 
 sys.path.append(os.path.dirname(__file__) + "/..")
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, WARMUP, RUN
+
 inference_context = [torch.inference_mode()]
 
 SEED = 24
 TEXT = ["a photo of a cat", "a photo of a dog"]
 IMG_URL = "http://images.cocodataset.org/val2017/000000039769.jpg"
-WARMUP = 10
-RUN = 10
 
 MODEL_INPUT_SIZE = {
     "input_ids": (1, 7),
@@ -164,5 +163,5 @@ if __name__ == "__main__":
     average_fwd_time = sum(forward_times[WARMUP:]) / RUN
     logging.info(f"total time [ms]: {elapsed_times}")
     logging.info(
-        f"average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}({average_fwd_time/average_time})"
+        f"pipeline average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}({average_fwd_time/average_time})"
     )

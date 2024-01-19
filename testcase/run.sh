@@ -17,6 +17,8 @@ output_tokens=32
 ipex_optimize_transformers="False"
 gradient_checkpointing="False"
 num_processes=4
+warm_up_steps=10
+run_steps=10
 
 # Function to display script usage
 usage() {
@@ -39,6 +41,8 @@ usage() {
  echo " --ipex_optimize_transformers              Ipex optimize_transformers for text-generation"
  echo " --gradient_checkpointing         Whether to run fine-tuning with gradient checkpoint to save memory, only used for fine-tune task"
  echo " --num_processes       The number of data parallelism, only used for CPU fine-tune task"
+ echo " --warm_up_steps      The benchmark warm up steps for all tasks"
+ echo " --run_steps          The benchmark run steps for all tasks"
 }
 
 has_argument() {
@@ -135,6 +139,14 @@ handle_options() {
         num_processes=$(extract_argument $@)
         shift
         ;;
+      --warm_up_steps)
+        warm_up_steps=$(extract_argument $@)
+        shift
+        ;;
+      --run_steps)
+        run_steps=$(extract_argument $@)
+        shift
+        ;;
       *)
         echo "Invalid option: $1" >&2
         usage
@@ -177,5 +189,5 @@ if [[ "$task_name" == "fine-tune" ]]; then
     accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --gradient_checkpointing $gradient_checkpointing --compile $torch_compile
   fi
 else
-  numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers
+  numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps
 fi

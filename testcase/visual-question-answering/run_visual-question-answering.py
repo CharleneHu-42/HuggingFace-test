@@ -11,11 +11,10 @@ sys.setrecursionlimit(10000000)
 import os
 
 sys.path.append(os.path.dirname(__file__) + "/..")
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, WARMUP, RUN
 
 logging.basicConfig(level=logging.INFO)
-WARMUP = 10
-RUN = 10
+
 inference_context = [torch.inference_mode()]
 
 def generate(generator, device, dtype, raw_image, question, enable):
@@ -33,7 +32,7 @@ def generate(generator, device, dtype, raw_image, question, enable):
     average_fwd_time = sum(forward_times[WARMUP:]) / RUN
     logging.info(f"total time [ms]: {time_costs}")
     logging.info(
-        f"average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}({average_fwd_time/average_time})"
+        f"pipeline average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}({average_fwd_time/average_time})"
     )
     logging.info(f"output = {output}")
 

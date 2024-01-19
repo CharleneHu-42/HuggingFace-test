@@ -12,10 +12,8 @@ import sys
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, WARMUP, RUN
 
-WARMUP = 10
-RUN = 10
 inference_context = [torch.inference_mode()]
 
 def generate(generator, input_sentence, device, dtype, enable):
@@ -32,26 +30,26 @@ def generate(generator, input_sentence, device, dtype, enable):
     return sum(latency[WARMUP:]) / RUN, output, sum(forward_times[WARMUP:]) / RUN
 
 
-def benchmark(generator, input_sentence, device, dtype, enable):
-    input_len = len(tokenizer(input_sentence)["input_ids"])
+def benchmark(generator, input_sentence, device, dtype, enable, output_tokens, batch_size):
+    input_len = len(tokenizer(input_sentence[0])["input_ids"])
     logging.info(f"input tokens length is {input_len}")
 
     generation_kwargs["max_new_tokens"] = 1
     first_latency, out, first_forward_latency = generate(
         generator, input_sentence, device, dtype, enable
     )
-    out_num = 1
+    out_num = 1 * batch_size
     logging.info(
-        f"1st token latency = {first_latency} ms, pipeline_forward_time = {first_forward_latency} ms ({first_forward_latency/first_latency})"
+        f"1st token latency = {first_latency/out_num} ms, pipeline_forward_time = {first_forward_latency/out_num} ms ({first_forward_latency/first_latency})"
     )
     logging.info(f"output token nums = {out_num}")
 
-    generation_kwargs["max_new_tokens"] = 32
+    generation_kwargs["max_new_tokens"] = output_tokens
     latency, out, forward_latency = generate(
         generator, input_sentence, device, dtype, enable
     )
-    out_num = len(tokenizer(out[0]["summary_text"])["input_ids"])
-    logging.info(f"2nd+ token latency = {(latency - first_latency) / (out_num - 1)} ms")
+    out_num = len(tokenizer(out[0]["summary_text"])["input_ids"]) * batch_size
+    logging.info(f"2nd+ token latency = {(latency - first_latency) / (out_num - batch_size)} ms")
     logging.info(f"output token nums = {out_num}")
     logging.info(f"output = {out}")
     logging.info(
@@ -72,7 +70,7 @@ if __name__ == "__main__":
     if device == "xpu":
         import intel_extension_for_pytorch as ipex
 
-    generation_kwargs = dict(do_sample=False, num_beams=4, use_cache=True)
+    generation_kwargs = dict(do_sample=False, num_beams=args.num_beams, use_cache=True)
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32
@@ -88,6 +86,8 @@ if __name__ == "__main__":
         **generation_kwargs,
     )
     wrap_forward_for_benchmark(generator)
+    input_seq = prompt["gpt-j"][str(args.input_tokens)]
+    input_seq = [input_seq] * args.batch_size
 
     if args.jit:
         raise ValueError("Summarization does not support jit trace")
@@ -103,7 +103,6 @@ if __name__ == "__main__":
         generator.model.generate = torch.compile(
             generator.model.generate, backend=args.backend
         )
-        benchmark(generator, prompt["gpt-j"]["512"], device, dtype, enable)
     elif args.ipex_optimize:
         import intel_extension_for_pytorch as ipex
 
@@ -113,6 +112,5 @@ if __name__ == "__main__":
             dtype=dtype,
             inplace=True,
         )
-        benchmark(generator, prompt["gpt-j"]["512"], device, dtype, enable)
-    else:
-        benchmark(generator, prompt["gpt-j"]["512"], device, dtype, enable)
+
+    benchmark(generator, input_seq, device, dtype, enable, output_tokens=args.output_tokens, batch_size=args.batch_size)
