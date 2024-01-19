@@ -1,6 +1,8 @@
-# Inference
+# HF Test Guide
+This repo contains testcased for HF Native Experience. 
 
-## Intel Native Experience 
+## Inference
+
 ### CPU
 
 ### XPU
@@ -12,17 +14,8 @@ source env.sh
 If you want to compare the performance with NV GPU, just add the flag `--device cuda` to the command above.  
 
 
-## Intel Intermediate Expeirnece 
-### CPU
 
-### XPU
-```bash 
-source env.sh
-./run_all_task_xpu.sh --model_dtype float16 --ipex_optimize True
-```
-
-
-# Fine-tune
+## Fine-tune
 ## CPU
 
 ## XPU 
@@ -31,7 +24,7 @@ source env.sh
 ```
 
 
-# Notes
+## Notes
 ### Connection Error
 If you cannot connect to huggingface model hub, please try `export HF_ENDPOINT=https://hf-mirror.com`
 
