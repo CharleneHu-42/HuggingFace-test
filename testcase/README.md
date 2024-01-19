@@ -1,14 +1,44 @@
-# TEST GUIDE
+# HF Test Guide
 
-## Model
+## Inference
+
+### CPU
+
+### XPU
+Before running the testcases, please run the following command to first verify whether you are in the right XPU environment:
+```bash
+source {DPCPPROOT}/env/vars.sh
+source {MKLROOT}/env/vars.sh
+python -c "import torch; import intel_extension_for_pytorch as ipex; print(torch.__version__); print(ipex.__version__); [print(f'[{i}]: {torch.xpu.get_device_properties(i)}') for i in range(torch.xpu.device_count())];"
+```
+The command should return PyTorch* and Intel® Extension for PyTorch* versions installed, as well as GPU card(s) information detected. If it fails, you will need follow [the IPEX official documentation](https://intel.github.io/intel-extension-for-pytorch/index.html#installation?platform=gpu&version=v2.1.10%2Bxpu) to set-up the correct environment. Please note that the first 2 source commands are needed in order to use IPEX. But you only need to run it once for one termial session. For your reference, we attached `env.sh` in the test folder. You can run `source env.sh` to activate the oneAPI environment.  
+
+```bash
+./run_all_task_xpu.sh --model_dtype float16 --warm_up_steps 10 -- run_steps 10
+```
+If you want to compare the performance with NV GPU, just add the flag `--device cuda` to the command above.  
+
+
+
+## Fine-tune
+### CPU
+
+### XPU 
+```bash
+./run.sh --task fine-tune --device xpu
+```
+
+
+## Notes
+### Connection Error
 If you cannot connect to huggingface model hub, please try `export HF_ENDPOINT=https://hf-mirror.com`
 
-## Test commandline
-### All tasks
+### Command Usage 
+To run individual task:
 ```bash 
 sh run.sh --task task_name --model_id model_name
 ```
-note: `task_name` should be the same with folders name. For example: `text-generation`
+`task_name` should be the same with folders name. For example: `text-generation`
 
 To accelerate inference with bfloat16, ipex_optimize and jit, use the following command
 ```
@@ -16,38 +46,15 @@ sh run.sh --task task_name --model_id model_name --model_dtype bfloat16 --comput
 ```
 **___Note: The ipex and jit optimizations may failed in some tasks.___**
 
-For text-genetation task: You can control the input and output and use greedy search by add the follwing flags:
+
+### Text-Generation
+For text-genetation task, you can control the input and output and use greedy search by add the follwing flags:
 ```
 --batch_size 1 --num_beams 1 --input_tokens 1024 --output_tokens 32
 ```
 **___Note: Default values are batch_size=1, num_beams=4, input_tokens=32, output_tokens=32.___**
+
 You can also use ipex optimize transformers by adding the flag `--ipex_optimize_transformers True`, but it doesn't work for now.
-
-For more options, run 
-```bash
-sh run.sh -h 
-```
-
-you could also run the all_task using
-```bash
-sh run_all_task.sh -h
-```
-To accelerate all task with bfloat16, ipex_optimize and jit, use the following command
-```
-sh run_all_task.sh --compute_dtype bfloat16 --model_dtype bfloat16 --ipex_optimize True --jit True
-```
-
-To run the test scripts on XPU, please activate the oneAPI environment first: 
-```bash
-source env.sh
-```
-Then use the following command for Intel Native Experience:
-```bash
-sh run_all_task.sh --model_dtype float16 --compute_dtype float16 --device xpu
-```
-For Intel Intermediate Experience, add `--ipex_optimize True` to the command above.
-
-To run the test scripts on NV GPU, use the flag `--device cuda`. 
 
 ### Finetune
 We use `accelerate launch` to start finetune on XPU and GPU, use `mpirun python` on CPU to enable distributed finetune(need to install one-ccl on CPU). 
@@ -57,13 +64,9 @@ sh run.sh --task_name fine-tune --ipex_optimize True --device cpu
 ``` 
 You can also add `--gradient_checkpointing True` to use gradient checkpointing.
 
-To run fine-tuning on XPU:
-```bash
-source env.sh
-sh run.sh --task_name fine-tune --device xpu  
-```
+
+### Test Data 
+For text prompts and speech demos can be found [here](https://drive.google.com/drive/folders/1PbGjFGuPgSxTqK3tC1UKP7sF0cib1pyd?usp=drive_link).
 
 
-## Test data
-For text prompts and speech demos can be found [here](https://drive.google.com/drive/folders/1PbGjFGuPgSxTqK3tC1UKP7sF0cib1pyd?usp=drive_link)
 
