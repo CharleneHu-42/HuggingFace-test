@@ -1,5 +1,4 @@
 # HF Test Guide
-This repo contains testcased for HF Native Experience. 
 
 ## Inference
 
