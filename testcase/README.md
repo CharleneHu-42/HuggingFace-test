@@ -1,11 +1,9 @@
-# TEST GUIDE
+# Inference
 
-## Inference
+## Intel Native Experience 
+### CPU
 
-### Intel Native Experience 
-#### CPU
-
-#### XPU
+### XPU
 For XPU, you first need to activate the oneAPI environment and then run the test script:
 ```bash
 source env.sh
@@ -14,26 +12,26 @@ source env.sh
 If you want to compare the performance with NV GPU, just add the flag `--device cuda` to the command above.  
 
 
-### Intel Intermediate Expeirnece 
-#### CPU
+## Intel Intermediate Expeirnece 
+### CPU
 
-#### XPU
+### XPU
 ```bash 
 source env.sh
 ./run_all_task_xpu.sh --model_dtype float16 --ipex_optimize True
 ```
 
 
-## Fine-tune
-### CPU
+# Fine-tune
+## CPU
 
-### XPU 
+## XPU 
 ```bash
 ./run.sh --task fine-tune --device xpu
 ```
 
 
-## Notes
+# Notes
 ### Connection Error
 If you cannot connect to huggingface model hub, please try `export HF_ENDPOINT=https://hf-mirror.com`
 
