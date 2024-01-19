@@ -15,9 +15,9 @@ If you want to compare the performance with NV GPU, just add the flag `--device 
 
 
 ## Fine-tune
-## CPU
+### CPU
 
-## XPU 
+### XPU 
 ```bash
 ./run.sh --task fine-tune --device xpu
 ```
