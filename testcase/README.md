@@ -8,7 +8,7 @@
 For XPU, you first need to activate the oneAPI environment and then run the test script:
 ```bash
 source env.sh
-./run_all_task_xpu.sh --model_dtype float16 
+./run_all_task_xpu.sh --model_dtype float16 --warm_up_steps 10 -- run_steps 10
 ```
 If you want to compare the performance with NV GPU, just add the flag `--device cuda` to the command above.  
 
