@@ -17,14 +17,14 @@ from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
 inference_context = [torch.inference_mode()]
 
 
-def generate(generator, input_sentence, warm_up_steps, run_steps):
+def generate(generator, input_sentence, warm_up_steps, run_steps, batch_size):
     latency = []
     forward_times = []
     with ContextManagers(inference_context):
         for i in range(warm_up_steps + run_steps):
             generator.forward_time = 0
             pre = time.time()
-            output = generator(input_sentence, **generation_kwargs)
+            output = generator(input_sentence, batch_size=batch_size, **generation_kwargs)
             latency.append((time.time() - pre) * 1000)
             forward_times.append(generator.forward_time * 1000)
 
@@ -43,7 +43,7 @@ def benchmark(
 
     generation_kwargs["max_new_tokens"] = 1
     first_latency, out, first_forward_latency = generate(
-        generator, input_sentence, warm_up_steps, run_steps
+        generator, input_sentence, warm_up_steps, run_steps, batch_size
     )
     out_num = 1 * batch_size
     logging.info(
@@ -53,7 +53,7 @@ def benchmark(
 
     generation_kwargs["max_new_tokens"] = output_tokens
     latency, out, forward_latency = generate(
-        generator, input_sentence, warm_up_steps, run_steps
+        generator, input_sentence, warm_up_steps, run_steps, batch_size
     )
     out_num = len(tokenizer(out[0]["summary_text"])["input_ids"]) * batch_size
     logging.info(
@@ -62,7 +62,7 @@ def benchmark(
     logging.info(f"output token nums = {out_num}")
     logging.info(f"output = {out}")
     logging.info(
-        f"pipeline average time = {latency} ms, pipeline_forward_time = {forward_latency} ms ({forward_latency/latency})"
+        f"pipeline average time [ms] {latency}, average fwd time [ms] {forward_latency}"
     )
 
 

@@ -70,7 +70,7 @@ def benchmark(
     logging.info(f"output token nums = {out_num}")
     logging.info(f"output = {out}")
     logging.info(
-        f"pipeline average time = {latency} ms, pipeline_forward_time = {forward_latency} ms"
+        f"pipeline average time [ms] {latency}, average fwd time [ms] {forward_latency}"
     )
 
 
