@@ -195,15 +195,18 @@ model_list=("jonatasgrosman/wav2vec2-large-xlsr-53-english" "jonatasgrosman/wav2
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task automatic-speech-recognition --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize  --autocast_dtype $model_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    ./run.sh --task automatic-speech-recognition --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
 echo "test text-to-speech"
-./run.sh --task text-to-speech --model_id "microsoft/speecht5_tts" --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $model_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
-./run.sh --task text-to-speech --model_id "suno/bark-small" --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
-./run.sh --task text-to-speech --model_id "suno/bark" --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
-echo "----------------------------"
+model_list=("microsoft/speecht5_tts" "suno/bark-small" "suno/bark")
+
+for model in "${model_list[@]}"
+do
+    ./run.sh --task text-to-speech --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    echo "----------------------------"
+done
 
 echo "test image-to-text"
 model_list=("nlpconnect/vit-gpt2-image-captioning" "Salesforce/blip-image-captioning-large" "Salesforce/blip-image-captioning-base")

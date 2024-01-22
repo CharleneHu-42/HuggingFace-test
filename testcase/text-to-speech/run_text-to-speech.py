@@ -55,7 +55,6 @@ if __name__ == "__main__":
     enable = dtype != torch.float32
     if enable:
         inference_context.append(torch.autocast(device, dtype, enable))
-
     synthesiser = pipeline(
         "text-to-speech", model_id, device=device, torch_dtype=torch_dtype
     )
@@ -65,6 +64,9 @@ if __name__ == "__main__":
     speaker_embedding = (
         torch.tensor(embeddings_dataset[0]["xvector"]).unsqueeze(0).to(device)
     )
+    # by default the dtype of speaker_embedding is FP32, if the model dtype is not FP32, we need to manually convert it
+    if torch_dtype != torch.float32:
+        speaker_embedding = speaker_embedding.to(torch_dtype)
 
     # You can replace this embedding with your own as well.
     forward_params = (
