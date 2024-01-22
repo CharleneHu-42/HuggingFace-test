@@ -11,10 +11,11 @@ sys.setrecursionlimit(10000000)
 import os
 
 sys.path.append(os.path.dirname(__file__) + "/..")
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, WARMUP, RUN
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
 
 logging.basicConfig(level=logging.INFO)
 inference_context = [torch.inference_mode()]
+
 
 def prepare_jit_inputs(device):
     example_inputs = {
@@ -26,19 +27,19 @@ def prepare_jit_inputs(device):
     return example_inputs
 
 
-def benchmark(pipe, device, dtype, question, context, enable):
+def benchmark(pipe, question, context, warm_up_steps, run_steps):
     time_costs = []
     forward_times = []
     with ContextManagers(inference_context):
-        for i in range(WARMUP + RUN):
+        for i in range(warm_up_steps + run_steps):
             pipe.forward_time = 0
             pre = time.time()
             output = pipe(question=question, context=context)
             time_costs.append((time.time() - pre) * 1000)
             forward_times.append(pipe.forward_time * 1000)
 
-    average_time = sum(time_costs[WARMUP:]) / RUN
-    average_fwd_time = sum(forward_times[WARMUP:]) / RUN
+    average_time = sum(time_costs[warm_up_steps:]) / run_steps
+    average_fwd_time = sum(forward_times[warm_up_steps:]) / run_steps
     logging.info(f"total time [ms]: {time_costs}")
     logging.info(
         f"pipeline average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}"
@@ -49,6 +50,8 @@ def benchmark(pipe, device, dtype, question, context, enable):
 if __name__ == "__main__":
     args = get_args()
     logging.info(f"args = {args}")
+    warm_up_steps = args.warm_up_steps
+    run_steps = args.run_steps
     model_id = args.model_id
 
     device = args.device
@@ -96,4 +99,4 @@ if __name__ == "__main__":
         pipe.model(**example_inputs)
         pipe.model(**example_inputs)
 
-    benchmark(pipe, device, dtype, question, context, enable)
+    benchmark(pipe, question, context, warm_up_steps, run_steps)

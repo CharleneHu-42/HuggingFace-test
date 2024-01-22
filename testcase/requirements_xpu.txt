@@ -1,9 +1,6 @@
-transformers
-torch
-intel_extension_for_pytorch
-Pillow
+transformers>4.36.1
+accelerate>0.26.1
 diffusers
-torchvision
 datasets
 soundfile
 pyannote.audio

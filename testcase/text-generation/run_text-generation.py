@@ -12,34 +12,46 @@ import os
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, WARMUP, RUN
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
+
 inference_context = [torch.inference_mode()]
 
-def generate(generator, input_sentence, device, dtype, enable, batch_size):
+
+def generate(generator, input_sentence, batch_size, warm_up_steps, run_steps):
     latency = []
     forward_latency = []
     with ContextManagers(inference_context):
-        for i in range(WARMUP + RUN):
+        for i in range(warm_up_steps + run_steps):
             generator.forward_time = 0
             pre = time.time()
-            output = generator(input_sentence, batch_size=batch_size, **generation_kwargs)
+            output = generator(
+                input_sentence, batch_size=batch_size, **generation_kwargs
+            )
             latency.append((time.time() - pre) * 1000)
             forward_latency.append(generator.forward_time * 1000)
 
-    return sum(latency[WARMUP:]) / RUN, output, sum(forward_latency[WARMUP:]) / RUN
+    return (
+        sum(latency[warm_up_steps:]) / run_steps,
+        output,
+        sum(forward_latency[warm_up_steps:]) / run_steps,
+    )
 
 
-def benchmark(generator, input_sentence, device, dtype, enable, output_tokens, batch_size):
+def benchmark(
+    generator, warm_up_steps, run_steps, input_sentence, output_tokens, batch_size
+):
     input_len = len(tokenizer(input_sentence[0])["input_ids"])
     logging.info(f"input tokens length is {input_len}")
 
     generation_kwargs["max_new_tokens"] = 1
 
     first_latency, out, first_forward_latency = generate(
-        generator, input_sentence, device, dtype, enable, batch_size
+        generator, input_sentence, batch_size, warm_up_steps, run_steps
     )
 
-    out_num = (len(tokenizer(out[0][0]["generated_text"])["input_ids"]) - input_len) * batch_size
+    out_num = (
+        len(tokenizer(out[0][0]["generated_text"])["input_ids"]) - input_len
+    ) * batch_size
     logging.info(
         f"1st token latency = {first_latency/out_num} ms, pipeline_forward_time = {first_forward_latency/out_num} ms({first_forward_latency/first_latency})"
     )
@@ -47,10 +59,14 @@ def benchmark(generator, input_sentence, device, dtype, enable, output_tokens, b
 
     generation_kwargs["max_new_tokens"] = output_tokens
     latency, out, forward_latency = generate(
-        generator, input_sentence, device, dtype, enable, batch_size
+        generator, input_sentence, batch_size, warm_up_steps, run_steps
     )
-    out_num = (len(tokenizer(out[0][0]["generated_text"])["input_ids"]) - input_len) * batch_size
-    logging.info(f"2nd+ token latency = {(latency - first_latency) / (out_num - batch_size)} ms")
+    out_num = (
+        len(tokenizer(out[0][0]["generated_text"])["input_ids"]) - input_len
+    ) * batch_size
+    logging.info(
+        f"2nd+ token latency = {(latency - first_latency) / (out_num - batch_size)} ms"
+    )
     logging.info(f"output token nums = {out_num}")
     logging.info(f"output = {out}")
     logging.info(
@@ -60,6 +76,8 @@ def benchmark(generator, input_sentence, device, dtype, enable, output_tokens, b
 
 if __name__ == "__main__":
     args = get_args()
+    warm_up_steps = args.warm_up_steps
+    run_steps = args.run_steps
     model_id = args.model_id
 
     logging.info(f"args = {args}")
@@ -96,15 +114,33 @@ if __name__ == "__main__":
 
     if args.ipex_optimize:
         from optimum.intel import inference_mode as ipex_inference_mode
+
         logging.info("Use ipex optimization")
         with ipex_inference_mode(
             generator, dtype=dtype, verbose=False, jit=args.jit
         ) as ipex_pipe:
-            benchmark(ipex_pipe, input_seq, device, dtype, enable, output_tokens=args.output_tokens, batch_size=args.batch_size)
+            benchmark(
+                ipex_pipe,
+                warm_up_steps,
+                run_steps,
+                input_seq,
+                output_tokens=args.output_tokens,
+                batch_size=args.batch_size,
+            )
     elif args.ipex_optimize_transformers:
         import intel_extension_for_pytorch as ipex
-        generator.model = ipex.optimize_transformers(generator.model, dtype=dtype, device=device)
-        benchmark(generator, input_seq, device, dtype, enable, output_tokens=args.output_tokens, batch_size=args.batch_size)
+
+        generator.model = ipex.optimize_transformers(
+            generator.model, dtype=dtype, device=device
+        )
+        benchmark(
+            generator,
+            warm_up_steps,
+            run_steps,
+            input_seq,
+            output_tokens=args.output_tokens,
+            batch_size=args.batch_size,
+        )
     elif args.torch_compile:
         logging.info(f"Use torch compile with {args.backend} backend")
         if args.backend == "ipex":
@@ -112,6 +148,20 @@ if __name__ == "__main__":
         generator.model.generate = torch.compile(
             generator.model.generate, backend=args.backend
         )
-        benchmark(generator, input_seq, device, dtype, enable, output_tokens=args.output_tokens, batch_size=args.batch_size)
+        benchmark(
+            generator,
+            warm_up_steps,
+            run_steps,
+            input_seq,
+            output_tokens=args.output_tokens,
+            batch_size=args.batch_size,
+        )
     else:
-        benchmark(generator, input_seq, device, dtype, enable, output_tokens=args.output_tokens, batch_size=args.batch_size)
+        benchmark(
+            generator,
+            warm_up_steps,
+            run_steps,
+            input_seq,
+            output_tokens=args.output_tokens,
+            batch_size=args.batch_size,
+        )

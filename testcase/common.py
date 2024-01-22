@@ -19,7 +19,12 @@ def get_args():
     parser.add_argument("--device", default="cpu", type=str)
     parser.add_argument("--batch_size", default=1, type=int)
     parser.add_argument("--num_beams", default=4, type=int)
-    parser.add_argument("--input_tokens", default=32, type=int, help="choose from [32, 64, 128, 256, 512, 1024]")
+    parser.add_argument(
+        "--input_tokens",
+        default=32,
+        type=int,
+        help="choose from [32, 64, 128, 256, 512, 1024]",
+    )
     parser.add_argument("--output_tokens", default=32, type=int)
     parser.add_argument("--ipex_optimize_transformers", default="False", type=str2bool)
     parser.add_argument("--warm_up_steps", default=10, type=int)
@@ -50,6 +55,5 @@ def wrap_forward_for_benchmark(pipeline):
     pipeline.__class__._orig_forward = pipeline.__class__._forward
     pipeline.__class__._forward = wrapped_forward
 
+
 args = get_args()
-WARMUP = args.warm_up_steps
-RUN = args.run_steps

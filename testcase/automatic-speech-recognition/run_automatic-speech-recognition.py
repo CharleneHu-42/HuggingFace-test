@@ -13,24 +13,24 @@ import os
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, WARMUP, RUN
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
 
 inference_context = [torch.inference_mode()]
 
 
-def generate(generator, pipe_input, device, dtype, enable):
+def generate(generator, pipe_input, warm_up_steps, run_steps):
     time_costs = []
     forward_times = []
     with ContextManagers(inference_context):
-        for i in range(WARMUP + RUN):
+        for i in range(warm_up_steps + run_steps):
             generator.forward_time = 0
             pre = time.time()
             output = generator(pipe_input)
             time_costs.append((time.time() - pre) * 1000)
             forward_times.append(generator.forward_time * 1000)
 
-    average_time = sum(time_costs[WARMUP:]) / RUN
-    average_fwd_time = sum(forward_times[WARMUP:]) / RUN
+    average_time = sum(time_costs[warm_up_steps:]) / run_steps
+    average_fwd_time = sum(forward_times[warm_up_steps:]) / run_steps
     logging.info(f"total time [ms]: {time_costs}")
     logging.info(
         f"pipeline average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}"
@@ -41,6 +41,8 @@ def generate(generator, pipe_input, device, dtype, enable):
 if __name__ == "__main__":
     args = get_args()
     logging.info(f"args = {args}")
+    warm_up_steps = args.warm_up_steps
+    run_steps = args.run_steps
     model_id = args.model_id
     device = args.device
     if device == "xpu":
@@ -81,7 +83,9 @@ if __name__ == "__main__":
             logging.info("Use ipex optimize")
             generator.model = ipex.optimize(generator.model, dtype=dtype, inplace=True)
 
-        generate(generator, data["train"][0]["audio"]["array"], device, dtype, enable)
+        generate(
+            generator, data["train"][0]["audio"]["array"], warm_up_steps, run_steps
+        )
     else:
         from pyannote.audio import Pipeline
 
@@ -96,4 +100,4 @@ if __name__ == "__main__":
         elif args.ipex_optimize:
             logging.info("Pyannote do not support ipex optimize")
 
-        generate(generator, "./datasets/speech.wav", device, dtype, enable)
+        generate(generator, "./datasets/speech.wav", warm_up_steps, run_steps)

@@ -24,9 +24,9 @@ usage() {
  echo " -h, --help               Display this help message"
  echo " -i, --ipex_optimize      Use ipex optimize "
  echo " -j, --jit                Use jit "
- echo " -c, --compile            Use torch compile"
+ echo " -c, --torch_compile      Use torch compile"
  echo " --model_dtype            Indicate the model dtype[float32, bfloat16, float16]"
- echo " --autocast_dtype          Indicate the compute dtype[float32, bfloat16, float16]"
+ echo " --autocast_dtype         Indicate the compute dtype[float32, bfloat16, float16]"
  echo " --backend                Indicate the torch compile backend[ipex, inductor]"
  echo " --device                 Indicate the computation device[cpu, cuda, xpu]"
  echo " --batch_size             Input batch size for text-generation"
@@ -73,7 +73,7 @@ handle_options() {
         jit=$(extract_argument $@)
         shift
         ;;
-      -c | --compile)
+      -c | --torch_compile)
         torch_compile=$(extract_argument $@)
         shift
         ;;
@@ -140,7 +140,7 @@ model_list=("stabilityai/stable-diffusion-xl-refiner-1.0" "timbrooks/instruct-pi
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task image-to-image --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    ./run.sh --task image-to-image --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -150,7 +150,7 @@ model_list=("openai/clip-vit-large-patch14" "openai/clip-vit-base-patch16" "open
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task zero-shot-image-classification --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    ./run.sh --task zero-shot-image-classification --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -159,7 +159,7 @@ model_list=("sentence-transformers/all-mpnet-base-v2" "sentence-transformers/all
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task sentence-similarity --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    ./run.sh --task sentence-similarity --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -168,17 +168,16 @@ model_list=("stabilityai/stable-diffusion-xl-base-1.0" "runwayml/stable-diffusio
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task text-to-image --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    ./run.sh --task text-to-image --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
-
 
 echo "test text-generation"
 model_list=("gpt2" "tiiuae/falcon-7b-instruct" "distilgpt2" "meta-llama/Llama-2-7b-chat-hf")
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task text-generation --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps
+    ./run.sh --task text-generation --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -187,7 +186,7 @@ model_list=("facebook/bart-large-cnn" "sshleifer/distilbart-cnn-12-6" "philschmi
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task summarization --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    ./run.sh --task summarization --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens
     echo "----------------------------"
 done
 
@@ -196,43 +195,37 @@ model_list=("jonatasgrosman/wav2vec2-large-xlsr-53-english" "jonatasgrosman/wav2
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task automatic-speech-recognition --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    ./run.sh --task automatic-speech-recognition --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize  --autocast_dtype $model_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
 echo "test text-to-speech"
-model_list=("microsoft/speecht5_tts" "suno/bark-small" "suno/bark")
-
-for model in "${model_list[@]}"
-do
-    ./run.sh --task text-to-speech --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
-    echo "----------------------------"
-done
+./run.sh --task text-to-speech --model_id "microsoft/speecht5_tts" --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $model_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+./run.sh --task text-to-speech --model_id "suno/bark-small" --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+./run.sh --task text-to-speech --model_id "suno/bark" --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+echo "----------------------------"
 
 echo "test image-to-text"
 model_list=("nlpconnect/vit-gpt2-image-captioning" "Salesforce/blip-image-captioning-large" "Salesforce/blip-image-captioning-base")
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task image-to-text --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    ./run.sh --task image-to-text --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
 echo "test visual-question-answering"
-model_list=("Salesforce/blip-vqa-base" "dandelin/vilt-b32-finetuned-vqa" "Salesforce/blip-vqa-capfilt-large")
-
-for model in "${model_list[@]}"
-do
-    ./run.sh --task visual-question-answering --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
-    echo "----------------------------"
-done
+./run.sh --task visual-question-answering --model_id "Salesforce/blip-vqa-base" --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+./run.sh --task visual-question-answering --model_id "dandelin/vilt-b32-finetuned-vqa" --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $model_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+./run.sh --task visual-question-answering --model_id "Salesforce/blip-vqa-capfilt-large" --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+echo "----------------------------"
 
 echo "test question-answering"
 model_list=("bert-large-uncased-whole-word-masking-finetuned-squad")
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task question-answering --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    ./run.sh --task question-answering --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -241,6 +234,6 @@ model_list=("google/vit-base-patch16-224")
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task image-classification --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    ./run.sh --task image-classification --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done

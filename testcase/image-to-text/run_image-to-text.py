@@ -13,22 +13,22 @@ import os
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, WARMUP, RUN
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
 
 inference_context = [torch.inference_mode()]
 
-def generate(generator, image, device, dtype, enable):
+def generate(generator, image, warm_up_steps, run_steps):
     time_costs = []
     forward_times = []
     with ContextManagers(inference_context):
-        for i in range(WARMUP + RUN):
+        for i in range(warm_up_steps + run_steps):
             generator.forward_time = 0
             pre = time.time()
             output = generator(image)
             time_costs.append((time.time() - pre) * 1000)
             forward_times.append(generator.forward_time * 1000)
-    average_time = sum(time_costs[WARMUP:]) / RUN
-    average_fwd_time = sum(forward_times[WARMUP:]) / RUN
+    average_time = sum(time_costs[warm_up_steps:]) / run_steps
+    average_fwd_time = sum(forward_times[warm_up_steps:]) / run_steps
     logging.info(f"total time [ms]: {time_costs}")
     logging.info(
         f"pipeline average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}"
@@ -40,7 +40,8 @@ if __name__ == "__main__":
     args = get_args()
     logging.info(f"args = {args}")
     model_id = args.model_id
-
+    warm_up_steps = args.warm_up_steps
+    run_steps = args.run_steps
     device = args.device
     if device == "xpu":
         import intel_extension_for_pytorch as ipex
@@ -82,4 +83,4 @@ if __name__ == "__main__":
     image_url = "https://ankur3107.github.io/assets/images/image-captioning-example.png"
     image = PIL.Image.open(requests.get(image_url, stream=True, timeout=3000).raw)
 
-    generate(image_to_text, image, device, dtype, enable)
+    generate(image_to_text, image, warm_up_steps, run_steps)

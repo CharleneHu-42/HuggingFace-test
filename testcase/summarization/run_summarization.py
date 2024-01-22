@@ -12,31 +12,38 @@ import sys
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, WARMUP, RUN
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
 
 inference_context = [torch.inference_mode()]
 
-def generate(generator, input_sentence, device, dtype, enable):
+
+def generate(generator, input_sentence, warm_up_steps, run_steps):
     latency = []
     forward_times = []
     with ContextManagers(inference_context):
-        for i in range(WARMUP + RUN):
+        for i in range(warm_up_steps + run_steps):
             generator.forward_time = 0
             pre = time.time()
             output = generator(input_sentence, **generation_kwargs)
             latency.append((time.time() - pre) * 1000)
             forward_times.append(generator.forward_time * 1000)
 
-    return sum(latency[WARMUP:]) / RUN, output, sum(forward_times[WARMUP:]) / RUN
+    return (
+        sum(latency[warm_up_steps:]) / run_steps,
+        output,
+        sum(forward_times[warm_up_steps:]) / run_steps,
+    )
 
 
-def benchmark(generator, input_sentence, device, dtype, enable, output_tokens, batch_size):
+def benchmark(
+    generator, warm_up_steps, run_steps, input_sentence, output_tokens, batch_size
+):
     input_len = len(tokenizer(input_sentence[0])["input_ids"])
     logging.info(f"input tokens length is {input_len}")
 
     generation_kwargs["max_new_tokens"] = 1
     first_latency, out, first_forward_latency = generate(
-        generator, input_sentence, device, dtype, enable
+        generator, input_sentence, warm_up_steps, run_steps
     )
     out_num = 1 * batch_size
     logging.info(
@@ -46,10 +53,12 @@ def benchmark(generator, input_sentence, device, dtype, enable, output_tokens, b
 
     generation_kwargs["max_new_tokens"] = output_tokens
     latency, out, forward_latency = generate(
-        generator, input_sentence, device, dtype, enable
+        generator, input_sentence, warm_up_steps, run_steps
     )
     out_num = len(tokenizer(out[0]["summary_text"])["input_ids"]) * batch_size
-    logging.info(f"2nd+ token latency = {(latency - first_latency) / (out_num - batch_size)} ms")
+    logging.info(
+        f"2nd+ token latency = {(latency - first_latency) / (out_num - batch_size)} ms"
+    )
     logging.info(f"output token nums = {out_num}")
     logging.info(f"output = {out}")
     logging.info(
@@ -59,6 +68,8 @@ def benchmark(generator, input_sentence, device, dtype, enable, output_tokens, b
 
 if __name__ == "__main__":
     args = get_args()
+    warm_up_steps = args.warm_up_steps
+    run_steps = args.run_steps
     model_id = args.model_id
     tokenizer = AutoTokenizer.from_pretrained(model_id)
 
@@ -113,4 +124,11 @@ if __name__ == "__main__":
             inplace=True,
         )
 
-    benchmark(generator, input_seq, device, dtype, enable, output_tokens=args.output_tokens, batch_size=args.batch_size)
+    benchmark(
+        generator,
+        warm_up_steps,
+        run_steps,
+        input_seq,
+        output_tokens=args.output_tokens,
+        batch_size=args.batch_size,
+    )

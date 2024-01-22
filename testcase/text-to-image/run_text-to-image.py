@@ -15,7 +15,7 @@ sys.setrecursionlimit(100000)
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype, WARMUP, RUN
+from common import get_args, get_torch_dtype
 
 SEED = 20
 PROMPT = "An astronaut riding a green horse"
@@ -41,6 +41,7 @@ MODEL_INPUT_SIZE = {
 }
 
 inference_context = [torch.no_grad()]
+
 
 def load_model(model_id, seed, model_dtype, device):
     torch.manual_seed(seed)
@@ -173,6 +174,8 @@ def apply_torch_compile(pipe, backend):
 if __name__ == "__main__":
     args = get_args()
     logging.info(f"args={args}")
+    warm_up_steps = args.warm_up_steps
+    run_steps = args.run_steps
     model_id = args.model_id
     use_ipex_optimize = args.ipex_optimize
     use_jit = args.jit
@@ -202,7 +205,9 @@ if __name__ == "__main__":
         pipe = apply_torch_compile(pipe, backend)
 
     with ContextManagers(inference_context):
-        elapsed_time = benchmark(pipe, PROMPT, SEED, WARMUP + RUN)
+        elapsed_time = benchmark(pipe, PROMPT, SEED, warm_up_steps + run_steps)
 
     logging.info(f"total time [s]: {elapsed_time}")
-    logging.info(f"pipeline average time [ms]: {sum(elapsed_time[WARMUP:])/RUN}")
+    logging.info(
+        f"pipeline average time [ms]: {sum(elapsed_time[warm_up_steps:])/run_steps}"
+    )

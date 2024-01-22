@@ -12,15 +12,16 @@ import sys
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, WARMUP, RUN
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
 
 inference_context = [torch.inference_mode()]
 
-def generate(generator, device, dtype, forward_params, enable):
+
+def generate(generator, forward_params, warm_up_steps, run_steps):
     time_costs = []
     forward_times = []
     with ContextManagers(inference_context):
-        for i in range(RUN + WARMUP):
+        for i in range(run_steps + warm_up_steps):
             generator.forward_time = 0
             pre = time.time()
             output = generator(
@@ -29,8 +30,8 @@ def generate(generator, device, dtype, forward_params, enable):
             time_costs.append((time.time() - pre) * 1000)
             forward_times.append(generator.forward_time * 1000)
 
-    average_time = sum(time_costs[WARMUP:]) / RUN
-    average_fwd_time = sum(forward_times[WARMUP:]) / RUN
+    average_time = sum(time_costs[warm_up_steps:]) / run_steps
+    average_fwd_time = sum(forward_times[warm_up_steps:]) / run_steps
     logging.info(f"total time [ms]: {time_costs}")
     logging.info(
         f"pipeline average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}"
@@ -41,6 +42,8 @@ def generate(generator, device, dtype, forward_params, enable):
 if __name__ == "__main__":
     args = get_args()
     logging.info(f"args = {args}")
+    warm_up_steps = args.warm_up_steps
+    run_steps = args.run_steps
     model_id = args.model_id
 
     device = args.device
@@ -86,4 +89,4 @@ if __name__ == "__main__":
 
         synthesiser.model = ipex.optimize(synthesiser.model, dtype=dtype, inplace=True)
 
-    generate(synthesiser, device, dtype, forward_params, enable)
+    generate(synthesiser, forward_params, warm_up_steps, run_steps)

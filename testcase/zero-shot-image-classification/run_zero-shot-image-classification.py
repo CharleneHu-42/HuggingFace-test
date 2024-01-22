@@ -12,7 +12,7 @@ import os
 import sys
 
 sys.path.append(os.path.dirname(__file__) + "/..")
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, WARMUP, RUN
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
 
 inference_context = [torch.inference_mode()]
 
@@ -122,6 +122,8 @@ def apply_torch_compile(classifier, backend):
 if __name__ == "__main__":
     args = get_args()
     logging.info(f"args={args}")
+    warm_up_steps = args.warm_up_steps
+    run_steps = args.run_steps
     model_id = args.model_id
     use_ipex_optimize = args.ipex_optimize
     use_jit = args.jit
@@ -156,11 +158,11 @@ if __name__ == "__main__":
 
     with ContextManagers(inference_context):
         elapsed_times, forward_times = benchmark(
-            classifier, image, TEXT, SEED, WARMUP + RUN
+            classifier, image, TEXT, SEED, warm_up_steps + run_steps
         )
 
-    average_time = sum(elapsed_times[WARMUP:]) / RUN
-    average_fwd_time = sum(forward_times[WARMUP:]) / RUN
+    average_time = sum(elapsed_times[warm_up_steps:]) / run_steps
+    average_fwd_time = sum(forward_times[warm_up_steps:]) / run_steps
     logging.info(f"total time [ms]: {elapsed_times}")
     logging.info(
         f"pipeline average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}"

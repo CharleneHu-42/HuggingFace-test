@@ -10,7 +10,7 @@ import os
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, WARMUP, RUN
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
 
 logging.basicConfig(level=logging.INFO)
 SEED = 20
@@ -24,10 +24,15 @@ MODEL_INPUT_SIZE = {
 }
 inference_context = [torch.inference_mode()]
 
+
 # Mean Pooling - Take attention mask into account for correct averaging
 def mean_pooling(token_embeddings, attention_mask):
-    input_mask_expanded = (attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float())
-    return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+    input_mask_expanded = (
+        attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+    )
+    return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(
+        input_mask_expanded.sum(1), min=1e-9
+    )
 
 
 def benchmark(extractor, sentences, seed, nb_pass):
@@ -37,10 +42,16 @@ def benchmark(extractor, sentences, seed, nb_pass):
         torch.manual_seed(seed)
         extractor.forward_time = 0
         start = time.time()
-        encoded_input = extractor.tokenizer(sentences, padding=True, truncation=True, return_tensors="pt")
+        encoded_input = extractor.tokenizer(
+            sentences, padding=True, truncation=True, return_tensors="pt"
+        )
         model_output = extractor(sentences, return_tensors=True, batch_size=2)
-        sentence_embeddings_1 = F.normalize(mean_pooling(model_output[0], encoded_input["attention_mask"][0]))
-        sentence_embeddings_2 = F.normalize(mean_pooling(model_output[1], encoded_input["attention_mask"][1]))
+        sentence_embeddings_1 = F.normalize(
+            mean_pooling(model_output[0], encoded_input["attention_mask"][0])
+        )
+        sentence_embeddings_2 = F.normalize(
+            mean_pooling(model_output[1], encoded_input["attention_mask"][1])
+        )
         score = torch.inner(sentence_embeddings_1, sentence_embeddings_2)
         duration = time.time() - start
         elapsed_times.append(duration * 1000)
@@ -107,6 +118,8 @@ def apply_torch_compile(extractor, backend):
 if __name__ == "__main__":
     args = get_args()
     logging.info(f"args={args}")
+    warm_up_steps = args.warm_up_steps
+    run_steps = args.run_steps
     model_id = args.model_id
     use_ipex_optimize = args.ipex_optimize
     use_jit = args.jit
@@ -148,11 +161,11 @@ if __name__ == "__main__":
 
     with ContextManagers(inference_context):
         elapsed_times, forward_times = benchmark(
-            extractor, sentences, SEED, WARMUP + RUN
+            extractor, sentences, SEED, warm_up_steps + run_steps
         )
 
-    average_time = sum(elapsed_times[WARMUP:]) / RUN
-    average_fwd_time = sum(forward_times[WARMUP:]) / RUN
+    average_time = sum(elapsed_times[warm_up_steps:]) / run_steps
+    average_fwd_time = sum(forward_times[warm_up_steps:]) / run_steps
     logging.info(f"total time [ms]: {elapsed_times}")
     logging.info(
         f"pipeline average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}"

@@ -45,8 +45,10 @@ def get_dataset_and_collator(
     tokenizer = LlamaTokenizer.from_pretrained(base_model)
     tokenizer.pad_token_id = 0  # unk. we want this to be different from the eos token
     tokenizer.padding_side = "left"  # Allow batched inference
-    
-    template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), prompt_template_name)
+
+    template_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), prompt_template_name
+    )
     prompter = Prompter(template_path)
 
     def tokenize(prompt, add_eos_token=True):
@@ -156,7 +158,7 @@ def train(
     # wandb params
     use_wandb: bool = False,
     prompt_template_name: str = "alpaca",  # The prompt template to use, will default to alpaca.
-    **kwargs
+    **kwargs,
 ):
     if int(os.environ.get("LOCAL_RANK", 0)) == 0:
         print(
@@ -214,7 +216,7 @@ def train(
         ddp_find_unused_parameters=False if ddp else None,
         group_by_length=group_by_length,
         report_to="wandb" if use_wandb else "none",
-        **kwargs
+        **kwargs,
     )
 
     model = get_lora_model(
