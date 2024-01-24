@@ -1,5 +1,3 @@
-transformers>4.36.1
-accelerate>0.26.1
 diffusers
 datasets
 soundfile
@@ -9,3 +7,4 @@ pyctcdecode
 librosa
 sentencepiece
 fire
+peft

@@ -42,12 +42,12 @@ def benchmark(
     logging.info(f"input tokens length is {input_len}")
 
     generation_kwargs["max_new_tokens"] = 1
-    first_latency, out, first_forward_latency = generate(
+    first_latency, out, _ = generate(
         generator, input_sentence, warm_up_steps, run_steps, batch_size
     )
     out_num = 1 * batch_size
     logging.info(
-        f"1st token latency = {first_latency/out_num} ms, pipeline_forward_time = {first_forward_latency/out_num} ms"
+        f"1st token latency = {first_latency/out_num} ms"
     )
     logging.info(f"output token nums = {out_num}")
 

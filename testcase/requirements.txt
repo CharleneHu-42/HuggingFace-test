@@ -12,3 +12,4 @@ pyctcdecode
 librosa
 sentencepiece
 fire
+peft

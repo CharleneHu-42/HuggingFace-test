@@ -49,6 +49,11 @@ We defaultly use bf16 training with 4 DDP in a single instance, run the followin
 ./run.sh --task fine-tune --device xpu
 ```
 
+### CUDA 
+```bash
+./run.sh --task fine-tune --device cuda
+```
+
 
 ## Notes
 ### Connection Error
