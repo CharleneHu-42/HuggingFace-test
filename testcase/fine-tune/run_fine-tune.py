@@ -17,7 +17,6 @@ from peft import (
     LoraConfig,
     get_peft_model,
     get_peft_model_state_dict,
-    prepare_model_for_int8_training,
     set_peft_model_state_dict,
 )
 from transformers import LlamaForCausalLM, LlamaTokenizer
@@ -123,9 +122,6 @@ def train(
     model = LlamaForCausalLM.from_pretrained(
         base_model,
         low_cpu_mem_usage=True,
-        # load_in_8bit=True,
-        # torch_dtype=torch.float16,
-        # device_map=device_map,
     )
 
     tokenizer = LlamaTokenizer.from_pretrained(base_model)
@@ -179,8 +175,6 @@ def train(
             ]  # could be sped up, probably
         return tokenized_full_prompt
 
-    # model = prepare_model_for_int8_training(model)
-
     config = LoraConfig(
         r=lora_r,
         lora_alpha=lora_alpha,
@@ -226,11 +220,6 @@ def train(
         train_data = data["train"].shuffle().map(generate_and_tokenize_prompt)
         val_data = None
 
-    # if not ddp and torch.cuda.device_count() > 1:
-    #     # keeps Trainer from trying its own DataParallelism when more than 1 gpu is available
-    #     model.is_parallelizable = True
-    #     model.model_parallel = True
-
     trainer = transformers.Trainer(
         model=model,
         train_dataset=train_data,
@@ -265,9 +254,6 @@ def train(
     model.state_dict = (
         lambda self, *_, **__: get_peft_model_state_dict(self, old_state_dict())
     ).__get__(model, type(model))
-
-    # if torch.__version__ >= "2" and sys.platform != "win32":
-    #     model = torch.compile(model)
 
     start = time.time()
     trainer.train(resume_from_checkpoint=resume_from_checkpoint)

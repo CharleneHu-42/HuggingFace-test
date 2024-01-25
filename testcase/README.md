@@ -3,7 +3,7 @@
 ## Inference
 
 ### CPU
-We defaultly use BF16 OOB and BF16 + torch.compile in CPU, run the following command:
+We defaultly use BF16 OOB and BF16 + torch.compile in CPU for all inference tasks, run the following command:
 ```bash
 sh run_cpu.sh
 ```
@@ -39,7 +39,7 @@ python analyse_logs.py --file_names xpu_benchmark_raw.log --out_name xpu_benchma
 
 ## Fine-tune
 ### CPU
-We defaultly use bf16 training with 4 DDP in a single instance, run the following command:
+We defaultly use amp bf16 to train [meta-llama/Llama-2-7b-hf](https://huggingface.co/meta-llama/Llama-2-7b-hf) in [yahma/alpaca-cleaned](https://huggingface.co/datasets/yahma/alpaca-cleaned) dataset with 4 DDP in a single instance, run the following command:
 ```bash
 ./run.sh --task fine-tune --device cpu
 ```
