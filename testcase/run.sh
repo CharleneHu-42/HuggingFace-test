@@ -186,7 +186,7 @@ if [[ "$task_name" == "fine-tune" ]]; then
     source $oneccl_bindings_for_pytorch_path/env/setvars.sh
     mpirun -n $num_processes -ppn 1 -genv OMP_NUM_THREADS=$(($OMP_NUM_THREADS*2/$num_processes)) -genv MASTER_ADDR=127.0.0.1 -genv MASTER_PORT=29500 python $task_name/run_$task_name.py --bf16 True --use_ipex $ipex_optimize --device $device
   else
-    accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --device $device
+    accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --device $device --fp16 True
   fi
 else
   numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps
