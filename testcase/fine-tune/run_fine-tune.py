@@ -6,6 +6,8 @@ https://github.com/tloen/alpaca-lora/blob/main/finetune.py
 import os
 import sys
 import time
+import random
+import numpy as np
 from typing import List
 
 import fire
@@ -24,6 +26,8 @@ from transformers import LlamaForCausalLM, LlamaTokenizer
 from utils import Prompter
 
 SEED = 42    
+random.seed(SEED)
+np.random.seed(SEED)
 
 def train(
     # model/data params
