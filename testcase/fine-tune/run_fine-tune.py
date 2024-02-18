@@ -22,21 +22,20 @@ from peft import (
     set_peft_model_state_dict,
 )
 from transformers import LlamaForCausalLM, LlamaTokenizer
+from transformers import set_seed
 
 from utils import Prompter
 
-SEED = 42    
-random.seed(SEED)
-np.random.seed(SEED)
+SEED = 42
+set_seed(SEED)
 
 def train(
     # model/data params
     base_model: str = "meta-llama/Llama-2-7b-hf",  # the only required argument
     data_path: str = "yahma/alpaca-cleaned",
     output_dir: str = "./lora-alpaca",
-    device: str = "cuda",
     # training hyperparams
-    batch_size: int = 128,
+    batch_size: int = 120,
     micro_batch_size: int = 4,
     num_epochs: int = 10,
     learning_rate: float = 3e-4,
@@ -86,12 +85,6 @@ def train(
             f"resume_from_checkpoint: {resume_from_checkpoint or False}\n"
             f"prompt template: {prompt_template_name}\n"
         )
-    torch.manual_seed(SEED)
-    if device == "cuda":
-        torch.cuda.manual_seed(SEED)
-    elif device == "xpu":
-        import intel_extension_for_pytorch
-        torch.xpu.manual_seed(SEED)
     
     assert (
         base_model

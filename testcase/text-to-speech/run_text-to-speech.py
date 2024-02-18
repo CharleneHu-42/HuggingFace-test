@@ -89,6 +89,6 @@ if __name__ == "__main__":
         logging.info("Use ipex optimize")
         import intel_extension_for_pytorch as ipex
 
-        synthesiser.model = ipex.optimize(synthesiser.model, dtype=dtype, inplace=True)
+        synthesiser.model = ipex.optimize(synthesiser.model, dtype=torch_dtype, inplace=True)
 
     generate(synthesiser, forward_params, warm_up_steps, run_steps)

@@ -117,7 +117,7 @@ if __name__ == "__main__":
 
         logging.info("Use ipex optimization")
         with ipex_inference_mode(
-            generator, dtype=dtype, verbose=False, jit=args.jit
+            generator, dtype=torch_dtype, verbose=False, jit=args.jit
         ) as ipex_pipe:
             benchmark(
                 ipex_pipe,
@@ -131,7 +131,7 @@ if __name__ == "__main__":
         import intel_extension_for_pytorch as ipex
 
         generator.model = ipex.optimize_transformers(
-            generator.model, dtype=dtype, device=device
+            generator.model, dtype=torch_dtype, device=device
         )
         benchmark(
             generator,

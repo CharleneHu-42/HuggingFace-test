@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
         image_to_text.model = ipex.optimize(
             image_to_text.model,
-            dtype=dtype,
+            dtype=torch_dtype,
             inplace=True,
         )
 

@@ -59,7 +59,7 @@ def prepare_jit_inputs(device):
     return example_inputs
 
 
-def apply_jit_trace(classifier, dtype, device, enable):
+def apply_jit_trace(classifier, device):
     logging.info("using jit trace for acceleration...")
 
     example_inputs = prepare_jit_inputs(device)
@@ -77,7 +77,7 @@ def apply_jit_trace(classifier, dtype, device, enable):
     return classifier
 
 
-def optimize_with_ipex(classifier, dtype, device, enable):
+def optimize_with_ipex(classifier, dtype, device):
     logging.info("using ipex optimize for acceleration...")
     import intel_extension_for_pytorch as ipex
 
@@ -129,11 +129,11 @@ if __name__ == "__main__":
 
     if use_ipex_optimize:
         classifier = optimize_with_ipex(
-            classifier, dtype=dtype, device=device, enable=enable
+            classifier, dtype=torch_dtype, device=device
         )
     if use_jit:
         classifier = apply_jit_trace(
-            classifier, dtype=dtype, device=device, enable=enable
+            classifier, device=device
         )
     if use_torch_compile:
         classifier = apply_torch_compile(classifier, backend)

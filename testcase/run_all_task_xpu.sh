@@ -218,10 +218,13 @@ do
 done
 
 echo "test visual-question-answering"
-./run.sh --task visual-question-answering --model_id "Salesforce/blip-vqa-base" --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
-./run.sh --task visual-question-answering --model_id "dandelin/vilt-b32-finetuned-vqa" --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $model_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
-./run.sh --task visual-question-answering --model_id "Salesforce/blip-vqa-capfilt-large" --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
-echo "----------------------------"
+model_list=("Salesforce/blip-vqa-base" "dandelin/vilt-b32-finetuned-vqa" "Salesforce/blip-vqa-capfilt-large")
+
+for model in "${model_list[@]}"
+do
+    ./run.sh --task visual-question-answering --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    echo "----------------------------"
+done 
 
 echo "test question-answering"
 model_list=("bert-large-uncased-whole-word-masking-finetuned-squad")

@@ -81,7 +81,7 @@ if __name__ == "__main__":
             import intel_extension_for_pytorch as ipex
 
             logging.info("Use ipex optimize")
-            generator.model = ipex.optimize(generator.model, dtype=dtype, inplace=True)
+            generator.model = ipex.optimize(generator.model, dtype=torch_dtype, inplace=True)
 
         generate(
             generator, data["train"][0]["audio"]["array"], warm_up_steps, run_steps

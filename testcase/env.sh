@@ -1,5 +1,6 @@
-source /opt/intel/oneapi/compiler/latest/env/vars.sh
-source /opt/intel/oneapi/mkl/latest/env/vars.sh
-source /opt/intel/oneapi/tbb/latest/env/vars.sh
-source /opt/intel/oneapi/mpi/latest/env/vars.sh
-source /opt/intel/oneapi/ccl/latest/env/vars.sh
+ONEAPI_ENV="$1"
+
+echo $ONEAPI_ENV
+source $ONEAPI_ENV/compiler/latest/env/vars.sh
+source $ONEAPI_ENV/mkl/latest/env/vars.sh
+source $ONEAPI_ENV/ccl/latest/env/vars.sh

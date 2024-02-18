@@ -120,7 +120,7 @@ if __name__ == "__main__":
         logging.info("Use ipex optimize")
         generator.model = ipex.optimize(
             generator.model,
-            dtype=dtype,
+            dtype=torch_dtype,
             inplace=True,
         )
 

@@ -81,7 +81,7 @@ def prepare_jit_inputs(model_id, device):
     return example_inputs
 
 
-def apply_jit_trace(extractor, model_id, dtype, device, enable):
+def apply_jit_trace(extractor, model_id, device):
     logging.info("using jit trace for acceleration...")
     example_inputs = prepare_jit_inputs(model_id, device)
 
@@ -151,10 +151,10 @@ if __name__ == "__main__":
     wrap_forward_for_benchmark(extractor)
 
     if use_ipex_optimize:
-        extractor = optimize_with_ipex(extractor, dtype=dtype)
+        extractor = optimize_with_ipex(extractor, dtype=torch_dtype)
     if use_jit:
         extractor = apply_jit_trace(
-            extractor, model_id, dtype=dtype, device=device, enable=enable
+            extractor, model_id, device=device
         )
     if use_torch_compile:
         extractor = apply_torch_compile(extractor, backend)

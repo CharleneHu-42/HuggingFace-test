@@ -85,7 +85,7 @@ if __name__ == "__main__":
         logging.info("Use ipex optimize")
         import intel_extension_for_pytorch as ipex
 
-        pipe.model = ipex.optimize(pipe.model, dtype=dtype, inplace=True)
+        pipe.model = ipex.optimize(pipe.model, dtype=torch_dtype, inplace=True)
     if args.jit:
         logging.info("using jit trace for acceleration...")
         example_inputs = prepare_jit_inputs(device)

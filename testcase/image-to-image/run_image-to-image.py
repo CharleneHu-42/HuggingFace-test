@@ -146,7 +146,7 @@ def prepare_inputs(model_id, jit, dtype, device):
     return example_inputs
 
 
-def apply_jit_trace(pipeline, model_id, attr_list, dtype, device, enable):
+def apply_jit_trace(pipeline, model_id, attr_list, dtype, device):
     logging.info("using jit trace for acceleration...")
     for name in attr_list:
         model = getattr(pipeline, name)
@@ -165,7 +165,7 @@ def apply_jit_trace(pipeline, model_id, attr_list, dtype, device, enable):
     return pipeline
 
 
-def optimize_with_ipex(pipe, model_id, dtype, device, enable):
+def optimize_with_ipex(pipe, model_id, dtype, device):
     logging.info("using ipex optimize for acceleration...")
     import intel_extension_for_pytorch as ipex
 
@@ -245,11 +245,11 @@ if __name__ == "__main__":
 
     if use_ipex_optimize:
         pipe = optimize_with_ipex(
-            pipe, model_id, dtype=dtype, device=device, enable=enable
+            pipe, model_id, dtype=torch_dtype, device=device
         )
     if use_jit:
         pipe = apply_jit_trace(
-            pipe, model_id, ["unet"], dtype=dtype, device=device, enable=enable
+            pipe, model_id, ["unet"], dtype=torch_dtype, device=device, enable=enable
         )
     if use_torch_compile:
         pipe = apply_torch_compile(pipe, backend)

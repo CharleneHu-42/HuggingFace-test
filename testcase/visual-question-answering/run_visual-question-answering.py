@@ -80,6 +80,6 @@ if __name__ == "__main__":
         logging.info("Use ipex optimize")
         import intel_extension_for_pytorch as ipex
 
-        pipe.model = ipex.optimize(pipe.model, dtype=dtype, inplace=True)
+        pipe.model = ipex.optimize(pipe.model, dtype=torch_dtype, inplace=True)
 
     generate(pipe, raw_image, question, warm_up_steps, run_steps)
