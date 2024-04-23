@@ -16,7 +16,7 @@ input_tokens=32
 output_tokens=32
 ipex_optimize_transformers="False"
 gradient_checkpointing="False"
-num_processes=6
+num_processes=4
 warm_up_steps=10
 run_steps=10
 
