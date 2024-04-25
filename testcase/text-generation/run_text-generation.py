@@ -44,26 +44,24 @@ def benchmark(
     logging.info(f"input tokens length is {input_len}")
 
     generation_kwargs["max_new_tokens"] = 1
+    generation_kwargs["min_new_tokens"] = 1
 
     first_latency, out, _ = generate(
         generator, input_sentence, batch_size, warm_up_steps, run_steps
     )
 
-    out_num = (
-        len(tokenizer(out[0][0]["generated_text"])["input_ids"]) - input_len
-    ) * batch_size
+    out_num = batch_size
     logging.info(
         f"1st token latency = {first_latency/out_num} ms"
     )
     logging.info(f"output token nums = {out_num}")
 
     generation_kwargs["max_new_tokens"] = output_tokens
+    generation_kwargs["min_new_tokens"] = output_tokens
     latency, out, forward_latency = generate(
         generator, input_sentence, batch_size, warm_up_steps, run_steps
     )
-    out_num = (
-        len(tokenizer(out[0][0]["generated_text"])["input_ids"]) - input_len
-    ) * batch_size
+    out_num = output_tokens * batch_size
     logging.info(
         f"2nd+ token latency = {(latency - first_latency) / (out_num - batch_size)} ms"
     )
