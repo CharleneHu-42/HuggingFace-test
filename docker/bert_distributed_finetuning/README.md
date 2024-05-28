@@ -1,6 +1,6 @@
 # Run Guide
 
-## 1. Build docker from DockerFile 
+## 1. Build container from DockerFile 
 
 There are two dockerfiles for internal and external respectively. 
 The external one uses stock PyTorch, IPEX, oneCCL, all w/ version 1.12.
@@ -10,7 +10,7 @@ The external one uses stock PyTorch, IPEX, oneCCL, all w/ version 1.12.
 $ docker build -f df_internal --build-arg imageVersion=2022_ww32 -t bert_qa:internal .
 ```
 > notes:
-> The imageVersion is the version of base image from internal release of PyTorch,IPEX and oneCCL, it may be changed.
+> The imageVersion is the version of base image from internal release of PyTorch, IPEX and oneCCL, it may be changed.
 
 ### external build
 ```bash
@@ -28,7 +28,7 @@ $ docker pull appliedmlwf/hf:bert_qa_internal_2022ww32
 $ docker pull appliedmlwf/hf:bert_qa_external_2022ww33
 ```
 
-## 3. Docker containers deployment(single node)
+## 3. Docker container deployment (single node)
 You can use below command to get help.
 ```bash
 $ ./host_qa_test.sh -h
@@ -39,7 +39,7 @@ $ ./host_qa_test.sh -c 0 -i {image_id} # 2 DDPs in 1 container
 ```
 note:
 1. `{image_id}` could be appliedmlwf/hf:bert_qa_external_2022ww33 or appliedmlwf/hf:bert_qa_internal_2022ww32 based on your needs;
-2. the output is /tmp/debug_squad, you could change it in host_qa_test.sh;
+2. the default output path is `/tmp/debug_squad`, you could change it in host_qa_test.sh;
 
 If there is a precedental run, please stop and remove existing containers named master before starting a new round, as below:
 
@@ -48,9 +48,9 @@ $ docker stop master
 $ docker rm master
 ```
 
-## 4. Docker containers deployment(multi-node)
-Two scripts are provided. master_qa_node.sh should be launched in master node and 
-slave_qa_node.sh should be launched in slave node. ***containers in slave node must be created before master***
+## 4. Docker container deployment (multi-node)
+Two scripts are provided. `master_qa_node.sh` should be launched in master node and 
+`slave_qa_node.sh` should be launched in slave nodes. ***containers in slave nodes must be created before master***
 
 We take 2 nodes as example.
 
@@ -125,15 +125,18 @@ ExecStart=/usr/bin/dockerd --containerd=/run/containerd/containerd.sock
 ```bash
 $ systemctl restart docker
 ```
+
 you could see the nodes(10.165.9.48 and 10.165.9.49) shown in the 10.165.9.49:8500
 
 **create the global overlay network**
+
 ```bash
 $ docker network create -d overlay ov_net1
 
 $ docker network ls # to check its scope
 ```
+
 and ov_net1 could be used when creating container in section 4
 
-## 5. Perf Knobs
+## 5. Perf knobs
 omp_num_threads could be configured in master_qa_node.sh and host_qa_test.sh according to your cpu phy cores per socket.
