@@ -1,4 +1,4 @@
-# HF Test Guide
+# HF Workload Test Guide
 
 ## Inference
 
@@ -7,11 +7,10 @@ We defaultly use BF16 OOB and BF16 + torch.compile in CPU for all inference task
 ```bash
 sh run_cpu.sh
 ```
-After running this command, you can find the data in the `cpu_benmark.log`. Make sure you read the instruuction at the beginning of the log.
-
+After running this command, you can find the data in the `cpu_benmark.log`. Make sure you read the instruction at the beginning of the log.
 
 ### XPU
-Before running the testcases, please use the following command to first verify whether you are in the right XPU test environment:
+Before running the test cases, please use the following command to first verify whether you are in the right XPU test environment:
 ```bash
 source {ONEAPI_ROOT}/compiler/env/vars.sh
 source {ONEAPI_ROOT}/mkl/env/vars.sh
@@ -37,7 +36,7 @@ When the test finishes, you can use the following command to extract the perform
 python analyse_logs.py --file_names xpu_benchmark_raw.log --out_name xpu_benchmark.log
 ```
 
-## Fine-tune
+## Finetune
 ### CPU
 We defaultly use amp bf16 to train [meta-llama/Llama-2-7b-hf](https://huggingface.co/meta-llama/Llama-2-7b-hf) in [yahma/alpaca-cleaned](https://huggingface.co/datasets/yahma/alpaca-cleaned) dataset with 6 DDP in a single instance, run the following command:
 ```bash
@@ -54,13 +53,16 @@ We defaultly use amp bf16 to train [meta-llama/Llama-2-7b-hf](https://huggingfac
 ./run.sh --task fine-tune --device cuda
 ```
 
-
 ## Notes
 ### Connection Error
 If you cannot connect to huggingface model hub, please try `export HF_ENDPOINT=https://hf-mirror.com`
 ### Batch Size
-The actual batch size is calculated as 
-$$micro\_batch\_size*gradient\_accumulation\_steps*world\_size$$ 
-where the `gradient_accumulation_steps` is calculated using the following formular:
-$$gradient\_accumulation\_steps = batch\_size // micro\_batch\_size // world\_size$$
+The actual batch size is calculated as:
+```math
+micro\_batch\_size \times gradient\_accumulation\_steps \times world\_size
+```
+where the `gradient_accumulation_steps` is calculated using the following formula:
+```math
+gradient\_accumulation\_steps = batch\_size // micro\_batch\_size // world\_size$$
+```
 Please make sure that the given batch size is divisible by `micro_batch_size` and `world_size`, otherwise the actual batch size will differ from the the given batch size, e.g. with `batch_size=128`, `micro_batch_size=4` and `world_size=6`, the actual batch size is equal to 120, rather than 128. 
