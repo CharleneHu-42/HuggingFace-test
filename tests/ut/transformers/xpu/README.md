@@ -29,11 +29,11 @@ git apply 0001-add-more-not_device-tests.patch
 
 5. Start Testing
 ```bash
-bash run_xpu_ut.sh tests_results
+bash run_xpu_ut.sh test_results
 ```
 This bash script will create 2 additional folders for test results:
 - `reports` saves all test details in txt files, which is good for in-depth analysis   
-- `tests_results` organizes the test results in excel files, which is good for statistics and summary report   
+- `test_results` organizes the test results in excel files, which is good for statistics and summary report   
 
 6. Analyze test results 
 ```bash 
