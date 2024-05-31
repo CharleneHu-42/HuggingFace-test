@@ -17,11 +17,11 @@ pip install .
 
 
 ## Inference
-Running inference by `python bnb_inference` and you can add the flag `--quant_type` to set quantization type, including `int8`, `nf4` and `fp4`.
+Running inference by `python bnb_inference.py` and you can add the flag `--quant_type` to set quantization type, including `int8`, `nf4` and `fp4`.
 
 ## Finetune
-Running lora finetune by `python bnb_lora`, also use `--quant_type` to set quantization type, for example:
-Int8 lora: `python bnb_lora --quant_type int8`
-NF4 lora: `python bnb_lora --quant_type nf4`
-FP4 lora: `python bnb_lora --quant_type fp4`
+Running lora finetune by `python bnb_lora.py`, also use `--quant_type` to set quantization type, for example:
+Int8 lora: `python bnb_lora.py --quant_type int8`
+NF4 lora: `python bnb_lora.py --quant_type nf4`
+FP4 lora: `python bnb_lora.py --quant_type fp4`
 
