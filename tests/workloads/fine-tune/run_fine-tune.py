@@ -132,6 +132,8 @@ def train(
 
     if quantization_config is not None:
         model = prepare_model_for_kbit_training(model)
+        # Bnb Layer cannot work with autocast for now because bnb has data type cast in the linear layer.
+        kwargs.pop("bf16")
 
     tokenizer = LlamaTokenizer.from_pretrained(base_model)
 
