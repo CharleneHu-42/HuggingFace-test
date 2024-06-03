@@ -31,7 +31,7 @@ bash run_docker.sh $HF_CACHE_DIR trt-llm
 mkdir data; wget https://people.eecs.berkeley.edu/~hendrycks/data.tar -O data/mmlu.tar
 tar -xf data/mmlu.tar -C data && mv data/data data/mmlu
 # Run the benchmark script
-python3 mmlu.py --model_name meta-llama/Llama-2-7b-chat-hf --data_dir data/mmlu --device float16 --max_input_length 2048 --max_new_tokens 1 --eval_mode optimum-intel --batch_size 1 --num_beams 1 --save_dir results
+python3 mmlu.py --model_name meta-llama/Llama-2-7b-chat-hf --device xpu --max_input_length 2048 --max_new_tokens 1 --eval_mode optimum-intel --batch_size 1 --num_beams 1 --save_dir results
 ```
 For more detailed usage, please use the `help` option:
 ```bash
