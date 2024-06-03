@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import time
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from datetime import datetime
 from collections import OrderedDict
 import os
 import numpy as np
@@ -34,6 +35,7 @@ class BenchmarkPipeline:
         self.eval_mode = args.eval_mode
         self.engine_dir = args.engine_dir
         self.device = args.device
+        self.warm_up_samples = args.warm_up_samples
         self.max_input_length = args.max_input_length
         self.do_sample = args.do_sample
         self.num_beams = args.num_beams
@@ -74,7 +76,6 @@ class BenchmarkPipeline:
         return model
 
     def _load_tokenizer(self, model_name):
-        # TODO: why left padding?
         tokenizer = AutoTokenizer.from_pretrained(
             model_name,
             legacy=False,
@@ -204,8 +205,8 @@ class BenchmarkPipeline:
 
     def report(self, output_dir, accuracy):
         report_dict = self.get_report_dict()
-        input_lens = self.input_lens.copy()
-        latencies = self.latencies.copy()
+        input_lens = self.input_lens[self.warm_up_samples:].copy()
+        latencies = self.latencies[self.warm_up_samples:].copy()
 
         if len(set([len(i) for i in input_lens])) > 1:
             ignore_idx = [
@@ -230,7 +231,7 @@ class BenchmarkPipeline:
         )
         report_dict["avg_latency(ms)"] = avg_latency
         report_dict["accuracy"] = accuracy
-
+        report_dict['datetime'] = datetime.now().strftime("%Y%m%d_%H%M%S")
         if os.path.isdir(output_dir):
             header = ",".join(report_dict.keys())
             line = ",".join([str(v) for v in report_dict.values()])

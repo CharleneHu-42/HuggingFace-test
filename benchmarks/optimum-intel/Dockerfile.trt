@@ -9,6 +9,7 @@ RUN apt-get update && \
 	git \
 	wget \
 	vim \
+	bc \
 	git-lfs \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/*
