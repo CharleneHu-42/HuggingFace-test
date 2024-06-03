@@ -20,11 +20,16 @@ from peft import (
     get_peft_model,
     get_peft_model_state_dict,
     set_peft_model_state_dict,
+    prepare_model_for_kbit_training,
 )
+
 from transformers import LlamaForCausalLM, LlamaTokenizer
 from transformers import set_seed
 
 from utils import Prompter
+
+sys.path.append(os.path.dirname(__file__) + "/..")
+from common import get_bitsandbytes_config
 
 SEED = 42
 set_seed(SEED)
@@ -116,10 +121,17 @@ def train(
     if len(wandb_log_model) > 0:
         os.environ["WANDB_LOG_MODEL"] = wandb_log_model
 
+    quantization_config = get_bitsandbytes_config(kwargs.pop("quant_type", None))
+
     model = LlamaForCausalLM.from_pretrained(
         base_model,
         low_cpu_mem_usage=True,
+        quantization_config=quantization_config,
     )
+    print(model)
+
+    if quantization_config is not None:
+        model = prepare_model_for_kbit_training(model)
 
     tokenizer = LlamaTokenizer.from_pretrained(base_model)
 
