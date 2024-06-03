@@ -6,8 +6,6 @@ This repository contains code to benchmark optimum-intel models against tensorrt
 ```bash
 mkdir workspace && cd workspace
 git clone <HuggingFace GitHub Web URL>
-# only needed if you want to benchmark tensorrt-llm models as well  
-git clone https://github.com/NVIDIA/TensorRT-LLM.git tensorrt-llm
 cd HuggingFace/benchmarks/optimum-intel
 ```
 

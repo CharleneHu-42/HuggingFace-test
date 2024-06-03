@@ -11,7 +11,6 @@ do_sample="False"                # FIXED - DONT change this value
 device="xpu"                     # choose one from "cuda", "cpu" and "xpu"
 ############################ INPUT Variables END ##########################
 
-wrk_dir=/mnt/code/tensorrt-llm
 data_dir=/mnt/code/data
 log_folder=/mnt/code/mmlu-benchmark-log
 tmp_log_folder=$log_folder/tmp
@@ -44,7 +43,7 @@ for model in "${models_list[@]}"; do
 
                     if [ "$model" = "llama" ]; then
                         if [ "$eval_mode" = "trt-llm" ]; then
-                            cd /mnt/code/tensorrt-llm/examples/llama/                              
+                            cd /opt/tensorrt-llm/examples/llama/                              
                             if [ "$precision" = "float16" ]; then
                                 engine_dir="${tmp_log_folder}/engines/${model}/${precision}/bs${batch_size}-beam${num_beam}-iol${usecase}"
                                 checkpoint_dir="${tmp_log_folder}/checkpoints/${model}/${precision}"

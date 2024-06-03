@@ -148,14 +148,9 @@ class BenchmarkPipeline:
                 batch_input_ids = batch_input_ids.to(self.device)
 
                 start = time.time()
-                if self.eval_mode == "optimum-intel":
-                    outputs = self.model.generate(
-                        batch_input_ids, use_cache=True, **self.generation_config
-                    )
-                else:
-                    outputs = self.model.generate(
-                        batch_input_ids, **self.generation_config
-                    )
+                outputs = self.model.generate(
+                    batch_input_ids, pad_token_id=self.pad_id, **self.generation_config
+                )
                 end = time.time()
                 self.latencies.append((end - start) * 1000)
                 self.synchronize_device()
@@ -205,8 +200,8 @@ class BenchmarkPipeline:
 
     def report(self, output_dir, accuracy):
         report_dict = self.get_report_dict()
-        input_lens = self.input_lens[self.warm_up_samples:].copy()
-        latencies = self.latencies[self.warm_up_samples:].copy()
+        input_lens = self.input_lens[self.warm_up_samples :].copy()
+        latencies = self.latencies[self.warm_up_samples :].copy()
 
         if len(set([len(i) for i in input_lens])) > 1:
             ignore_idx = [
@@ -231,19 +226,19 @@ class BenchmarkPipeline:
         )
         report_dict["avg_latency(ms)"] = avg_latency
         report_dict["accuracy"] = accuracy
-        report_dict['datetime'] = datetime.now().strftime("%Y%m%d_%H%M%S")
+        report_dict["datetime"] = datetime.now().strftime("%Y%m%d_%H%M%S")
         if os.path.isdir(output_dir):
             header = ",".join(report_dict.keys())
             line = ",".join([str(v) for v in report_dict.values()])
             print(line)
             file_name = self.get_csv_filename()
             file_full_path = os.path.join(output_dir, file_name)
-            if not os.path.isfile(file_full_path):          
+            if not os.path.isfile(file_full_path):
                 with open(file_full_path, "a") as file:
                     file.write(header + "\n")
             with open(file_full_path, "a") as file:
                 file.write(line + "\n")
         else:
             kv_pairs = [f"{k} {v}" for k, v in report_dict.items()]
-            line = '[BENCHMARK] ' + " ".join(kv_pairs)
+            line = "[BENCHMARK] " + " ".join(kv_pairs)
             print(line)

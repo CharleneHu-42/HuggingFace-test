@@ -5,6 +5,7 @@ Example usage:
     tar -xf data/mmlu.tar -C data && mv data/data data/mmlu
     python mmlu.py --model_name <HF model path> --device xpu --eval_mode optimum-intel
 """
+
 import argparse
 import os
 import logging
@@ -151,6 +152,7 @@ def gen_prompt(train_df, subject, k=-1):
         prompt += format_example(train_df, i)
     return prompt
 
+
 def generate_prompt(test_df, dev_df, subject, row, ntrain, pipeline):
     k = ntrain
     prompt_end = format_example(test_df, row, include_answer=False)
@@ -161,15 +163,16 @@ def generate_prompt(test_df, dev_df, subject, row, ntrain, pipeline):
         k -= 1
         train_prompt = gen_prompt(dev_df, subject, k)
         prompt = train_prompt + prompt_end
-        
+
     return prompt
 
+
 def evaluate(pipeline, subject, batch_size, ntrain, dev_df, test_df, warm_up_samples):
-    # warm-up 
+    # warm-up
     for row in range(warm_up_samples):
         prompt = generate_prompt(test_df, dev_df, subject, row, ntrain, pipeline)
         _ = pipeline([prompt])
-    
+
     num_samples = test_df.shape[0]
     num_iter = num_samples // batch_size
     all_labels = []
@@ -279,7 +282,13 @@ def main(args):
             os.path.join(args.data_dir, "test", subject + "_test.csv"), header=None
         )
         cors, _ = evaluate(
-            pipeline, subject, args.batch_size, args.ntrain, dev_df, test_df, args.warm_up_samples
+            pipeline,
+            subject,
+            args.batch_size,
+            args.ntrain,
+            dev_df,
+            test_df,
+            args.warm_up_samples,
         )
         subcats = get_subcategories()[subject]
         for subcat in subcats:

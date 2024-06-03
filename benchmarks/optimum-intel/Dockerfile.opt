@@ -1,4 +1,4 @@
-FROM intel/intel-extension-for-pytorch:2.1.30-xpu
+FROM intel/intel-extension-for-pytorch:2.3.10-xpu
 
 RUN apt-get update && \
 	apt-get -y install \
@@ -9,3 +9,8 @@ RUN apt-get update && \
 	git-lfs \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt
+RUN git clone -b ipex-xpu https://github.com/faaany/optimum-intel.git
+WORKDIR /opt/optimum-intel 
+RUN pip install .
