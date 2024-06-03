@@ -190,7 +190,7 @@ if [[ "$task_name" == "fine-tune" ]]; then
   if [[ "$device" == "cpu" ]]; then
     export CCL_WORKER_COUNT=1
     source ${CONDA_PREFIX}/lib/python3.8/site-packages/oneccl_bindings_for_pytorch/env/setvars.sh
-    mpirun -n $num_processes -ppn 1 -genv OMP_NUM_THREADS=$(($OMP_NUM_THREADS*2/$num_processes)) -genv MASTER_ADDR=127.0.0.1 -genv MASTER_PORT=29500 python $task_name/run_$task_name.py --bf16 True --use_ipex $ipex_optimize --quant_type $quant_type
+    accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --bf16 True --use_ipex $ipex_optimize --quant_type $quant_type
   else
     accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py
   fi
