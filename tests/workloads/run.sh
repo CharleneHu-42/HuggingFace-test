@@ -189,7 +189,8 @@ export OMP_NUM_THREADS=56
 if [[ "$task_name" == "fine-tune" ]]; then
   if [[ "$device" == "cpu" ]]; then
     export CCL_WORKER_COUNT=1
-    source ${CONDA_PREFIX}/lib/python3.8/site-packages/oneccl_bindings_for_pytorch/env/setvars.sh
+    oneccl_bindings_for_pytorch_path=$(python -c "from oneccl_bindings_for_pytorch import cwd; print(cwd)")
+    source $oneccl_bindings_for_pytorch_path/env/setvars.sh
     accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --bf16 True --use_ipex $ipex_optimize --quant_type $quant_type
   else
     accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py
