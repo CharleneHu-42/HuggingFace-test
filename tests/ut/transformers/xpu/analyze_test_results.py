@@ -4,6 +4,34 @@ import glob
 import os
 
 
+SKIP_MESSAGES = [
+    "test requires natten",
+    "test requires Flash Attention",
+    "test requires TensorFlow",
+    "test requires JAX & Flax",
+    "test requires PyTorch Quantization Toolkit",
+    "test requires multiple GPUs",
+    "test requires 0 or 1 GPU",
+    "test requires 0 or 1 or 2 GPUs",
+    "test requires TorchXLA",
+    "test requires PyTorch NeuronCore",
+    "test requires PyTorch NPU",
+    "test requires multiple NPUs",
+    "test requires Torch-TensorRT FX",
+    "test requires CUDA",
+    "test requires torch>=1.10, using Ampere GPU or newer arch with cuda>=11.0",
+    "test requires Ampere or a newer GPU arch, cuda>=11 and torch>=1.7",
+    "test requires `detectron2`",
+    "test requires Ray/tune",
+    "test requires apex",
+    "test requires aqlm",
+    "test requires bitsandbytes and torch",
+    "test requires auto-gptq",
+    "test requires autoawq",
+    "test requires quanto",
+]
+
+
 def replace_unittests(df):
     for i, v in df["file_name"].items():
         if "/unittest/" in str(v):
@@ -99,6 +127,11 @@ def main(
             test_name = row["test_name"]
             if f"{suite_name}::{test_name}" in gpu_cannot_run:
                 tests_df.iloc[index, -1] = 1
+
+    tests_df["xpu-irrelevant"] = [0] * tests_df.shape[0]
+    for index, row in tests_df.iterrows():
+        if row["message"] in SKIP_MESSAGES:
+            tests_df.iloc[index, -1] = 1
 
     tests_df.to_excel(os.path.join(output_dir, "raw_test_results.xlsx"), index=False)
     # aggregate the results by file_name and result
