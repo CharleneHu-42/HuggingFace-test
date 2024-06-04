@@ -6,14 +6,12 @@ import random
 import time
 import warnings
 from dataclasses import dataclass
-from datetime import datetime
+
 from typing import List, Tuple
 import itertools
-import aiohttp
 
 import numpy as np
-from backend_request_func import (ASYNC_REQUEST_FUNCS, TEIRequestFuncInput,
-                                  TEIRequestFuncOutput)
+from backend_request_func import (ASYNC_REQUEST_FUNCS, TEIRequestFuncOutput)
 from tqdm.asyncio import tqdm
 from transformers import PreTrainedTokenizerBase
 from datasets import load_dataset
@@ -159,35 +157,18 @@ def main(args: argparse.Namespace):
         max_length= args.max_length
     )
 
-    client_num_list = [2,4,8,16]
-    #sweep for bs=1
-    for client_num in client_num_list:
-        asyncio.run(
-            benchmark_multi_clients(
-                backend=backend,
-                api_url=api_url,
-                model_id=model_id,
-                client_num=client_num,
-                batch_size=1,
-                input_requests=input_requests,
-                request_rate=args.request_rate,
-                disable_tqdm=args.disable_tqdm)
+    asyncio.run(
+        benchmark_multi_clients(
+            backend=backend,
+            api_url=api_url,
+            model_id=model_id,
+            client_num=args.client_num,
+            batch_size=args.batch_size,
+            input_requests=input_requests,
+            request_rate=args.request_rate,
+            disable_tqdm=args.disable_tqdm
         )
-        time.sleep(5)
-    #sweep for bs=4
-    for client_num in client_num_list:
-        asyncio.run(
-            benchmark_multi_clients(
-                backend=backend,
-                api_url=api_url,
-                model_id=model_id,
-                client_num=client_num,
-                batch_size=4,
-                input_requests=input_requests,
-                request_rate=args.request_rate,
-                disable_tqdm=args.disable_tqdm)
-        )
-        time.sleep(5)
+    )
 
 
 
@@ -243,6 +224,18 @@ if __name__ == "__main__":
         type=int,
         default=1024,
         help="max length of input prompt's token id.",
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=1,
+        help="batch size of an input request prompt.",
+    )
+    parser.add_argument(
+        "--client_num",
+        type=int,
+        default=4,
+        help="num of clients to send requests concurrently",
     )
     parser.add_argument(
         "--request-rate",
