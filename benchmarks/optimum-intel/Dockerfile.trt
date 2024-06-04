@@ -18,4 +18,4 @@ RUN pip3 install --upgrade pip setuptools
 RUN pip3 install tensorrt_llm -U --pre --extra-index-url https://pypi.nvidia.com
 
 WORKDIR /workspace
-RUN git clone https://github.com/NVIDIA/TensorRT-LLM.git tensorrt-llm
+RUN git clone https://github.com/NVIDIA/TensorRT-LLM.git

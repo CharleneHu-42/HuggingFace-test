@@ -43,7 +43,7 @@ for model in "${models_list[@]}"; do
 
                     if [ "$model" = "llama" ]; then
                         if [ "$eval_mode" = "trt-llm" ]; then
-                            cd /opt/tensorrt-llm/examples/llama/                              
+                            cd /workspace/TensorRT-LLM/examples/llama/                              
                             if [ "$precision" = "float16" ]; then
                                 engine_dir="${tmp_log_folder}/engines/${model}/${precision}/bs${batch_size}-beam${num_beam}-iol${usecase}"
                                 checkpoint_dir="${tmp_log_folder}/checkpoints/${model}/${precision}"
