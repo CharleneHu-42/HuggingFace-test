@@ -5,7 +5,7 @@ To install IPEX for XPU, pls follow the installation guide [here](https://github
 2. Set up UT environment
 ```bash 
 apt-get update & apt-get install tesseract-ocr ffmpeg espeak
-git clone <the HuggingFace repository URL>
+git clone https://github.com/intel-sandbox/HuggingFace.git
 cd HuggingFace/tests/ut/transformers/xpu
 pip install -r requirements.txt
 ```
@@ -19,9 +19,11 @@ pip install -e ".[testing]"
 
 4. Start testing 
 ```bash 
-# copy over the test helper scripts
+# copy the run_xpu_ut bash script to the transformers' root directory
 export huggingface_repo=<your local path of the HuggingFace repository>
-find $huggingface_repo/tests/ut/transformers/xpu -type f ! -name "*.md" -exec cp {} . \;
+cp $huggingface_repo/tests/ut/transformers/xpu/run_xpu_ut.sh . 
+cp $huggingface_repo/tests/ut/transformers/xpu/spec.py .
+
 # run pytest
 bash run_xpu_ut.sh test_results
 ```
