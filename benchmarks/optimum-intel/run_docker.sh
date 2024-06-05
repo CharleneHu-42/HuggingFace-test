@@ -1,6 +1,6 @@
 #!/bin/bash
 
-hf_home="$1"
+hf_cache_dir="$1"
 eval_mode="$2"
 
 SCRIPT=$(realpath "$0")
@@ -12,7 +12,7 @@ if [[ "$eval_mode" == "trt-llm" ]]; then
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
 		-e no_proxy=${no_proxy} \
-		-v $hf_home:/root/.cache/huggingface \
+		-v $hf_cache_dir:/root/.cache/huggingface \
 		-v $PROJECT_ROOT:/mnt/code \
 		-w /mnt/code/HuggingFace/benchmarks/optimum-intel \
 		--runtime=nvidia \
@@ -27,7 +27,7 @@ else
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
 		-e no_proxy=${no_proxy} \
-		-v $hf_home:/root/.cache/huggingface \
+		-v $hf_cache_dir:/root/.cache/huggingface \
 		-v $PROJECT_ROOT:/mnt/code \
 		-w /mnt/code/HuggingFace/benchmarks/optimum-intel \
 		--device=/dev/dri \

@@ -31,6 +31,10 @@ tar -xf data/mmlu.tar -C data && mv data/data data/mmlu
 # Run the benchmark script
 python3 mmlu.py --model_name meta-llama/Llama-2-7b-chat-hf --device xpu --max_input_length 2048 --max_new_tokens 1 --eval_mode optimum-intel --batch_size 1 --num_beams 1 --save_dir results
 ```
+To calculate TTFT and TPOT, you need to do the benchmark twice with max_new_tokens to 1 and a number larger than 1, e.g. 20. Then the average latency you obtained with this script for max_new_tokens=1 is TTFT. And TPOT can be calculated as 
+$$TPOT = (avg\_latency_{max\_new\_tokens=20}-avg\_latency_{max\_new\_tokens=1})/(20-1).$$
+
+
 For more detailed usage, please use the `help` option:
 ```bash
 python3 mmlu.py -h
@@ -40,6 +44,4 @@ To run the benchmark with multiple variable combinations, you can use the `run_b
 ```bash 
 bash run_benchmark.sh
 ``` 
-
-
-
+It will output a csv file in the folder `/mnt/code/mmlu-benchmark-log`. 

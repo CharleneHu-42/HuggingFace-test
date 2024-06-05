@@ -153,7 +153,7 @@ def gen_prompt(train_df, subject, k=-1):
     return prompt
 
 
-def generate_prompt(test_df, dev_df, subject, row, ntrain, pipeline):
+def prepare_prompt(test_df, dev_df, subject, row, ntrain, pipeline):
     k = ntrain
     prompt_end = format_example(test_df, row, include_answer=False)
     train_prompt = gen_prompt(dev_df, subject, k)
@@ -170,7 +170,7 @@ def generate_prompt(test_df, dev_df, subject, row, ntrain, pipeline):
 def evaluate(pipeline, subject, batch_size, ntrain, dev_df, test_df, warm_up_samples):
     # warm-up
     for row in range(warm_up_samples):
-        prompt = generate_prompt(test_df, dev_df, subject, row, ntrain, pipeline)
+        prompt = prepare_prompt(test_df, dev_df, subject, row, ntrain, pipeline)
         _ = pipeline([prompt])
 
     num_samples = test_df.shape[0]
@@ -186,7 +186,7 @@ def evaluate(pipeline, subject, batch_size, ntrain, dev_df, test_df, warm_up_sam
         for row in range(start_row, end_row):
             if row >= num_samples:
                 break
-            prompt = generate_prompt(test_df, dev_df, subject, row, ntrain, pipeline)
+            prompt = prepare_prompt(test_df, dev_df, subject, row, ntrain, pipeline)
             batch_prompt.append(prompt)
         batch_labels = test_df.iloc[start_row:end_row, test_df.shape[1] - 1].to_list()
         batch_preds = pipeline(batch_prompt)
@@ -209,9 +209,16 @@ def evaluate(pipeline, subject, batch_size, ntrain, dev_df, test_df, warm_up_sam
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name", type=str, default=None)
-    parser.add_argument("--engine_dir", type=str, default=None)
-    parser.add_argument("--save_dir", type=str, default="")
+    parser.add_argument(
+        "--model_name", type=str, default=None, help="huggingface model name"
+    )
+    parser.add_argument("--engine_dir", type=str, default=None, help="trt-llm only")
+    parser.add_argument(
+        "--save_dir",
+        type=str,
+        default="",
+        help="directory to save the benchmark result",
+    )
     parser.add_argument(
         "--data_dir",
         type=str,

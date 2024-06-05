@@ -1,3 +1,4 @@
+# Adapted from https://github.com/huggingface/text-generation-inference/pull/1475/files#diff-d0373fb2a9704ebac533c194c07ea46223955a37b349dbe927b7bd31c35ad429
 FROM intel/intel-extension-for-pytorch:2.1.30-xpu
 
 USER root
