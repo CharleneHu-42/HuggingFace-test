@@ -4,6 +4,7 @@ To install IPEX for XPU, pls follow the installation guide [here](https://github
 
 2. Set up UT environment
 ```bash 
+apt-get update & apt-get install tesseract-ocr ffmpeg espeak
 git clone <the HuggingFace repository URL>
 cd HuggingFace/tests/ut/transformers/xpu
 pip install -r requirements.txt
