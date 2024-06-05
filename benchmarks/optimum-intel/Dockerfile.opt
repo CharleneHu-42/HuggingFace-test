@@ -15,9 +15,6 @@ RUN wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRO
 RUN apt-get update && apt-get install -y intel-basekit xpu-smi cmake python3-dev ninja-build git wget vim bc
 
 WORKDIR /usr/src
-# Build pytorch and ipex
-RUN git clone https://github.com/intel/intel-extension-for-pytorch && cd intel-extension-for-pytorch && git checkout -b xpu_main origin/xpu-main
-RUN git clone https://github.com/pytorch/pytorch.git && cd pytorch && git checkout 209f2fa8ff86652f67d75c2f19bf9cb9942fd018 && git apply /usr/src/intel-extension-for-pytorch/torch_patches/00*.patch
 
 ENV CCL_ROOT=/opt/intel/oneapi/ccl/latest
 ENV I_MPI_ROOT=/opt/intel/oneapi/mpi/latest
@@ -37,7 +34,15 @@ ENV PATH=/opt/intel/oneapi/mpi/latest/opt/mpi/libfabric/bin:/opt/intel/oneapi/mp
 ENV CPATH=/opt/intel/oneapi/mpi/latest/include:/opt/intel/oneapi/ccl/latest/include:/opt/intel/oneapi/mkl/latest/include
 ENV CCL_ZE_IPC_EXCHANGE=sockets
 
+# Build pytorch and ipex
+RUN git clone https://github.com/intel/intel-extension-for-pytorch && cd intel-extension-for-pytorch && git checkout -b xpu_main origin/xpu-main
+RUN git clone https://github.com/pytorch/pytorch.git && cd pytorch && git checkout 209f2fa8ff86652f67d75c2f19bf9cb9942fd018 && git apply /usr/src/intel-extension-for-pytorch/torch_patches/00*.patch
+
 RUN pip uninstall -y torch && cd pytorch && git submodule update --init --recursive && python -m pip install -r requirements.txt && python setup.py install
 RUN pip uninstall -y intel-extension-for-pytorch && cd intel-extension-for-pytorch && git submodule update --init --recursive && USE_AOT_DEVLIST='pvc' BUILD_SEPARATE_OPS=ON BUILD_WITH_CPU=ON USE_XETLA=ON python setup.py install
 
 RUN pip install git+https://github.com/faaany/optimum-intel.git@ipex-xpu
+
+WORKDIR /workspace 
+RUN git clone https://github.com/intel-sandbox/HuggingFace.git
+RUN wget https://people.eecs.berkeley.edu/~hendrycks/data.tar && tar -xf data.tar

@@ -19,3 +19,5 @@ RUN pip3 install tensorrt_llm -U --pre --extra-index-url https://pypi.nvidia.com
 
 WORKDIR /workspace
 RUN git clone https://github.com/NVIDIA/TensorRT-LLM.git
+RUN git clone https://github.com/intel-sandbox/HuggingFace.git
+RUN wget https://people.eecs.berkeley.edu/~hendrycks/data.tar && tar -xf data.tar

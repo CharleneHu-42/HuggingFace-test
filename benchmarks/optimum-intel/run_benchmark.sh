@@ -11,8 +11,8 @@ do_sample="False"                          # FIXED - DONT change this value
 device="xpu"                               # choose one from "cuda", "cpu" and "xpu"
 ############################ INPUT Variables END ##########################
 
-data_dir=/mnt/code/data
-log_folder=/mnt/code/mmlu-benchmark-log
+data_dir=/workspace/data
+log_folder=/workspace/mmlu-benchmark-log
 tmp_log_folder=$log_folder/tmp
 engine_build_logs_folder=${log_folder}/engine_build_logs
 `mkdir -p $log_folder`
@@ -42,14 +42,13 @@ for model in "${models_list[@]}"; do
                     echo "========== Running model: ${model} precision: ${precision} do sample: ${do_sample} num_beam: ${num_beam} BS: ${batch_size} input_len: ${input_len} output_len: ${output_len} =========="
 
                     if [ "$model" = "llama" ]; then
-                        if [ "$eval_mode" = "trt-llm" ]; then
-                            cd /workspace/TensorRT-LLM/examples/llama/                              
+                        if [ "$eval_mode" = "trt-llm" ]; then                             
                             if [ "$precision" = "float16" ]; then
                                 engine_dir="${tmp_log_folder}/engines/${model}/${precision}/bs${batch_size}-beam${num_beam}-iol${usecase}"
                                 checkpoint_dir="${tmp_log_folder}/checkpoints/${model}/${precision}"
                                 if [ ! -d "$checkpoint_dir" ]; then 
                                     echo "========== Build model checkpoint for tensorrt-llm =========="
-                                    python3 convert_checkpoint.py --model_dir meta-llama/Llama-2-7b-chat-hf --dtype $precision --output_dir $checkpoint_dir
+                                    python3 /workspace/TensorRT-LLM/examples/llama/convert_checkpoint.py --model_dir meta-llama/Llama-2-7b-chat-hf --dtype $precision --output_dir $checkpoint_dir
                                 fi
                                 if [ ! -d "$engine_dir" ]; then 
                                     echo "========== Build model engine for tensorrt-llm =========="
@@ -67,7 +66,7 @@ for model in "${models_list[@]}"; do
                         echo Start: $start_time
                         tmp_log_name=$tmp_log_folder/$model/BS_${batch_size}_beam_${num_beam}_ip_${input_len}_op_${output_len}.log
                         mkdir -p "$(dirname "$tmp_log_name")" && touch "$tmp_log_name"
-                        mpirun --allow-run-as-root -n 1 python3 /mnt/code/HuggingFace/benchmarks/optimum-intel/mmlu.py --model_name meta-llama/Llama-2-7b-chat-hf --engine_dir $engine_dir --data_dir $data_dir/mmlu --data_type $precision --device $device --max_input_length $input_len --max_new_tokens $output_len --eval_mode $eval_mode --batch_size $batch_size --num_beams $num_beam --do_sample $do_sample > $tmp_log_name 2>&1 &
+                        python3 /workspace/HuggingFace/benchmarks/optimum-intel/mmlu.py --model_name meta-llama/Llama-2-7b-chat-hf --engine_dir $engine_dir --data_dir $data_dir/mmlu --data_type $precision --device $device --max_input_length $input_len --max_new_tokens $output_len --eval_mode $eval_mode --batch_size $batch_size --num_beams $num_beam --do_sample $do_sample > $tmp_log_name 2>&1 &
                         wait
                         end_time=$(date +%F-%T)
                         end_time_epoch=$(date +%s)
@@ -87,7 +86,6 @@ for model in "${models_list[@]}"; do
                         echo "num_samples: $num_samples "
                         echo "throughput(tokens/s): $tokens_per_second "
                         echo ${model}, ${precision}, ${do_sample}, ${num_beam}, ${batch_size}, ${input_len}, ${output_len}, ${tokens_per_second}, ${avg_latency}, ${start_time}, ${end_time}, ${elapsed} >> $csv
-                        break  
                     else
                         echo " model name is invalid "
                     fi            
