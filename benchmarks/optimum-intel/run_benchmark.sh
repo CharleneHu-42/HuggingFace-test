@@ -1,14 +1,14 @@
 #!/bin/bash
 
 ########################### INPUT Variables START (modify if need)#########################
-eval_mode="optimum-intel"                  # Evaluation Mode, choose one from "trt-llm", "optimum-intel", "hf" and "ipex"
+eval_mode="$1"                             # Evaluation Mode, choose one from "trt-llm", "optimum-intel", "hf" and "ipex"
+device="$2"                                # choose one from "cuda", "cpu" and "xpu"
 models_list=(llama)                        # FIXED - DONT change this value, as currently only llama is supported
 precision_list=(float16)                   # FIXED - DONT change this value, as only float16 is supported
 in_out_lengths=("2048,1" "2048,20")        # (max_input_token_num,max_new_tokens), to add more combinations, use ("2048,1" "2048,20" ...)
 batch_sizes=(1)                            # to add multiple batch sizes, use (2 4 6 8 ...)
 num_beams=(1)                              # number of beams, to add multiple batch sizes, use (1 2 ...)
 do_sample="False"                          # FIXED - DONT change this value
-device="xpu"                               # choose one from "cuda", "cpu" and "xpu"
 ############################ INPUT Variables END ##########################
 
 data_dir=/workspace/data
