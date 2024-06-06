@@ -3,17 +3,17 @@
 ## Inference
 
 ### CPU
-We defaultly use BF16 OOB and BF16 + torch.compile in CPU for all inference tasks, run the following command:
-```bash
-sh run_cpu.sh
-```
-After running this command, you can find the data in the `cpu_benmark.log`. Make sure you read the instruction at the beginning of the log.
-
 Please make sure you have installed mkl gperftools:
 ```bash
 conda install mkl mkl-include -y
 conda install -c conda-forge gperftools -y
 ```
+
+We defaultly use BF16 OOB and BF16 + torch.compile in CPU for all inference tasks, run the following command:
+```bash
+sh run_cpu.sh
+```
+After running this command, you can find the data in the `cpu_benmark.log`. Make sure you read the instruction at the beginning of the log.
 
 ### XPU
 Before running the test cases, please use the following command to first verify whether you are in the right XPU test environment:
