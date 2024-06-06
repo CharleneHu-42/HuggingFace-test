@@ -20,7 +20,8 @@ bash run_docker.sh
 # for tensorrt-llm 
 bash run_docker.sh trt-llm 
 ```
-You can also mount your existing huggingface cache directory inside the docker container to avoid re-downloading the model:
+By default, it will mount your local directory `/root/.cache/huggingface` inside the docker container to avoid re-downloading the model. 
+But you can also specify your own huggingface cache directory as follows:
 ```bash
 export HF_CACHE_DIR=<your local huggingface cache dir, e.g. /root/.cache/huggingface>
 bash run-docker.sh $HF_CACHE_DIR
