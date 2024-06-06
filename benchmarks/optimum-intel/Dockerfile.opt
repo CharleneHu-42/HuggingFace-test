@@ -44,5 +44,5 @@ RUN pip uninstall -y intel-extension-for-pytorch && cd intel-extension-for-pytor
 RUN pip install git+https://github.com/faaany/optimum-intel.git@ipex-xpu
 
 WORKDIR /workspace
-COPY mmlu.py benchmark_utils.py run_benchmark.sh /workspace/benchmark/
 RUN wget https://people.eecs.berkeley.edu/~hendrycks/data.tar && tar -xf data.tar
+COPY mmlu.py benchmark_utils.py run_benchmark.sh /workspace/benchmark/

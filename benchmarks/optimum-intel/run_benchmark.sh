@@ -39,6 +39,7 @@ for model in "${models_list[@]}"; do
 
                     if [ "$model" = "llama" ]; then
                         hf_model_dir=meta-llama/Llama-2-7b-chat-hf
+                        trt_example_path=/workspace/TensorRT-LLM/examples/llama
                     else
                         echo " model name is invalid "
                     fi  
@@ -48,7 +49,7 @@ for model in "${models_list[@]}"; do
                             checkpoint_dir="${tmp_log_folder}/checkpoints/${model}/${precision}"
                             if [ ! -d "$checkpoint_dir" ]; then 
                                 echo "========== Build model checkpoint for tensorrt-llm =========="
-                                python3 /workspace/TensorRT-LLM/examples/llama/convert_checkpoint.py --model_dir $hf_model_dir --dtype $precision --output_dir $checkpoint_dir
+                                python3 ${trt_example_path}/convert_checkpoint.py --model_dir $hf_model_dir --dtype $precision --output_dir $checkpoint_dir
                             fi
                             if [ ! -d "$engine_dir" ]; then 
                                 echo "========== Build model engine for tensorrt-llm =========="
