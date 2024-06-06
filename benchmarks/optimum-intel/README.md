@@ -23,7 +23,7 @@ bash run_docker.sh trt-llm
 By default, it will mount your local directory `/root/.cache/huggingface` inside the docker container to avoid re-downloading the model. 
 But you can also specify your own huggingface cache directory as follows:
 ```bash
-export HF_CACHE_DIR=<your local huggingface cache dir, e.g. /root/.cache/huggingface>
+export HF_CACHE_DIR=<your local huggingface cache dir that has the folder hub inside>
 bash run-docker.sh $HF_CACHE_DIR
 # for tensorrt-llm 
 bash run_docker.sh trt-llm $HF_CACHE_DIR
@@ -46,3 +46,4 @@ $$avg\_ttft = avg\_latency_{max\_new\_tokens=1}$$
 $$avg\_tpot = (avg\_latency_{max\_new\_tokens=20}-avg\_latency_{max\_new\_tokens=1})/(20-1)$$
 By default, the `run_benchmark.sh` script will run max_new_tokens=1 and max_new_tokens=20. For more input options, pls checkout the script `run_benchmark.sh`. 
 
+Please note that for ipex mode you have to first downgrade the transformers version with `pip install transformers==4.31.0` and than run `bash run_benchmark.sh ipex xpu`.

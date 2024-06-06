@@ -64,15 +64,16 @@ class BenchmarkPipeline:
             model = AutoModelForCausalLM.from_pretrained(
                 model_name,
                 trust_remote_code=True,
-                device_map=device,
                 torch_dtype=dtype,
             )
             if eval_mode == "ipex":
                 import intel_extension_for_pytorch as ipex
-
+                model.to(device)
                 model = ipex.optimize_transformers(
                     model.eval(), dtype=dtype, device=device, inplace=True
                 )
+            else:
+                model.to(device)
         return model
 
     def _load_tokenizer(self, model_name):

@@ -42,6 +42,7 @@ RUN pip uninstall -y torch && cd pytorch && git submodule update --init --recurs
 RUN pip uninstall -y intel-extension-for-pytorch && cd intel-extension-for-pytorch && git submodule update --init --recursive && USE_AOT_DEVLIST='pvc' BUILD_SEPARATE_OPS=ON BUILD_WITH_CPU=ON USE_XETLA=ON python setup.py install
 
 RUN pip install git+https://github.com/faaany/optimum-intel.git@ipex-xpu
+RUN pip install diffusers
 
 WORKDIR /workspace
 RUN wget https://people.eecs.berkeley.edu/~hendrycks/data.tar && tar -xf data.tar && rm data.tar
