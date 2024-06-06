@@ -33,6 +33,9 @@ bash run_docker.sh trt-llm $HF_CACHE_DIR
 ### Run Benchmark 
 ```bash
 cd benchmark
+# Log in to huggingface-cli if you need to download the llama model
+# You can get your token from huggingface.co/settings/token
+huggingface-cli login --token *****
 # optimum-intel 
 bash run_benchmark.sh optimum-intel xpu
 # tensorrt-llm
