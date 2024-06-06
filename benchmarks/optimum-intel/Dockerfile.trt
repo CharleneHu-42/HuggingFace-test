@@ -13,11 +13,10 @@ RUN apt-get update && \
 	git-lfs \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/*
-
-RUN pip3 install --upgrade pip setuptools
+   
 RUN pip3 install tensorrt_llm -U --pre --extra-index-url https://pypi.nvidia.com
 
 WORKDIR /workspace
+COPY mmlu.py benchmark_utils.py run_benchmark.sh /workspace/benchmark/
 RUN git clone https://github.com/NVIDIA/TensorRT-LLM.git
-RUN git clone https://github.com/intel-sandbox/HuggingFace.git
-RUN wget https://people.eecs.berkeley.edu/~hendrycks/data.tar && tar -xf data.tar
+RUN wget https://people.eecs.berkeley.edu/~hendrycks/data.tar && tar -xf data.tar && rm data.tar

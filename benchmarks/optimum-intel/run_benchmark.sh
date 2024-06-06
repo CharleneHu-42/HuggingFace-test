@@ -4,7 +4,7 @@
 eval_mode="$1"                             # Evaluation Mode, choose one from "trt-llm", "optimum-intel", "hf" and "ipex"
 device="$2"                                # choose one from "cuda", "cpu" and "xpu"
 models_list=(llama)                        # FIXED - DONT change this value, as currently only llama is supported
-precision_list=(float16)                   # FIXED - DONT change this value, as only float16 is supported
+precision_list=(float16)                   # model data dtype
 in_out_lengths=("2048,1" "2048,20")        # (max_input_token_num,max_new_tokens), to add more combinations, use ("2048,1" "2048,20" ...)
 batch_sizes=(1)                            # to add multiple batch sizes, use (2 4 6 8 ...)
 num_beams=(1)                              # number of beams, to add multiple batch sizes, use (1 2 ...)
@@ -16,15 +16,11 @@ log_folder=/workspace/mmlu-benchmark-log
 tmp_log_folder=$log_folder/tmp
 engine_build_logs_folder=${log_folder}/engine_build_logs
 `mkdir -p $log_folder`
+`rm -rf $engine_build_logs_folder`
+`rm -rf $tmp_log_folder`
 `mkdir -p $tmp_log_folder`
 `mkdir -p $engine_build_logs_folder`
 csv=${log_folder}/${eval_mode}_MMLU_Benchmark_Results.csv
-
-if [ ! -d "$data_dir" ]; then 
-    echo "========== Downloading mmlu dataset =========="
-    `mkdir $data_dir; wget https://people.eecs.berkeley.edu/~hendrycks/data.tar -O $data_dir/mmlu.tar`
-    `tar -xf $data_dir/mmlu.tar -C $data_dir && mv $data_dir/data $data_dir/mmlu`
-fi 
 
 if [ ! -f "$csv" ]
 then

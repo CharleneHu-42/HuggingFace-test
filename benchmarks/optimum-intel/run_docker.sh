@@ -1,11 +1,25 @@
 #!/bin/bash
-eval_mode="$1"
 
-HF_CACHE=/root/.cache/huggingface
+if [ "$1" == "trt-llm" ]; then
+	EVAL_MODE=trt-llm
+	if [ -d "$2" ]; then 
+		HF_CACHE="$2" 
+	else
+		HF_CACHE=/root/.cache/huggingface
+	fi
+else 
+	EVAL_MODE=opt
+	if [ -d "$1" ]; then 
+		HF_CACHE="$1" 
+	else
+		HF_CACHE=/root/.cache/huggingface
+	fi 
+fi 
+
 SCRIPT=$(realpath "$0")
-PROJECT_ROOT=$(dirname $(dirname $(dirname $(dirname $SCRIPT))))
+PROJECT_ROOT=$(dirname $(dirname $(dirname $SCRIPT)))
 
-if [[ "$eval_mode" == "trt-llm" ]]; then 
+if [ $EVAL_MODE == "trt-llm" ]; then 
 	tag=trt-llm
 	docker run -it \
 		-e http_proxy=${http_proxy} \
