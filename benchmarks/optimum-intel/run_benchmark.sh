@@ -59,6 +59,8 @@ for model in "${models_list[@]}"; do
                         else
                             echo "========== Enter valid precision =========="
                         fi
+                    else
+                        engine_dir="."
                     fi
                     echo "========== Ready for running benchmark =========="
                     start_time=$(date +%F-%T)
