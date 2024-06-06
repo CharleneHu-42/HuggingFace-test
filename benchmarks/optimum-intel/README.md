@@ -37,8 +37,8 @@ bash run_benchmark.sh optimum-intel xpu
 # tensorrt-llm
 bash run_benchmark.sh trt-llm cuda 
 ```
-For more input options, pls checkout the script `run_benchmark.sh`. 
-
 The benchmark script will save both accuracy and performance of the model to a csv file in the folder `/workspace/mmlu-benchmark-log`. The accuracy is measured by the exact-match score of the predictions and labels. The performance is measured by average latency. To compute the average TTFT(Time To First Token) and TPOT(Time Per Output Token), you will need to specify 2 different max_new_tokens with one of them to be 1. For example, you pass max_new_tokens=1 and max_new_tokens=20, then 
 $$avg\_ttft = avg\_latency_{max\_new\_tokens=1}$$
 $$avg\_tpot = (avg\_latency_{max\_new\_tokens=20}-avg\_latency_{max\_new\_tokens=1})/(20-1)$$
+By default, the `run_benchmark.sh` script will run max_new_tokens=1 and max_new_tokens=20. For more input options, pls checkout the script `run_benchmark.sh`. 
+
