@@ -23,7 +23,7 @@ from peft import (
     prepare_model_for_kbit_training,
 )
 
-from transformers import LlamaForCausalLM, LlamaTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers import set_seed
 
 from utils import Prompter
@@ -121,17 +121,16 @@ def train(
 
     quantization_config = get_bitsandbytes_config(kwargs.pop("quant_type", None))
 
-    model = LlamaForCausalLM.from_pretrained(
+    model = AutoModelForCausalLM.from_pretrained(
         base_model,
         low_cpu_mem_usage=True,
         quantization_config=quantization_config,
     )
-    print(model)
 
     if quantization_config is not None:
         model = prepare_model_for_kbit_training(model)
 
-    tokenizer = LlamaTokenizer.from_pretrained(base_model)
+    tokenizer = AutoTokenizer.from_pretrained(base_model)
 
     tokenizer.pad_token_id = 0  # unk. we want this to be different from the eos token
     tokenizer.padding_side = "left"  # Allow batched inference

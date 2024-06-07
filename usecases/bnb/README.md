@@ -25,3 +25,4 @@ Run nf4 inference: `sh run.sh -t text-generation --model_dtype bfloat16 --quant_
 ## Finetune
 Running lora finetune by `sh run.sh -t fine-tune`, also use `--quant_type` to set quantization type, for example:
 Run int8 lora: `sh run.sh -t fine-tune --quant_type int8`
+Run nf4 Qlora: `sh run.sh -t fine-tune --quant_type nf4`

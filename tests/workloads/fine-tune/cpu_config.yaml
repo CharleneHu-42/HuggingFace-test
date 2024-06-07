@@ -12,7 +12,7 @@ main_training_function: main
 mixed_precision: 'no'
 mpirun_config:
   mpirun_ccl: '1'
-  mpirun_hostfile: "/home/jiqingfe/hostfile"
+  mpirun_hostfile: "./fine-tune/hostfile"
 num_machines: 4
 num_processes: 4
 rdzv_backend: static
