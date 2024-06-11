@@ -181,9 +181,10 @@ if [[ "$device" = "cpu" ]]; then
   # Tcmalloc is a recommended malloc implementation that emphasizes fragmentation avoidance and scalable concurrency support.
   export LD_PRELOAD=${LD_PRELOAD}:${CONDA_PREFIX}/lib/libtcmalloc.so
 fi
+CORES=`lscpu | grep 'Core(s) per socket' | awk '{print $4}'`
 export TORCHINDUCTOR_FREEZING=1
 export TRITON_CODEGEN_INTEL_XPU_BACKEND=1
-export OMP_NUM_THREADS=56
+export OMP_NUM_THREADS=${CORES}
 
 # Perform the desired actions based on the provided flags and arguments
 if [[ "$task_name" == "fine-tune" ]]; then
@@ -196,5 +197,5 @@ if [[ "$task_name" == "fine-tune" ]]; then
     accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py
   fi
 else
-  numactl -C 0-55 --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_type $quant_type --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps
+  numactl -C '0-'${CORES} --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_type $quant_type --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps
 fi
