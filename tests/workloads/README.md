@@ -3,6 +3,12 @@
 ## Inference
 
 ### CPU
+Please make sure you have installed mkl gperftools:
+```bash
+conda install mkl mkl-include -y
+conda install -c conda-forge gperftools -y
+```
+
 We defaultly use BF16 OOB and BF16 + torch.compile in CPU for all inference tasks, run the following command:
 ```bash
 sh run_cpu.sh

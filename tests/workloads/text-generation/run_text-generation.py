@@ -12,7 +12,7 @@ import os
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
+from common import get_args, get_torch_dtype, get_bitsandbytes_config, wrap_forward_for_benchmark
 
 inference_context = [torch.inference_mode()]
 
@@ -93,6 +93,11 @@ if __name__ == "__main__":
     enable = dtype != torch.float32
     if enable:
         inference_context.append(torch.autocast(device, dtype, enable))
+    
+    model_kwargs = {}
+    quantization_config = get_bitsandbytes_config(args.quant_type)
+    if quantization_config is not None:
+        model_kwargs["quantization_config"] = quantization_config
 
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     generator = pipeline(
@@ -101,6 +106,7 @@ if __name__ == "__main__":
         torch_dtype=torch_dtype,
         device=device,
         tokenizer=tokenizer,
+        model_kwargs=model_kwargs,
         **generation_kwargs,
     )
     if "llama" in model_id:

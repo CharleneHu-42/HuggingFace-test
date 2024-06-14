@@ -20,11 +20,16 @@ from peft import (
     get_peft_model,
     get_peft_model_state_dict,
     set_peft_model_state_dict,
+    prepare_model_for_kbit_training,
 )
-from transformers import LlamaForCausalLM, LlamaTokenizer
+
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers import set_seed
 
 from utils import Prompter
+
+sys.path.append(os.path.dirname(__file__) + "/..")
+from common import get_bitsandbytes_config
 
 SEED = 42
 set_seed(SEED)
@@ -59,7 +64,8 @@ def train(
     prompt_template_name: str = "alpaca",  # The prompt template to use, will default to alpaca.
     **kwargs,
 ):
-    if int(os.environ.get("LOCAL_RANK", 0)) == 0:
+    local_rank = int(os.environ.get("LOCAL_RANK", 0)) or int(os.environ.get("PMI_RANK", 0))
+    if local_rank == 0:
         print(
             f"Training Alpaca-LoRA model with params:\n"
             f"base_model: {base_model}\n"
@@ -98,11 +104,8 @@ def train(
     prompter = Prompter(template_path)
 
     # device_map = "auto"
-    world_size = int(os.environ.get("WORLD_SIZE", 1))
-    ddp = world_size != 1
-    if ddp:
-        # device_map = {"": int(os.environ.get("LOCAL_RANK") or 0)}
-        gradient_accumulation_steps = gradient_accumulation_steps // world_size
+    world_size = int(os.environ.get("WORLD_SIZE", 0)) or int(os.environ.get("PMI_SIZE", 0))
+    ddp = world_size > 1
 
     # Check if parameter passed or if set within environ
     use_wandb = len(wandb_project) > 0 or (
@@ -116,12 +119,18 @@ def train(
     if len(wandb_log_model) > 0:
         os.environ["WANDB_LOG_MODEL"] = wandb_log_model
 
-    model = LlamaForCausalLM.from_pretrained(
+    quantization_config = get_bitsandbytes_config(kwargs.pop("quant_type", None))
+
+    model = AutoModelForCausalLM.from_pretrained(
         base_model,
         low_cpu_mem_usage=True,
+        quantization_config=quantization_config,
     )
 
-    tokenizer = LlamaTokenizer.from_pretrained(base_model)
+    if quantization_config is not None:
+        model = prepare_model_for_kbit_training(model)
+
+    tokenizer = AutoTokenizer.from_pretrained(base_model)
 
     tokenizer.pad_token_id = 0  # unk. we want this to be different from the eos token
     tokenizer.padding_side = "left"  # Allow batched inference
