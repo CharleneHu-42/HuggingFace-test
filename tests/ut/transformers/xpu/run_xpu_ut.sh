@@ -18,7 +18,7 @@ echo "+++++++++run single test files++++++++++++++++"
 pytest tests/*.py -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --excelreport="${excel_dir}/single_files.xlsx" --make-reports="single_files" --timeout=600
 echo "+++++++++++++++++++++++done for single_files+++++++++++++"
 
-test_folders=("benchmark" "extended" "fsdp" "generation" "peft_integration" "quantization" "trainer" "pipelines")
+test_folders=("benchmark" "extended" "fsdp" "generation" "peft_integration" "quantization" "trainer" "pipelines" "deepspeed")
 for folder in "${test_folders[@]}"
 do 
 	echo "+++++++++run test folder $folder++++++++++++++++"

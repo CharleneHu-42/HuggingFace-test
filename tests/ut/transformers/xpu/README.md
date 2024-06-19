@@ -14,7 +14,7 @@ pip install -r requirements.txt
 ```bash
 git clone https://github.com/huggingface/transformers.git
 cd transformers
-pip install -e ".[testing]"
+pip install -e ".[deepspeed-testing]"
 ```
 
 4. Start testing 
