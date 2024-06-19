@@ -29,6 +29,7 @@ class BenchmarkMetrics:
 
 
 def sample_allnli_requests(
+    seed: int,
     num_requests: int,
     tokenizer: PreTrainedTokenizerBase,
     min_length: int,
@@ -37,6 +38,7 @@ def sample_allnli_requests(
     dataset = load_dataset("sentence-transformers/all-nli", "pair", split="train")
     anchor_dataset = dataset['anchor']
     # Shuffle the dataset.
+    random.seed(seed)
     random.shuffle(anchor_dataset)
 
     # Filter out sequences that are too long or too short
@@ -136,7 +138,6 @@ async def benchmark_multi_clients(
 
 def main(args: argparse.Namespace):
     print(args)
-    random.seed(args.seed)
     np.random.seed(args.seed)
 
     backend = args.backend
@@ -151,22 +152,23 @@ def main(args: argparse.Namespace):
     tokenizer = get_tokenizer(tokenizer_id)
 
     input_requests = sample_allnli_requests(
-        num_requests=args.num_prompts,
-        tokenizer=tokenizer,
-        min_length=args.min_length,
-        max_length= args.max_length
+        seed = args.seed,
+        num_requests = args.num_prompts,
+        tokenizer = tokenizer,
+        min_length = args.min_length,
+        max_length = args.max_length
     )
 
     asyncio.run(
         benchmark_multi_clients(
-            backend=backend,
-            api_url=api_url,
-            model_id=model_id,
-            client_num=args.client_num,
-            batch_size=args.batch_size,
-            input_requests=input_requests,
-            request_rate=args.request_rate,
-            disable_tqdm=args.disable_tqdm
+            backend = backend,
+            api_url = api_url,
+            model_id = model_id,
+            client_num = args.client_num,
+            batch_size = args.batch_size,
+            input_requests = input_requests,
+            request_rate = args.request_rate,
+            disable_tqdm = args.disable_tqdm
         )
     )
 
