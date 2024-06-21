@@ -4,7 +4,7 @@ To install IPEX for XPU, pls follow the installation guide [here](https://github
 
 2. Install XPU backend for Triton
 ```bash
-pip install  "git+https://github.com/intel/intel-xpu-backend-for-triton@d72e1e65c78b7b79405023e684338697579ea391#subdirectory=python"
+pip install "git+https://github.com/intel/intel-xpu-backend-for-triton@d72e1e65c78b7b79405023e684338697579ea391#subdirectory=python"
 ```
 
 3. Set up UT environment
@@ -12,8 +12,8 @@ pip install  "git+https://github.com/intel/intel-xpu-backend-for-triton@d72e1e65
 git clone https://github.com/huggingface/accelerate.git
 cd accelerate
 pip install -e ".[testing]"
-pip instal -e ".[test_trackers]"
-pip install deepspeed==0.14.3 pytest-excel openpyxl   
+pip install -e ".[test_trackers]"
+pip install deepspeed pytest-excel openpyxl   
 ```
 
 4. Start testing 
