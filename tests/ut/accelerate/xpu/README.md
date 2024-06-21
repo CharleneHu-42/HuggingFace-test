@@ -20,5 +20,3 @@ pip install deepspeed pytest-excel openpyxl
 ```bash 
 RUN_SLOW=1 python -m pytest tests -sv --excelreport="ut_results.xlsx" 2>&1 | tee ut_results.log
 ```
-
-
