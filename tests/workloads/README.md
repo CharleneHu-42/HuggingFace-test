@@ -15,6 +15,16 @@ sh run_cpu.sh
 ```
 After running this command, you can find the data in the `cpu_benmark.log`. Make sure you read the instruction at the beginning of the log.
 
+For intermediate tasks, optimum-intel is required and can be installed by the following commands:
+```bash
+git clone https://github.com/huggingface/optimum-intel.git && cd optimum-intel
+pip install .
+```
+
+Use `--optimum_intel` in `image-classification`, `question-answering`, and `text-generation` can enable optimum-intel optimization, for example:
+```bash
+sh run.sh -t image-classification -m google/vit-base-patch16-224 --model_dtype bfloat16 --optimum_intel True
+
 ### XPU
 Before running the test cases, please use the following command to first verify whether you are in the right XPU test environment:
 ```bash

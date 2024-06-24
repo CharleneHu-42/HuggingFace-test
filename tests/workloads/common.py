@@ -31,6 +31,7 @@ def get_args():
     parser.add_argument("--ipex_optimize_transformers", default="False", type=str2bool)
     parser.add_argument("--warm_up_steps", default=10, type=int)
     parser.add_argument("--run_steps", default=10, type=int)
+    parser.add_argument("--optimum_intel", default="False", type=str2bool)
     args = parser.parse_args()
     return args
 
