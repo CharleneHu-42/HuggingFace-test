@@ -89,7 +89,7 @@ def main(args):
     set_seed(args.seed)
     dtype = DTYPE_STR_MAPPING[args.data_type]
     # load prompt
-    project_root = Path(__file__).parents[3]
+    project_root = Path(__file__).parents[2]
     with open(project_root / "tests/workloads/datasets/prompt.json", "r") as f:
         prompt = json.load(f)
 
