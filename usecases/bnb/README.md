@@ -1,7 +1,9 @@
 ## Bitsandbytes
 
-## Envs
-Install bitsandbytes with CPU backend in a proper folder:
+## Envs Setup
+### Install BNB
+#### CPU
+Install bitsandbytes with CPU backend in your working directory:
 ```bash
 git clone --branch multi-backend-refactor https://github.com/TimDettmers/bitsandbytes.git && cd bitsandbytes/
 pip install -r requirements-dev.txt
@@ -10,19 +12,50 @@ make
 pip install .
 ```
 
+#### XPU
+<TBF>
+
+### Install HF Transformers
 Please notice that the original transformers may not work, it depends on the [PR](https://github.com/huggingface/transformers/pull/31098).
 You can install the transformers in a proper folder by the following command:
 ```bash
 git clone --branch bnb_cpu https://github.com/jiqing-feng/transformers.git && cd transformers/ && pip install .
 ```
 
-Go to the tests/workloads folder.
-## Inference
-Running inference by `sh run.sh -t text-generation --model_dtype bfloat16` and you can add the flag `--quant_type` to set quantization type, including `int8`, `nf4` and `fp4`, for example:
-Run int8 inference: `sh run.sh -t text-generation --model_dtype bfloat16 --quant_type int8`
-Run nf4 inference: `sh run.sh -t text-generation --model_dtype bfloat16 --quant_type nf4`
+## use case
+Go to tests/workloads directory.
+### Inference
+#### bf16(baseline)
+```
+sh run.sh -t text-generation --model_dtype bfloat16
+```
+#### int8
+```
+sh run.sh -t text-generation --model_dtype bfloat16 --quant_type int8
+```
+#### nf4
+```
+sh run.sh -t text-generation --model_dtype bfloat16 --quant_type nf4
+```
+#### fp4
+```
+sh run.sh -t text-generation --model_dtype bfloat16 --quant_type fp4
+```
 
-## Finetune
-Running lora finetune by `sh run.sh -t fine-tune`, also use `--quant_type` to set quantization type, for example:
-Run int8 lora: `sh run.sh -t fine-tune --quant_type int8`
-Run nf4 Qlora: `sh run.sh -t fine-tune --quant_type nf4`
+### Finetune
+#### bf16 LoRA(baseline)
+```
+sh run.sh -t fine-tune
+```
+#### int8 LoRA
+```
+sh run.sh -t fine-tune --quant_type int8
+```
+#### nf4 QLoRA
+```
+sh run.sh -t fine-tune --quant_type nf4
+```
+#### fp4 QLoRA
+```
+sh run.sh -t fine-tune --quant_type fp4
+```
