@@ -215,7 +215,7 @@ def main(args):
     for subject in tqdm(subjects):
         dev_df = pd.read_csv(
             os.path.join(data_dir, "dev", subject + "_dev.csv"), header=None
-        )[: ntrain]
+        )[:ntrain]
         test_df = pd.read_csv(
             os.path.join(data_dir, "test", subject + "_test.csv"), header=None
         )

@@ -47,7 +47,7 @@ def load_prompt(model_name, input_tokens):
 
 
 def main(args):
-    
+
     set_seed(args.seed)
     pipeline = BenchmarkPipeline(args)
 

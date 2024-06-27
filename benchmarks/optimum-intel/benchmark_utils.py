@@ -23,12 +23,13 @@ class BenchmarkPipeline:
         self.backend = args.backend
         self.model_name = args.model_name
         self.dtype = DTYPE_STR_MAPPING[args.data_type]
+        self.device = args.device
         self.model = self._load_model(
             args.backend,
             args.model_name,
             args.engine_dir,
             self.dtype,
-            args.device,
+            self.device,
             args.gpu_memory_utilization,
         )
         self.tgi_client = (
@@ -41,7 +42,6 @@ class BenchmarkPipeline:
         self.end_id = self.tokenizer.eos_token_id
         self.engine_dir = args.engine_dir
         self.save_dir = args.save_dir
-        self.device = args.device
         self.warm_up_steps = args.warm_up_steps
         self.run_steps = args.run_steps
         self.batch_size = args.batch_size
@@ -201,25 +201,29 @@ class BenchmarkPipeline:
                 output_texts = self._process_trt_outputs(outputs, input_lengths)
             else:
                 batch_input_ids = self._prepare_inputs(batch_input_ids, input_lengths)
-                batch_input_ids = batch_input_ids.to(self.device)
 
                 if self.backend == "vllm":
+                    batch_input_ids = [
+                        batch_input_ids[i].tolist()
+                        for i in range(batch_input_ids.size()[0])
+                    ]
                     outputs = self.model.generate(
                         prompt_token_ids=batch_input_ids,
                         sampling_params=self.sampling_params,
                     )
-                    import pdb
-
-                    pdb.set_trace()
+                    output_ids = [output.outputs[0].token_ids for output in outputs]
                 else:
+                    batch_input_ids = batch_input_ids.to(self.device)
                     outputs = self.model.generate(
                         batch_input_ids,
                         pad_token_id=self.pad_id,
+                        use_cache=True,
                         **self.generation_config,
                     )
-                output_ids = [
-                    outputs[i, max(input_lengths) :] for i in range(outputs.size()[0])
-                ]
+                    output_ids = [
+                        outputs[i, max(input_lengths) :]
+                        for i in range(outputs.size()[0])
+                    ]
                 output_texts = [
                     self.tokenizer.decode(output_id, skip_special_tokens=True)
                     for output_id in output_ids

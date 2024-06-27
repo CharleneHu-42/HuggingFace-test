@@ -5,7 +5,7 @@ This repository contains code to benchmark optimum-intel models against tensorrt
 You can speficy the different task by using the `task_name` flag of the `main.py`, e.g. 
 
 ```bash
-python main.py --task_name simple_bench --backend optimum-intel --input_tokens 32 --output_tokens 1 --batch_size 1
+python main.py --task_name simple_bench --backend hf --model_name meta-llama/Llama-2-7b-chat-hf
 ```
 
 ## Env Set-Up 
