@@ -44,6 +44,8 @@ RUN pip uninstall -y intel-extension-for-pytorch && cd intel-extension-for-pytor
 RUN pip install git+https://github.com/faaany/optimum-intel.git@ipex-xpu
 RUN pip install diffusers
 
+RUN git clone https://github.com/vllm-project/vllm.git && cd vllm && git fetch origin pull/3814/head:xpu && git checkout xpu && pip install -r requirements-xpu.txt && VLLM_TARGET_DEVICE=xpu python3 setup.py install
+
 WORKDIR /workspace
 RUN wget https://people.eecs.berkeley.edu/~hendrycks/data.tar && tar -xf data.tar && rm data.tar
-COPY mmlu.py benchmark_utils.py run_benchmark.sh /workspace/benchmark/
+COPY main.py mmlu.py benchmark_utils.py simple_bench.py run_benchmark.sh /workspace/benchmark/

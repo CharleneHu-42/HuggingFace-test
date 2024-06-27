@@ -1,5 +1,8 @@
-## How to do benchmark for optimum-intel models on MMLU dataset?
-This repository contains code to benchmark optimum-intel models against tensorrt-llm, huggingface and ipex models on the MMLU dataset. MMLU is a massive multitask test consisting of multiple-choice questions from 57 various branches of knowledge such as elementary mathematics, US history, computer science, law, and medicine. For more details about MMLU, pls check out the original paper [here](https://arxiv.org/pdf/2009.03300).
+## How to do benchmark for optimum-intel models?
+This repository contains code to benchmark optimum-intel models against tensorrt-llm, huggingface, ipex, tgi and vllm models. There are 2 benchmark task available: mmlu and simple_bench.  
+- MMLU is a public benchmark for LLM and consists of multiple-choice questions from 57 various branches of knowledge such as elementary mathematics, US history, computer science, law, and medicine. Models are evaluted against the groundtruth answers of the questions and . For more details about MMLU, pls check out the original paper [here](https://arxiv.org/pdf/2009.03300).
+- Simple_bench uses a local prompt dataset and a simple benchmark using local prompt dataset
+
 
 ### Installation 
 1. Clone the repository
@@ -28,7 +31,55 @@ bash run-docker.sh $HF_CACHE_DIR
 # for tensorrt-llm 
 bash run_docker.sh trt-llm $HF_CACHE_DIR
 ``` 
+4. [Optional] Start TGI Server 
+4.1 Build the TGI Docker image for XPU 
+Open another terminal and run 
+```bash
+git clone https://github.com/huggingface/text-generation-inference.git && cd text-generation-inference
+docker build \
+	-f Dockerfile_intel . \
+	-t tgi/intel \
+	--build-arg http_proxy=${http_proxy} \
+	--build-arg https_proxy=${https_proxy} \
+	--build-arg no_proxy=${no_proxy}
+```
+4.2 Get yout huggingface token 
+- Go to https://huggingface.co/settings/tokens
+- Copy your cli READ token
+- Export HF_TOKEN=<your cli READ token>
 
+4.3 Run TGI server
+```bash
+model=meta-llama/Llama-2-7b-hf
+volume=/workspace1/huggingface/hub
+HF_TOKEN=<your huggingface token>
+
+docker run \
+    --privileged  \
+    -p 8080:80 \
+    -e http_proxy=${http_proxy} \
+    -e https_proxy=${https_proxy} \
+    -e no_proxy=${no_proxy} \
+    -e HF_TOKEN=${HF_TOKEN} \
+    -v $volume:/data \
+    --device=/dev/dri \
+    --ipc=host \
+    --name tgi-ipex \
+    tgi/intel:latest \
+    --model-id $model \
+    --sharded false \
+    --dtype float16 \
+    --max-input-tokens 1024 \
+    --max-total-tokens 2048 \
+    --cuda-graphs 0
+```
+Now your tgi server is up. You can test it by running the following code:
+```bash
+curl 127.0.0.1:8080/generate \
+    -X POST \
+    -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":100}}' \
+-H 'Content-Type: application/json'
+```
 
 ### Run Benchmark 
 ```bash
@@ -37,9 +88,9 @@ cd benchmark
 # You can get your token from huggingface.co/settings/token
 huggingface-cli login --token *****
 # optimum-intel 
-bash run_benchmark.sh optimum-intel xpu
+bash run_benchmark.sh mmlu optimum-intel xpu
 # tensorrt-llm
-bash run_benchmark.sh trt-llm cuda 
+bash run_benchmark.sh mmlu trt-llm cuda 
 ```
 The benchmark script will save both accuracy and performance of the model to a csv file in the folder `/workspace/mmlu-benchmark-log`. The accuracy is measured by the exact-match score of the predictions and labels. The performance is measured by average latency. To compute the average TTFT(Time To First Token) and TPOT(Time Per Output Token), you will need to specify 2 different max_new_tokens with one of them to be 1. For example, you pass max_new_tokens=1 and max_new_tokens=20, then 
 $$avg\_ttft = avg\_latency_{max\_new\_tokens=1}$$

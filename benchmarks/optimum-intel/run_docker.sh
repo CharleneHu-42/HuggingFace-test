@@ -20,7 +20,7 @@ SCRIPT=$(realpath "$0")
 PROJECT_ROOT=$(dirname $(dirname $(dirname $SCRIPT)))
 
 if [ $EVAL_MODE == "trt-llm" ]; then 
-	tag=trt-llm
+	tag=cuda
 	docker run -it \
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
@@ -31,9 +31,9 @@ if [ $EVAL_MODE == "trt-llm" ]; then
 		--gpus all \
 		--entrypoint /bin/bash \
 		--name $tag \
-		benchmark/mmlu:$tag
+		benchmark/optimum-intel:${tag}
 else 
-	tag=opt-intel
+	tag=xpu
 	docker run -it \
 		--privileged  \
 		-e http_proxy=${http_proxy} \
@@ -45,5 +45,5 @@ else
 		--ipc=host \
 		--entrypoint /bin/bash \
 		--name $tag \
-		benchmark/mmlu:$tag
+		benchmark/optimum-intel:${tag}
 fi 
