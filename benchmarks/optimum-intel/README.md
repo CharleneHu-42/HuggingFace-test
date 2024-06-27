@@ -1,10 +1,14 @@
-## How to do benchmark for optimum-intel models?
-This repository contains code to benchmark optimum-intel models against tensorrt-llm, huggingface, ipex, tgi and vllm models. There are 2 benchmark task available: mmlu and simple_bench.  
-- MMLU is a public benchmark for LLM and consists of multiple-choice questions from 57 various branches of knowledge such as elementary mathematics, US history, computer science, law, and medicine. Models are evaluted against the groundtruth answers of the questions and . For more details about MMLU, pls check out the original paper [here](https://arxiv.org/pdf/2009.03300).
-- Simple_bench uses a local prompt dataset and a simple benchmark using local prompt dataset
+This repository contains code to benchmark optimum-intel models against tensorrt-llm, huggingface, ipex, tgi and vllm models. There are 2 benchmark tasks available: mmlu and simple_bench.  
+- MMLU is a public benchmark for LLM and consists of multiple-choice questions from 57 various branches of knowledge such as elementary mathematics, US history, computer science, law, and medicine. Accuracy is calculated from the model predicted answers and the groudtruth answers. For more details about MMLU, pls check out the original paper [here](https://arxiv.org/pdf/2009.03300).
+- Simple_bench is a local benchmark that uses local prompt dataset as input data and measures the model latency to compare the various backend. No accuracy is calculted.
 
+You can speficy the different task by using the `task_name` flag of the `main.py`, e.g. 
 
-### Installation 
+```bash
+python main.py --task_name simple_bench --backend optimum-intel --input_tokens 32 --output_tokens 1 --batch_size 1
+```
+
+## Env Set-Up 
 1. Clone the repository
 ```bash
 git clone https://github.com/intel-sandbox/HuggingFace.git
@@ -17,6 +21,7 @@ bash build_image.sh
 # for tensorrt-llm models, please explicitly pass the `trt-llm` flag
 bash build_image.sh trt-llm
 ```
+
 3. Run docker container 
 ```bash 
 bash run_docker.sh
@@ -31,9 +36,9 @@ bash run-docker.sh $HF_CACHE_DIR
 # for tensorrt-llm 
 bash run_docker.sh trt-llm $HF_CACHE_DIR
 ``` 
+
 4. [Optional] Start TGI Server 
-4.1 Build the TGI Docker image for XPU 
-Open another terminal and run 
+If you want to benchmark tgi, you need to start a tgi service. First, open another terminal and build the TGI Docker image for XPU
 ```bash
 git clone https://github.com/huggingface/text-generation-inference.git && cd text-generation-inference
 docker build \
@@ -43,12 +48,8 @@ docker build \
 	--build-arg https_proxy=${https_proxy} \
 	--build-arg no_proxy=${no_proxy}
 ```
-4.2 Get yout huggingface token 
-- Go to https://huggingface.co/settings/tokens
-- Copy your cli READ token
-- Export HF_TOKEN=<your cli READ token>
 
-4.3 Run TGI server
+Then start the TGI server
 ```bash
 model=meta-llama/Llama-2-7b-hf
 volume=/workspace1/huggingface/hub
@@ -73,6 +74,7 @@ docker run \
     --max-total-tokens 2048 \
     --cuda-graphs 0
 ```
+
 Now your tgi server is up. You can test it by running the following code:
 ```bash
 curl 127.0.0.1:8080/generate \
@@ -81,18 +83,18 @@ curl 127.0.0.1:8080/generate \
 -H 'Content-Type: application/json'
 ```
 
-### Run Benchmark 
+## Run Benchmark 
 ```bash
 cd benchmark
 # Log in to huggingface-cli if you need to download the llama model
 # You can get your token from huggingface.co/settings/token
-huggingface-cli login --token *****
+huggingface-cli login --token <your huggingface token>
 # optimum-intel 
 bash run_benchmark.sh mmlu optimum-intel xpu
 # tensorrt-llm
 bash run_benchmark.sh mmlu trt-llm cuda 
 ```
-The benchmark script will save both accuracy and performance of the model to a csv file in the folder `/workspace/mmlu-benchmark-log`. The accuracy is measured by the exact-match score of the predictions and labels. The performance is measured by average latency. To compute the average TTFT(Time To First Token) and TPOT(Time Per Output Token), you will need to specify 2 different max_new_tokens with one of them to be 1. For example, you pass max_new_tokens=1 and max_new_tokens=20, then 
+The benchmark script will save the benchmark results to a csv file in the folder `/workspace/mmlu-benchmark-log`. For MMLU task, the accuracy is measured by the exact-match score of the predictions and labels. The performance is measured by average latency. To compute the average TTFT(Time To First Token) and TPOT(Time Per Output Token), you will need to specify 2 different max_new_tokens with one of them to be 1. For example, you pass max_new_tokens=1 and max_new_tokens=20, then 
 $$avg\_ttft = avg\_latency_{max\_new\_tokens=1}$$
 $$avg\_tpot = (avg\_latency_{max\_new\_tokens=20}-avg\_latency_{max\_new\_tokens=1})/(20-1)$$
 By default, the `run_benchmark.sh` script will run max_new_tokens=1 and max_new_tokens=20. For more input options, pls checkout the script `run_benchmark.sh`. 
