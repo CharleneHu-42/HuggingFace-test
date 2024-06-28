@@ -73,9 +73,7 @@ def parse_args():
         "--data_dir",
         type=str,
         default="../../tests/workloads/datasets",
-        help=(
-            "Path to the data directory"
-        ),
+        help=("Path to the data directory"),
     )
     group = parser.add_argument_group(title="mmlu-only args")
     group.add_argument(
@@ -84,7 +82,7 @@ def parse_args():
         default=5,
         help="number of examples to be included in the prompt",
     )
-    group.add_argument("--check_accuracy", action="store_true")	
+    group.add_argument("--check_accuracy", action="store_true")
     group.add_argument("--accuracy_threshold", type=float, default=0.3)
     group = parser.add_argument_group(title="simple_bench-only args")
     parser.add_argument("--run_steps", type=int, default=10)

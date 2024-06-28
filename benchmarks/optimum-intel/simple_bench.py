@@ -34,7 +34,7 @@ MODEL_LIST = [
 
 
 def load_prompt(model_name, input_tokens, data_dir):
-    with open(os.path.join(data_dir,"prompt.json"), "r") as f:
+    with open(os.path.join(data_dir, "prompt.json"), "r") as f:
         prompts = json.load(f)
 
     matched_model = [name for name in MODEL_LIST if name in model_name.lower()]

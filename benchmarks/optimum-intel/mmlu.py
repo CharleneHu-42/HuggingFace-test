@@ -196,8 +196,8 @@ def main(args):
     batch_size = args.batch_size
     warm_up_steps = args.warm_up_steps
     check_accuracy = args.check_accuracy
-    accuracy_threshold = args.accuracy_threshold 
-    
+    accuracy_threshold = args.accuracy_threshold
+
     set_seed(seed)
     pipeline = BenchmarkPipeline(args)
 
@@ -248,11 +248,11 @@ def main(args):
 
     weighted_acc = np.mean(np.concatenate(all_cors))
     logging.info("Average accuracy: {:.3f}".format(weighted_acc))
-    if args.check_accuracy:
-        assert (	
-            weighted_acc >= args.accuracy_threshold	
-        ), f"Expected accuracy >= {args.accuracy_threshold} while got {weighted_acc}"
-        
+    if check_accuracy:
+        assert (
+            weighted_acc >= accuracy_threshold
+        ), f"Expected accuracy >= {accuracy_threshold} while got {weighted_acc}"
+
     report_dict = pipeline.report(weighted_acc)
 
     return report_dict
