@@ -74,6 +74,7 @@ def request_tei(
     assert api_url.endswith("embed")
     req = {
         "inputs": request_func_input.prompt,
+        "truncate": True
     }
     batch_size = len(request_func_input.prompt)
     output = TEIRequestFuncOutput()
@@ -108,6 +109,7 @@ async def aysnc_request_tei(
         for prompt in sync_get_request(input_requests, request_rate, batch_size):
             req = {
                 "inputs": prompt,
+                "truncate": True
             }
             output = TEIRequestFuncOutput()
             st = time.perf_counter()

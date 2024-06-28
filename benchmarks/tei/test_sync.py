@@ -205,7 +205,7 @@ def benchmark_single_client(
     else:
         print("Initial test run completed. Starting main benchmark run...")
     print(f"Traffic request rate: {request_rate}")
-    bs_list = [1, 2, 4, 8, 16, 32, 64, 128]
+    bs_list = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
     for bs in bs_list:
         benchmark_with_bs(backend, api_url, model_id, 
                           tokenizer_id, input_requests, 
