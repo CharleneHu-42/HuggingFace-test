@@ -33,7 +33,7 @@ class BenchmarkPipeline:
             args.gpu_memory_utilization,
         )
         self.tgi_client = (
-            self._load_tgi_client(self.tgi_endpoint)
+            self._load_tgi_client(args.tgi_endpoint)
             if len(args.tgi_endpoint) > 0 and self.backend == "tgi"
             else None
         )
@@ -166,7 +166,7 @@ class BenchmarkPipeline:
         return batch_input_ids
 
     def _send_tgi_request(self, prompt):
-        output = self.client.text_generation(
+        output = self.tgi_client.text_generation(
             prompt=prompt,
             details=True,
             do_sample=self.do_sample,
@@ -177,6 +177,11 @@ class BenchmarkPipeline:
     def __call__(self, batch_prompt):
         start = time.time()
         if self.backend == "tgi":
+            # since tgi doesn't take text as input, we need to calcuate the input token lenghth
+            batch_input_ids = self.decode_prompt(batch_prompt)
+            input_lengths = [x.size()[0] for x in batch_input_ids]
+            self.input_lens.append(input_lengths)
+            start = time.time()
             with ThreadPoolExecutor(max_workers=self.batch_size) as executor:
                 futures = [
                     executor.submit(self._send_tgi_request, prompt)

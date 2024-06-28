@@ -66,7 +66,7 @@ def parse_args():
     parser.add_argument(
         "--tgi_endpoint",
         type=str,
-        default="",
+        default="http://127.0.0.1:8888",
         help="tgi inference endpoint, only valid for tgi backend",
     )
     parser.add_argument(
