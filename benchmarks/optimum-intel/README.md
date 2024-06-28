@@ -94,9 +94,9 @@ bash run_benchmark.sh mmlu optimum-intel xpu
 # tensorrt-llm
 bash run_benchmark.sh mmlu trt-llm cuda 
 ```
-The benchmark script will save the benchmark results to a csv file in the folder `/workspace/mmlu-benchmark-log`. For MMLU task, the accuracy is measured by the exact-match score of the predictions and labels. The performance is measured by average latency. To compute the average TTFT(Time To First Token) and TPOT(Time Per Output Token), you will need to specify 2 different max_new_tokens with one of them to be 1. For example, you pass max_new_tokens=1 and max_new_tokens=20, then 
+The benchmark script will save the benchmark results to a csv file in the folder `/workspace/benchmark-assets`. For MMLU task, the accuracy is measured by the exact-match score of the predictions and labels. The performance is measured by average latency. To compute the average TTFT(Time To First Token) and TPOT(Time Per Output Token), you will need to specify 2 different max_new_tokens with one of them to be 1. For example, you pass max_new_tokens=1 and max_new_tokens=20, then 
 $$avg\_ttft = avg\_latency_{max\_new\_tokens=1}$$
 $$avg\_tpot = (avg\_latency_{max\_new\_tokens=20}-avg\_latency_{max\_new\_tokens=1})/(20-1)$$
-By default, the `run_benchmark.sh` script will run max_new_tokens=1 and max_new_tokens=20. For more input options, pls checkout the script `run_benchmark.sh`. 
+By default, the `run_benchmark.sh` script will run max_new_tokens=1 and max_new_tokens=32. For more input options, pls checkout the script `run_benchmark.sh`. 
 
-Please note that for ipex mode you have to first downgrade the transformers version with `pip install transformers==4.31.0` and than run `bash run_benchmark.sh ipex xpu`.
+Please note that for ipex mode you have to first downgrade the transformers version with `pip install transformers==4.38.1` and than run `bash run_benchmark.sh ipex xpu`.
