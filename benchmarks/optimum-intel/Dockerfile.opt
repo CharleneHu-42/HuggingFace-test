@@ -46,6 +46,9 @@ RUN pip install diffusers
 
 RUN git clone https://github.com/vllm-project/vllm.git && cd vllm && git fetch origin pull/3814/head:xpu && git checkout xpu && pip install -r requirements-xpu.txt && VLLM_TARGET_DEVICE=xpu python3 setup.py install
 
-WORKDIR /workspace
-RUN wget https://people.eecs.berkeley.edu/~hendrycks/data.tar && tar -xf data.tar && rm data.tar
+WORKDIR /workspace/data
+RUN wget https://people.eecs.berkeley.edu/~hendrycks/data.tar && tar -xf data.tar && rm data.tar && mv data mmlu
+COPY prompt.json /workspace/data/simple_bench/
 COPY main.py mmlu.py benchmark_utils.py simple_bench.py run_benchmark.sh /workspace/benchmark/
+
+WORKDIR /workspace

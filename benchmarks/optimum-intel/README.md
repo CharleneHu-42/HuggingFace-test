@@ -1,6 +1,6 @@
 This repository contains code to benchmark optimum-intel models against tensorrt-llm, huggingface, ipex, tgi and vllm models. There are 2 benchmark tasks available: mmlu and simple_bench.  
 - MMLU is a public benchmark for LLM and consists of multiple-choice questions from 57 various branches of knowledge such as elementary mathematics, US history, computer science, law, and medicine. Accuracy is calculated from the model predicted answers and the groudtruth answers. For more details about MMLU, pls check out the original paper [here](https://arxiv.org/pdf/2009.03300).
-- Simple_bench is a local benchmark that uses local prompt dataset as input data and measures the model latency to compare the various backend. No accuracy is calculted.
+- Simple_bench is a local benchmark that uses local prompt dataset as input data and measures the model generation latency to compare the various backends. No accuracy is calculated.
 
 You can speficy the different task by using the `task_name` flag of the `main.py`, e.g. 
 

@@ -30,7 +30,7 @@ if [ $EVAL_MODE == "trt-llm" ]; then
 		--runtime=nvidia \
 		--gpus all \
 		--entrypoint /bin/bash \
-		--name $tag \
+		--name bench-${tag} \
 		benchmark/optimum-intel:${tag}
 else 
 	tag=xpu
@@ -44,6 +44,6 @@ else
 		--device=/dev/dri \
 		--ipc=host \
 		--entrypoint /bin/bash \
-		--name $tag \
+		--name bench-${tag} \
 		benchmark/optimum-intel:${tag}
 fi 

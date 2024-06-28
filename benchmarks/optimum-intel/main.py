@@ -69,22 +69,20 @@ def parse_args():
         default="",
         help="tgi inference endpoint, only valid for tgi backend",
     )
+    parser.add_argument(
+        "--data_dir",
+        type=str,
+        default="../../tests/workloads/datasets",
+        help=(
+            "Path to the data directory"
+        ),
+    )
     group = parser.add_argument_group(title="mmlu-only args")
     group.add_argument(
         "--ntrain",
         type=int,
         default=5,
         help="number of examples to be included in the prompt",
-    )
-    parser.add_argument(
-        "--data_dir",
-        type=str,
-        default="data/mmlu",
-        help=(
-            "Path to the data directory. If not available, "
-            "download https://people.eecs.berkeley.edu/~hendrycks/data.tar."
-            "Only applicable for MMLU task"
-        ),
     )
     group = parser.add_argument_group(title="simple_bench-only args")
     parser.add_argument("--run_steps", type=int, default=10)
@@ -101,9 +99,6 @@ def main(args):
     )
     if task_name in task_map.keys():
         task_fn = task_map.get(task_name)
-        import pdb
-
-        pdb.set_trace()
         report_dict = task_fn(args)
     else:
         raise ValueError(

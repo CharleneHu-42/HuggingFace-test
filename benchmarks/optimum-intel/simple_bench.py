@@ -33,9 +33,8 @@ MODEL_LIST = [
 ]
 
 
-def load_prompt(model_name, input_tokens):
-    project_root = Path(__file__).parents[2]
-    with open(project_root / "tests/workloads/datasets/prompt.json", "r") as f:
+def load_prompt(model_name, input_tokens, data_dir):
+    with open(os.path.join(data_dir,"prompt.json"), "r") as f:
         prompts = json.load(f)
 
     matched_model = [name for name in MODEL_LIST if name in model_name.lower()]
@@ -51,7 +50,7 @@ def main(args):
     set_seed(args.seed)
     pipeline = BenchmarkPipeline(args)
 
-    prompt = load_prompt(args.model_name, args.input_tokens)
+    prompt = load_prompt(args.model_name, args.input_tokens, args.data_dir)
     logging.info(f"prompt = {prompt}")
     batch_prompt = [prompt] * args.batch_size
 
