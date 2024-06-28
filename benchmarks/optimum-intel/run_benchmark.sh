@@ -30,7 +30,7 @@ engine_build_logs_folder=${tmp_log_folder}/engine_build_logs
 `rm -rf $tmp_log_folder`
 `mkdir -p $tmp_log_folder`
 `mkdir -p $engine_build_logs_folder`
-csv=${log_folder}/${backend}_MMLU_Benchmark_Results.csv
+csv=${log_folder}/${task_name}_${backend}_Benchmark_Results.csv
 
 if [ ! -f "$csv" ]
 then
