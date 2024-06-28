@@ -24,4 +24,4 @@ COPY prompt.json /workspace/data/simple_bench/
 WORKDIR /workspace
 RUN git clone --branch v${TRT_VERSION} https://github.com/NVIDIA/TensorRT-LLM.git 
 RUN yes | pip3 uninstall numpy && pip3 install numpy==1.26.4
-COPY main.py mmlu.py benchmark_utils.py simple_bench.py run_benchmark.sh prompt.json /workspace/benchmark/
+COPY main.py mmlu.py benchmark_utils.py simple_bench.py run_benchmark.sh /workspace/benchmark/

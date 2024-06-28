@@ -8,7 +8,7 @@ models_list=(llama)                        # FIXED - DONT change this value, as 
 precision_list=(float16)                   # model data dtype
 in_out_lengths=("32,1" "32,32")            # (max_input_token_num,max_new_tokens), to add more combinations, use ("32,1" "32,20" ...)
 max_input_len="2048"                       # FIXED - DONT change this value
-batch_sizes=(1)                            # to add multiple batch sizes, use (2 4 6 8 ...)
+batch_sizes=(1 2)                          # batch size
 num_beams=(1)                              # number of beams, to add multiple batch sizes, use (1 2 ...)
 do_sample="False"                          # FIXED - DONT change this value
 ############################ INPUT Variables END ##########################
@@ -27,9 +27,9 @@ engine_build_logs_folder=${tmp_log_folder}/engine_build_logs
 `mkdir -p $log_folder`
 `mkdir -p $checkpoint_dir`
 `mkdir -p $engine_dir`
-`mkdir -p $engine_build_logs_folder`
 `rm -rf $tmp_log_folder`
 `mkdir -p $tmp_log_folder`
+`mkdir -p $engine_build_logs_folder`
 csv=${log_folder}/${backend}_MMLU_Benchmark_Results.csv
 
 if [ ! -f "$csv" ]
@@ -84,6 +84,7 @@ for model in "${models_list[@]}"; do
                     end_time_epoch=$(date +%s)
                     elapsed=$(( end_time_epoch - start_time_epoch ))
                     echo End: $end_time
+                    echo "========== benchmark end =========="
                     tmp_log_name=$tmp_log_folder/$model/BS_${batch_size}_beam_${num_beam}_ip_${input_len}_op_${output_len}.log
                     accuray=$(tail -n 13 $tmp_log_name | grep -o 'accuracy=[^ ]*' | cut -d '=' -f2)
                     avg_latency=$(tail -n 13 $tmp_log_name | grep -o 'avg_latency(ms)=[0-9.]*' | cut -d '=' -f2)
