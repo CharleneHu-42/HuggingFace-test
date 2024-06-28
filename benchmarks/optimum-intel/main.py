@@ -66,7 +66,7 @@ def parse_args():
     parser.add_argument(
         "--tgi_endpoint",
         type=str,
-        default="",
+        default="http://127.0.0.1:8888",
         help="tgi inference endpoint, only valid for tgi backend",
     )
     group = parser.add_argument_group(title="mmlu-only args")
@@ -101,9 +101,6 @@ def main(args):
     )
     if task_name in task_map.keys():
         task_fn = task_map.get(task_name)
-        import pdb
-
-        pdb.set_trace()
         report_dict = task_fn(args)
     else:
         raise ValueError(
