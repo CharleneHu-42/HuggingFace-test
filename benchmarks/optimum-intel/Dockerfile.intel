@@ -26,7 +26,7 @@ WORKDIR /usr/src
 
 RUN pip install numpy pandas tqdm transformers ruamel-yaml diffusers
 RUN pip install git+https://github.com/faaany/optimum-intel.git@ipex-xpu
-RUN git clone https://github.com/vllm-project/vllm.git && cd vllm && git fetch origin pull/3814/head:xpu && git checkout xpu && pip install -r requirements-xpu.txt && VLLM_TARGET_DEVICE=xpu python3 setup.py install
+RUN git clone https://github.com/vllm-project/vllm.git && cd vllm && pip install -r requirements-xpu.txt && VLLM_TARGET_DEVICE=xpu python3 setup.py install
 
 WORKDIR /workspace/data
 RUN wget https://people.eecs.berkeley.edu/~hendrycks/data.tar && tar -xf data.tar && rm data.tar && mv data mmlu

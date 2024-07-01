@@ -1,26 +1,18 @@
 #!/bin/bash
 
-if [ "$1" == "trt-llm" ]; then
-	EVAL_MODE=trt-llm
-	if [ -d "$2" ]; then 
-		HF_CACHE="$2" 
-	else
-		HF_CACHE=/root/.cache/huggingface
-	fi
-else 
-	EVAL_MODE=opt
-	if [ -d "$1" ]; then 
-		HF_CACHE="$1" 
-	else
-		HF_CACHE=/root/.cache/huggingface
-	fi 
-fi 
+tag="$1"
+HF_CACHE="$2"
+
+if [ -d "$2" ]; then 
+	HF_CACHE="$2" 
+else
+	HF_CACHE=/root/.cache/huggingface
+fi
 
 SCRIPT=$(realpath "$0")
 PROJECT_ROOT=$(dirname $(dirname $(dirname $SCRIPT)))
 
-if [ $EVAL_MODE == "trt-llm" ]; then 
-	tag=cuda
+if [ $tag == "nvidia" ]; then 
 	docker run -it \
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
@@ -31,9 +23,8 @@ if [ $EVAL_MODE == "trt-llm" ]; then
 		--gpus all \
 		--entrypoint /bin/bash \
 		--name bench-${tag} \
-		benchmark/optimum-intel:${tag}
+		huggingface/benchmarks:${tag}
 else 
-	tag=xpu
 	docker run -it \
 		--privileged  \
 		-e http_proxy=${http_proxy} \
