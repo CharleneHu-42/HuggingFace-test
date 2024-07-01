@@ -45,5 +45,5 @@ else
 		--ipc=host \
 		--entrypoint /bin/bash \
 		--name bench-${tag} \
-		benchmark/optimum-intel:${tag}
+		appliedmlwf/benchmark:xpu-ww25
 fi 

@@ -15,9 +15,8 @@ git clone https://github.com/intel-sandbox/HuggingFace.git
 cd HuggingFace/benchmarks/optimum-intel
 ```
 
-2. Build docker image
+2. Build docker image for TensorRT-LLM
 ```bash
-bash build_image.sh
 # for tensorrt-llm models, please explicitly pass the `trt-llm` flag
 bash build_image.sh trt-llm
 ```
