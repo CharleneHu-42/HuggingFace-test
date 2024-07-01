@@ -111,6 +111,7 @@ if __name__ == "__main__":
     use_jit = args.jit
     use_torch_compile = args.torch_compile
     backend = args.backend
+    use_optimum_intel = args.optimum_intel
 
     device = args.device
     if device == "xpu":
@@ -127,6 +128,10 @@ if __name__ == "__main__":
     classifier = load_model(model_id, SEED, torch_dtype, device)
     wrap_forward_for_benchmark(classifier)
 
+    if use_optimum_intel:
+        logging.info("Use optimum-intel")
+        from optimum.intel import IPEXModelForImageClassification
+        classifier.model = IPEXModelForImageClassification(classifier.model, export=True, torch_dtype=torch_dtype)
     if use_ipex_optimize:
         classifier = optimize_with_ipex(
             classifier, dtype=torch_dtype, device=device

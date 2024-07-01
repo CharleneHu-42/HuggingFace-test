@@ -75,6 +75,10 @@ if __name__ == "__main__":
     )
     wrap_forward_for_benchmark(pipe)
 
+    if args.optimum_intel:
+        logging.info("Use optimum-intel")
+        from optimum.intel import IPEXModelForQuestionAnswering
+        pipe.model = IPEXModelForQuestionAnswering(pipe.model, export=True, torch_dtype=torch_dtype)
     if args.torch_compile:
         logging.info(f"Use torch compile with {args.backend} backend")
         if args.backend == "ipex":

@@ -116,7 +116,10 @@ if __name__ == "__main__":
     input_seq = prompt["gpt-j"][str(args.input_tokens)]
     input_seq = [input_seq] * args.batch_size
 
-    if args.ipex_optimize:
+    if args.optimum_intel:
+        from optimum.intel import IPEXModelForCausalLM
+        generator.model = IPEXModelForCausalLM(generator.model, export=True, torch_dtype=torch_dtype)
+    elif args.ipex_optimize:
         from optimum.intel import inference_mode as ipex_inference_mode
 
         logging.info("Use ipex optimization")
@@ -131,19 +134,12 @@ if __name__ == "__main__":
                 output_tokens=args.output_tokens,
                 batch_size=args.batch_size,
             )
+        exit()
     elif args.ipex_optimize_transformers:
         import intel_extension_for_pytorch as ipex
 
         generator.model = ipex.optimize_transformers(
             generator.model, dtype=torch_dtype, device=device
-        )
-        benchmark(
-            generator,
-            warm_up_steps,
-            run_steps,
-            input_seq,
-            output_tokens=args.output_tokens,
-            batch_size=args.batch_size,
         )
     elif args.torch_compile:
         logging.info(f"Use torch compile with {args.backend} backend")
@@ -152,16 +148,8 @@ if __name__ == "__main__":
         generator.model.generate = torch.compile(
             generator.model.generate, backend=args.backend
         )
-        benchmark(
-            generator,
-            warm_up_steps,
-            run_steps,
-            input_seq,
-            output_tokens=args.output_tokens,
-            batch_size=args.batch_size,
-        )
-    else:
-        benchmark(
+
+    benchmark(
             generator,
             warm_up_steps,
             run_steps,
