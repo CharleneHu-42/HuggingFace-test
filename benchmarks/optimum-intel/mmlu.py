@@ -1,27 +1,15 @@
 """Adapted from https://github.com/declare-lab/instruct-eval
-Helper script to benchmark TRTLLM, HF, IPEX and Optimum-Intel models on the MMLU dataset.
-Example usage:
-    mkdir data; wget https://people.eecs.berkeley.edu/~hendrycks/data.tar -O data/mmlu.tar
-    tar -xf data/mmlu.tar -C data && mv data/data data/mmlu
-    python mmlu.py --model_name <HF model path> --device xpu --eval_mode optimum-intel
+Helper script to benchmark various models on the MMLU dataset.
 """
-
-import argparse
 import os
 import logging
 
 import numpy as np
 import pandas as pd
-import torch
 from tqdm import tqdm
 from transformers import set_seed
 
 from benchmark_utils import BenchmarkPipeline
-
-logging.basicConfig(level=logging.INFO)
-
-RAND_SEED = 1234
-set_seed(RAND_SEED)
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -158,9 +146,9 @@ def prepare_prompt(test_df, dev_df, subject, row, ntrain, pipeline):
     return prompt
 
 
-def evaluate(pipeline, subject, batch_size, ntrain, dev_df, test_df, warm_up_samples):
+def evaluate(pipeline, subject, batch_size, ntrain, dev_df, test_df, warm_up_steps):
     # warm-up
-    for row in range(warm_up_samples):
+    for row in range(warm_up_steps):
         prompt = prepare_prompt(test_df, dev_df, subject, row, ntrain, pipeline)
         _ = pipeline([prompt])
 
@@ -198,68 +186,19 @@ def evaluate(pipeline, subject, batch_size, ntrain, dev_df, test_df, warm_up_sam
     return cors, acc
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--model_name", type=str, default=None, help="huggingface model name"
-    )
-    parser.add_argument("--engine_dir", type=str, default=None, help="trt-llm only")
-    parser.add_argument(
-        "--save_dir",
-        type=str,
-        default="",
-        help="directory to save the benchmark result",
-    )
-    parser.add_argument(
-        "--data_dir",
-        type=str,
-        default="data/mmlu",
-        help=(
-            "Path to the data directory. If not available, "
-            "download https://people.eecs.berkeley.edu/~hendrycks/data.tar"
-        ),
-    )
-    parser.add_argument(
-        "--ntrain",
-        type=int,
-        default=5,
-        help="number of examples to be included in the prompt",
-    )
-    parser.add_argument(
-        "--data_type",
-        type=str,
-        choices=["fp32", "fp16", "bf16", "float32", "float16", "bfloat16"],
-        default="fp16",
-    )
-    parser.add_argument(
-        "--device",
-        type=str,
-        choices=["cpu", "cuda", "xpu"],
-        default="xpu",
-    )
-    parser.add_argument("--warm_up_samples", type=int, default=10)
-    parser.add_argument("--max_input_length", type=int, default=2048)
-    parser.add_argument("--max_new_tokens", type=int, default=1)
-    parser.add_argument("--batch_size", type=int, default=1)
-    parser.add_argument("--num_beams", type=int, default=1)
-    parser.add_argument("--do_sample", type=bool, default=False)
-    parser.add_argument(
-        "--eval_mode",
-        type=str,
-        choices=["trt-llm", "optimum-intel", "hf", "ipex"],
-        default="hf",
-    )
-    parser.add_argument("--check_accuracy", action="store_true")
-    parser.add_argument("--accuracy_threshold", type=float, default=0.3)
-
-    args = parser.parse_args()
-    return args
-
-
 def main(args):
+    seed = args.seed
+    data_dir = args.data_dir
+    ntrain = args.ntrain
+    batch_size = args.batch_size
+    warm_up_steps = args.warm_up_steps
+    check_accuracy = args.check_accuracy
+    accuracy_threshold = args.accuracy_threshold
+
+    set_seed(seed)
     pipeline = BenchmarkPipeline(args)
 
-    data_fullpath = os.path.join(args.data_dir, "test")
+    data_fullpath = os.path.join(data_dir, "test")
     subjects = sorted(
         [f.split("_test.csv")[0] for f in os.listdir(data_fullpath) if "_test.csv" in f]
     )
@@ -274,19 +213,19 @@ def main(args):
 
     for subject in tqdm(subjects):
         dev_df = pd.read_csv(
-            os.path.join(args.data_dir, "dev", subject + "_dev.csv"), header=None
-        )[: args.ntrain]
+            os.path.join(data_dir, "dev", subject + "_dev.csv"), header=None
+        )[:ntrain]
         test_df = pd.read_csv(
-            os.path.join(args.data_dir, "test", subject + "_test.csv"), header=None
+            os.path.join(data_dir, "test", subject + "_test.csv"), header=None
         )
         cors, _ = evaluate(
             pipeline,
             subject,
-            args.batch_size,
-            args.ntrain,
+            batch_size,
+            ntrain,
             dev_df,
             test_df,
-            args.warm_up_samples,
+            warm_up_steps,
         )
         subcats = get_subcategories()[subject]
         for subcat in subcats:
@@ -306,16 +245,11 @@ def main(args):
 
     weighted_acc = np.mean(np.concatenate(all_cors))
     logging.info("Average accuracy: {:.3f}".format(weighted_acc))
-    if args.check_accuracy:
+    if check_accuracy:
         assert (
-            weighted_acc >= args.accuracy_threshold
-        ), f"Expected accuracy >= {args.accuracy_threshold} while got {weighted_acc}"
+            weighted_acc >= accuracy_threshold
+        ), f"Expected accuracy >= {accuracy_threshold} while got {weighted_acc}"
 
-    pipeline.report(args.save_dir, weighted_acc)
+    report_dict = pipeline.report(weighted_acc)
 
-    return weighted_acc
-
-
-if __name__ == "__main__":
-    args = parse_args()
-    main(args)
+    return report_dict

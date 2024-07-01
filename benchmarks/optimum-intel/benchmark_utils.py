@@ -6,6 +6,7 @@ from datetime import datetime
 from collections import OrderedDict
 import os
 import numpy as np
+from concurrent.futures import ThreadPoolExecutor
 
 DTYPE_STR_MAPPING = {
     "fp32": torch.float32,
@@ -19,46 +20,79 @@ DTYPE_STR_MAPPING = {
 
 class BenchmarkPipeline:
     def __init__(self, args):
+        self.backend = args.backend
         self.model_name = args.model_name
+        self.dtype = DTYPE_STR_MAPPING[args.data_type]
+        self.device = args.device
         self.model = self._load_model(
-            args.eval_mode,
+            args.backend,
             args.model_name,
             args.engine_dir,
-            args.data_type,
-            args.device,
+            self.dtype,
+            self.device,
+            args.gpu_memory_utilization,
+        )
+        self.tgi_client = (
+            self._load_tgi_client(args.tgi_endpoint)
+            if len(args.tgi_endpoint) > 0 and self.backend == "tgi"
+            else None
         )
         self.tokenizer = self._load_tokenizer(args.model_name)
-        self.data_type = args.data_type
-        self.batch_size = args.batch_size
         self.pad_id = self.tokenizer.pad_token_id
         self.end_id = self.tokenizer.eos_token_id
-        self.eval_mode = args.eval_mode
         self.engine_dir = args.engine_dir
-        self.device = args.device
-        self.warm_up_samples = args.warm_up_samples
+        self.save_dir = args.save_dir
+        self.warm_up_steps = args.warm_up_steps
+        self.run_steps = args.run_steps
+        self.batch_size = args.batch_size
         self.max_input_length = args.max_input_length
         self.do_sample = args.do_sample
         self.num_beams = args.num_beams
+        self.temperature = args.temperature
         self.max_new_tokens = args.max_new_tokens
         self.generation_config = dict(
             do_sample=self.do_sample,
             num_beams=self.num_beams,
+            temperature=self.temperature,
             max_new_tokens=self.max_new_tokens,
         )
+        if self.backend == "vllm":
+            from vllm import SamplingParams
+
+            self.sampling_params = SamplingParams(
+                n=self.num_beams,
+                use_beam_search=True if self.num_beams > 1 else False,
+                temperature=self.temperature,
+                max_tokens=self.max_new_tokens,
+            )
+        else:
+            self.sampling_params = None
         self.latencies = []
         self.input_lens = []
 
-    def _load_model(self, eval_mode, model_name, engine_dir, data_type, device):
-        dtype = DTYPE_STR_MAPPING[data_type]
-        if eval_mode == "trt-llm":
+    def _load_model(
+        self, backend, model_name, engine_dir, dtype, device, gpu_memory_utilization
+    ):
+        if backend == "tgi":
+            model = None
+        elif backend == "trt-llm":
             from tensorrt_llm.runtime import ModelRunner
 
             model = ModelRunner.from_dir(engine_dir)
-        elif eval_mode == "optimum-intel":
+        elif backend == "optimum-intel":
             from optimum.intel import IPEXModelForCausalLM
 
             model = IPEXModelForCausalLM.from_pretrained(
-                model_name, torch_dtype=dtype, export=True
+                model_name, trust_remote_code=True, torch_dtype=dtype, export=True
+            )
+        elif backend == "vllm":
+            from vllm import LLM
+
+            model = LLM(
+                model=model_name,
+                trust_remote_code=True,
+                dtype=dtype,
+                gpu_memory_utilization=gpu_memory_utilization,
             )
         else:
             model = AutoModelForCausalLM.from_pretrained(
@@ -66,8 +100,9 @@ class BenchmarkPipeline:
                 trust_remote_code=True,
                 torch_dtype=dtype,
             )
-            if eval_mode == "ipex":
+            if backend == "ipex":
                 import intel_extension_for_pytorch as ipex
+
                 model.to(device)
                 model = ipex.optimize_transformers(
                     model.eval(), dtype=dtype, device=device, inplace=True
@@ -75,6 +110,12 @@ class BenchmarkPipeline:
             else:
                 model.to(device)
         return model
+
+    def _load_tgi_client(self, tgi_endpoint):
+        from huggingface_hub import InferenceClient
+
+        client = InferenceClient(model=tgi_endpoint)
+        return client
 
     def _load_tokenizer(self, model_name):
         tokenizer = AutoTokenizer.from_pretrained(
@@ -89,16 +130,16 @@ class BenchmarkPipeline:
         return tokenizer
 
     def _prepare_inputs(self, batch_input_ids, input_lengths):
-        max_length = max(input_lengths)
-        paddings = [
-            torch.ones(max_length - l, dtype=torch.int32) * self.pad_id
-            for l in input_lengths
-        ]
-        batch_input_ids = [
-            torch.cat([pad, x]) for x, pad in zip(batch_input_ids, paddings)
-        ]
-        batch_input_ids = torch.stack(batch_input_ids)
-        return batch_input_ids
+        if len(set(input_lengths)) > 1:
+            max_length = max(input_lengths)
+            paddings = [
+                torch.ones(max_length - l, dtype=torch.int32) * self.pad_id
+                for l in input_lengths
+            ]
+            batch_input_ids = [
+                torch.cat([pad, x]) for x, pad in zip(batch_input_ids, paddings)
+            ]
+        return torch.stack(batch_input_ids)
 
     def _process_trt_outputs(self, outputs, input_lengths):
         output_ids = outputs["output_ids"]
@@ -110,7 +151,7 @@ class BenchmarkPipeline:
                 output_begin = input_lengths[batch_idx]
                 output_end = output_seq_lengths[batch_idx][beam]
                 outputs = output_ids[batch_idx][beam][output_begin:output_end].tolist()
-                output_text = self.tokenizer.decode(outputs)
+                output_text = self.tokenizer.decode(outputs, skip_special_tokens=True)
                 output_texts.append(output_text)
         return output_texts
 
@@ -124,14 +165,36 @@ class BenchmarkPipeline:
         batch_input_ids = [torch.tensor(x, dtype=torch.int32) for x in batch_input_ids]
         return batch_input_ids
 
-    def __call__(self, batch_prompt):
-        batch_input_ids = self.decode_prompt(batch_prompt)
-        input_lengths = [x.size()[0] for x in batch_input_ids]
-        self.input_lens.append(input_lengths)
+    def _send_tgi_request(self, prompt):
+        output = self.tgi_client.text_generation(
+            prompt=prompt,
+            details=True,
+            do_sample=self.do_sample,
+            max_new_tokens=self.max_new_tokens,
+        )
+        return output
 
-        with torch.no_grad():
-            if self.eval_mode == "trt-llm":
-                start = time.time()
+    def __call__(self, batch_prompt):
+        start = time.time()
+        if self.backend == "tgi":
+            # since tgi doesn't take text as input, we need to calcuate the input token lenghth
+            batch_input_ids = self.decode_prompt(batch_prompt)
+            input_lengths = [x.size()[0] for x in batch_input_ids]
+            self.input_lens.append(input_lengths)
+            start = time.time()
+            with ThreadPoolExecutor(max_workers=self.batch_size) as executor:
+                futures = [
+                    executor.submit(self._send_tgi_request, prompt)
+                    for prompt in batch_prompt
+                ]
+                outputs = [future.result() for future in futures]
+            output_texts = [output.generated_text for output in outputs]
+        else:
+            batch_input_ids = self.decode_prompt(batch_prompt)
+            input_lengths = [x.size()[0] for x in batch_input_ids]
+            self.input_lens.append(input_lengths)
+
+            if self.backend == "trt-llm":
                 outputs = self.model.generate(
                     batch_input_ids,
                     end_id=self.end_id,
@@ -140,28 +203,39 @@ class BenchmarkPipeline:
                     return_dict=True,
                     **self.generation_config,
                 )
-                end = time.time()
-                self.latencies.append((end - start) * 1000)
-                self.synchronize_device()
                 output_texts = self._process_trt_outputs(outputs, input_lengths)
             else:
                 batch_input_ids = self._prepare_inputs(batch_input_ids, input_lengths)
-                batch_input_ids = batch_input_ids.to(self.device)
 
-                start = time.time()
-                outputs = self.model.generate(
-                    batch_input_ids, pad_token_id=self.pad_id, **self.generation_config
-                )
-                end = time.time()
-                self.latencies.append((end - start) * 1000)
-                self.synchronize_device()
-                output_ids = [
-                    outputs[i, max(input_lengths) :] for i in range(outputs.size()[0])
-                ]
+                if self.backend == "vllm":
+                    batch_input_ids = [
+                        batch_input_ids[i].tolist()
+                        for i in range(batch_input_ids.size()[0])
+                    ]
+                    outputs = self.model.generate(
+                        prompt_token_ids=batch_input_ids,
+                        sampling_params=self.sampling_params,
+                    )
+                    output_ids = [output.outputs[0].token_ids for output in outputs]
+                else:
+                    batch_input_ids = batch_input_ids.to(self.device)
+                    outputs = self.model.generate(
+                        batch_input_ids,
+                        pad_token_id=self.pad_id,
+                        use_cache=True,
+                        **self.generation_config,
+                    )
+                    output_ids = [
+                        outputs[i, max(input_lengths) :]
+                        for i in range(outputs.size()[0])
+                    ]
                 output_texts = [
                     self.tokenizer.decode(output_id, skip_special_tokens=True)
                     for output_id in output_ids
                 ]
+        end = time.time()
+        self.latencies.append((end - start) * 1000)
+        self.synchronize_device()
         return output_texts
 
     def synchronize_device(self):
@@ -179,6 +253,7 @@ class BenchmarkPipeline:
             "precision",
             "batch_size",
             "do_sample",
+            "temperature",
             "num_beams",
             "max_new_tokens",
             "num_samples",
@@ -189,20 +264,21 @@ class BenchmarkPipeline:
         ]
         report_dict = OrderedDict.fromkeys(report_fields)
         report_dict["model_name"] = self.model_name
-        report_dict["precision"] = self.data_type
+        report_dict["precision"] = self.dtype
         report_dict["batch_size"] = self.batch_size
         report_dict["do_sample"] = self.do_sample
+        report_dict["temperature"] = self.temperature
         report_dict["num_beams"] = self.num_beams
         report_dict["max_new_tokens"] = self.max_new_tokens
         return report_dict
 
     def get_csv_filename(self):
-        return f"{self.eval_mode}_{self.model_name[-10:]}_{self.data_type}_{self.device}.csv"
+        return f"{self.backend}_{self.model_name[-10:]}_{self.dtype}_{self.device}.csv"
 
-    def report(self, output_dir, accuracy):
+    def report(self, accuracy: float = float("nan")):
         report_dict = self.get_report_dict()
-        input_lens = self.input_lens[self.warm_up_samples :].copy()
-        latencies = self.latencies[self.warm_up_samples :].copy()
+        input_lens = self.input_lens[self.warm_up_steps :].copy()
+        latencies = self.latencies[self.warm_up_steps :].copy()
 
         if len(set([len(i) for i in input_lens])) > 1:
             ignore_idx = [
@@ -228,18 +304,17 @@ class BenchmarkPipeline:
         report_dict["avg_latency(ms)"] = avg_latency
         report_dict["accuracy"] = accuracy
         report_dict["datetime"] = datetime.now().strftime("%Y%m%d_%H%M%S")
-        if os.path.isdir(output_dir):
+
+        if os.path.isdir(self.save_dir):
             header = ",".join(report_dict.keys())
             line = ",".join([str(v) for v in report_dict.values()])
             print(line)
             file_name = self.get_csv_filename()
-            file_full_path = os.path.join(output_dir, file_name)
+            file_full_path = os.path.join(self.save_dir, file_name)
             if not os.path.isfile(file_full_path):
                 with open(file_full_path, "a") as file:
                     file.write(header + "\n")
             with open(file_full_path, "a") as file:
                 file.write(line + "\n")
-        else:
-            kv_pairs = [f"{k} {v}" for k, v in report_dict.items()]
-            line = "[BENCHMARK] " + " ".join(kv_pairs)
-            print(line)
+
+        return report_dict

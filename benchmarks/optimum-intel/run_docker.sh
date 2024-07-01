@@ -1,26 +1,18 @@
 #!/bin/bash
 
-if [ "$1" == "trt-llm" ]; then
-	EVAL_MODE=trt-llm
-	if [ -d "$2" ]; then 
-		HF_CACHE="$2" 
-	else
-		HF_CACHE=/root/.cache/huggingface
-	fi
-else 
-	EVAL_MODE=opt
-	if [ -d "$1" ]; then 
-		HF_CACHE="$1" 
-	else
-		HF_CACHE=/root/.cache/huggingface
-	fi 
-fi 
+tag="$1"
+HF_CACHE="$2"
+
+if [ -d "$2" ]; then 
+	HF_CACHE="$2" 
+else
+	HF_CACHE=/root/.cache/huggingface
+fi
 
 SCRIPT=$(realpath "$0")
 PROJECT_ROOT=$(dirname $(dirname $(dirname $SCRIPT)))
 
-if [ $EVAL_MODE == "trt-llm" ]; then 
-	tag=trt-llm
+if [ $tag == "nvidia" ]; then 
 	docker run -it \
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
@@ -30,10 +22,9 @@ if [ $EVAL_MODE == "trt-llm" ]; then
 		--runtime=nvidia \
 		--gpus all \
 		--entrypoint /bin/bash \
-		--name $tag \
-		benchmark/mmlu:$tag
+		--name bench-${tag} \
+		huggingface/benchmarks:${tag}
 else 
-	tag=opt-intel
 	docker run -it \
 		--privileged  \
 		-e http_proxy=${http_proxy} \
@@ -44,6 +35,6 @@ else
 		--device=/dev/dri \
 		--ipc=host \
 		--entrypoint /bin/bash \
-		--name $tag \
-		benchmark/mmlu:$tag
+		--name bench-${tag} \
+		appliedmlwf/benchmark:xpu-ww25
 fi 

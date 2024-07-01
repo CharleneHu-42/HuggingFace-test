@@ -1,0 +1,36 @@
+FROM intel/oneapi-basekit:2024.2.0-devel-ubuntu22.04
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends --fix-missing \
+    apt-utils \
+    build-essential \
+    ca-certificates \
+    clinfo \
+    curl \
+    git \
+    vim \
+    numactl \
+    gnupg2 \
+    gpg-agent \
+    rsync \
+    sudo \
+    unzip \
+    python3 \
+    python3-pip \
+    python-is-python3 \
+    wget && \
+    apt-get clean && \
+    rm -rf  /var/lib/apt/lists/*
+
+WORKDIR /usr/src
+
+RUN pip install numpy pandas tqdm transformers ruamel-yaml diffusers
+RUN pip install git+https://github.com/faaany/optimum-intel.git@ipex-xpu
+RUN git clone https://github.com/vllm-project/vllm.git && cd vllm && pip install -r requirements-xpu.txt && VLLM_TARGET_DEVICE=xpu python3 setup.py install
+
+WORKDIR /workspace/data
+RUN wget https://people.eecs.berkeley.edu/~hendrycks/data.tar && tar -xf data.tar && rm data.tar && mv data mmlu
+COPY prompt.json /workspace/data/simple_bench/
+COPY main.py mmlu.py benchmark_utils.py simple_bench.py run_benchmark.sh /workspace/benchmark/
+
+WORKDIR /workspace
