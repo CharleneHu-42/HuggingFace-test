@@ -11,15 +11,6 @@ from benchmark_utils import BenchmarkPipeline
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-DTYPE_STR_MAPPING = {
-    "fp32": torch.float32,
-    "fp16": torch.float16,
-    "bf16": torch.bfloat16,
-    "float32": torch.float32,
-    "float16": torch.float16,
-    "bfloat16": torch.bfloat16,
-}
-
 MODEL_LIST = [
     "gpt-j",
     "llama",

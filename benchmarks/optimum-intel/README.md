@@ -15,25 +15,23 @@ git clone https://github.com/intel-sandbox/HuggingFace.git
 cd HuggingFace/benchmarks/optimum-intel
 ```
 
-2. Build docker image for TensorRT-LLM
+2. Build docker images
 ```bash
-# for tensorrt-llm models, please explicitly pass the `trt-llm` flag
-bash build_image.sh trt-llm
+bash build_image.sh intel 
+bash build_image.sh nvidia
 ```
 
 3. Run docker container 
 ```bash 
-bash run_docker.sh
-# for tensorrt-llm 
-bash run_docker.sh trt-llm 
+bash run_docker.sh intel 
+bash run_docker.sh nvidia
 ```
 By default, it will mount your local directory `/root/.cache/huggingface` inside the docker container to avoid re-downloading the model. 
 But you can also specify your own huggingface cache directory as follows:
 ```bash
 export HF_CACHE_DIR=<your local huggingface cache dir that has the folder hub inside>
-bash run-docker.sh $HF_CACHE_DIR
-# for tensorrt-llm 
-bash run_docker.sh trt-llm $HF_CACHE_DIR
+bash run-docker.sh intel $HF_CACHE_DIR 
+bash run_docker.sh nvidia $HF_CACHE_DIR
 ``` 
 
 4. [Optional] Start TGI Server 
