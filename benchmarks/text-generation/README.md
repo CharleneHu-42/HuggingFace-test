@@ -14,7 +14,7 @@ python main.py --task_name simple_bench --backend transformers --model_name meta
 1. Clone the repository
 ```bash
 git clone https://github.com/intel-sandbox/HuggingFace.git
-cd HuggingFace/benchmarks/optimum-intel
+cd HuggingFace/benchmarks/text-generation
 ```
 
 2. Build docker images
