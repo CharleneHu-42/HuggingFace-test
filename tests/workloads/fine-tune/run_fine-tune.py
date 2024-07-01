@@ -258,7 +258,7 @@ def train(
             warmup_steps=100,
             num_train_epochs=num_epochs,
             learning_rate=learning_rate,
-            logging_steps=1,
+            logging_steps=10,
             optim="adamw_torch",
             eval_strategy="steps" if val_set_size > 0 else "no",
             save_strategy="steps",
