@@ -1,12 +1,7 @@
-import argparse
 import json
 import os
-import time
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, set_seed
-import torch
+from transformers import set_seed
 import logging
-from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor
 from benchmark_utils import BenchmarkPipeline
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"

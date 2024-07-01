@@ -1,14 +1,11 @@
 """Adapted from https://github.com/declare-lab/instruct-eval
 Helper script to benchmark various models on the MMLU dataset.
 """
-
-import argparse
 import os
 import logging
 
 import numpy as np
 import pandas as pd
-import torch
 from tqdm import tqdm
 from transformers import set_seed
 
