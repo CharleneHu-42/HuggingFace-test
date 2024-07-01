@@ -18,8 +18,8 @@ def parse_args():
     parser.add_argument(
         "--backend",
         type=str,
-        choices=["trt-llm", "optimum-intel", "hf", "ipex", "vllm", "tgi"],
-        default="hf",
+        choices=["trt-llm", "optimum-intel", "transformers", "ipex", "vllm", "tgi"],
+        default="transformers",
     )
     parser.add_argument(
         "--model_name", type=str, default=None, help="huggingface model name"

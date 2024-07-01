@@ -1,11 +1,13 @@
-This repository contains code to benchmark optimum-intel models against tensorrt-llm, huggingface, ipex, tgi and vllm models. There are 2 benchmark tasks available: mmlu and simple_bench.  
-- MMLU is a public benchmark for LLM and consists of multiple-choice questions from 57 various branches of knowledge such as elementary mathematics, US history, computer science, law, and medicine. Accuracy is calculated from the model predicted answers and the groudtruth answers. For more details about MMLU, pls check out the original paper [here](https://arxiv.org/pdf/2009.03300).
-- Simple_bench is a local benchmark that uses local prompt dataset as input data and measures the model generation latency to compare the various backends. No accuracy is calculated.
+This repository contains code to benchmark text-generation acceleration libraries: optimum-intel, transformers, ipex, tgi vllm and tensorrt-llm. There are 2 benchmark tasks available:
+- mmlu
+  mmlu is a public benchmark for LLM which consists of multiple-choice questions from 57 various branches of knowledge such as elementary mathematics, US history, computer science, law, and medicine. Accuracy is calculated from the model predicted answers and the groud-truth answers. For more details about mmlu, pls check out the original paper [here](https://arxiv.org/pdf/2009.03300).
+- simple bench
+  simple_bench is a local benchmark that uses local prompt dataset as input data and measures the model generation latency to compare the various backends. No accuracy is calculated.
 
 You can speficy the different task by using the `task_name` flag of the `main.py`, e.g. 
 
 ```bash
-python main.py --task_name simple_bench --backend hf --model_name meta-llama/Llama-2-7b-chat-hf
+python main.py --task_name simple_bench --backend transformers --model_name meta-llama/Llama-2-7b-chat-hf
 ```
 
 ## Env Set-Up 
@@ -34,8 +36,8 @@ bash run-docker.sh intel $HF_CACHE_DIR
 bash run_docker.sh nvidia $HF_CACHE_DIR
 ``` 
 
-4. [Optional] Start TGI Server 
-If you want to benchmark tgi, you need to start a tgi service. First, open another terminal and build the TGI Docker image for XPU
+4. [Optional] Launch TGI Server
+If you want to benchmark tgi, you need a tgi service. First, open another terminal and build the TGI Docker image for XPU
 ```bash
 git clone https://github.com/huggingface/text-generation-inference.git && cd text-generation-inference
 docker build \
@@ -46,7 +48,7 @@ docker build \
 	--build-arg no_proxy=${no_proxy}
 ```
 
-Then start the TGI server
+Then launch the TGI server
 ```bash
 model=meta-llama/Llama-2-7b-hf
 volume=/workspace1/huggingface/hub

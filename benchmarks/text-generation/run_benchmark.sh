@@ -2,7 +2,7 @@
 
 ########################### INPUT Variables START (modify if need)#########################
 task_name="$1"                             # benchmark task name, choose one froem "mmlu" and "simple_bench"
-backend="$2"                               # Backend, choose one from "trt-llm", "optimum-intel", "hf", "ipex", "tgi" and "vllm"
+backend="$2"                               # Backend, choose one from "trt-llm", "optimum-intel", "transformers", "ipex", "tgi" and "vllm"
 device="$3"                                # choose one from "cuda", "cpu" and "xpu"
 models_list=(llama)                        # FIXED - DONT change this value, as currently only llama is supported
 precision_list=(float16)                   # model data dtype
