@@ -23,17 +23,20 @@ from peft import (
     prepare_model_for_kbit_training,
 )
 
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, TrainerCallback, TrainingArguments, TrainerState, TrainerControl 
 from transformers import set_seed
+from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
 
 from utils import Prompter
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 from common import get_bitsandbytes_config
 
 SEED = 42
 set_seed(SEED)
-
+    
 def train(
     # model/data params
     base_model: str = "meta-llama/Llama-2-7b-hf",  # the only required argument
@@ -226,6 +229,25 @@ def train(
         train_data = data["train"].shuffle().map(generate_and_tokenize_prompt)
         val_data = None
 
+    class SavePeftModelCallback(TrainerCallback):
+        def on_save(
+            self,
+            args: TrainingArguments,
+            state: TrainerState,
+            control: TrainerControl,
+            **kwargs,
+        ):
+            checkpoint_folder = os.path.join(args.output_dir, f"{PREFIX_CHECKPOINT_DIR}-{state.global_step}")
+
+            peft_model_path = os.path.join(checkpoint_folder, "adapter_model")
+            kwargs["model"].save_pretrained(peft_model_path)
+
+            pytorch_model_path = os.path.join(checkpoint_folder, "pytorch_model.bin")
+            if os.path.exists(pytorch_model_path):
+                os.remove(pytorch_model_path)
+            return control
+    
+    
     trainer = transformers.Trainer(
         model=model,
         train_dataset=train_data,
@@ -236,9 +258,9 @@ def train(
             warmup_steps=100,
             num_train_epochs=num_epochs,
             learning_rate=learning_rate,
-            logging_steps=10,
+            logging_steps=1,
             optim="adamw_torch",
-            evaluation_strategy="steps" if val_set_size > 0 else "no",
+            eval_strategy="steps" if val_set_size > 0 else "no",
             save_strategy="steps",
             eval_steps=200 if val_set_size > 0 else None,
             save_steps=200,
@@ -250,16 +272,17 @@ def train(
             report_to="none",
             **kwargs,
         ),
+        callbacks=[SavePeftModelCallback],
         data_collator=transformers.DataCollatorForSeq2Seq(
             tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
         ),
     )
     model.config.use_cache = False
 
-    old_state_dict = model.state_dict
-    model.state_dict = (
-        lambda self, *_, **__: get_peft_model_state_dict(self, old_state_dict())
-    ).__get__(model, type(model))
+    # old_state_dict = model.state_dict
+    # model.state_dict = (
+    #     lambda self, *_, **__: get_peft_model_state_dict(self, old_state_dict())
+    # ).__get__(model, type(model))
 
     start = time.time()
     trainer.train(resume_from_checkpoint=resume_from_checkpoint)
