@@ -50,7 +50,7 @@ docker build \
 
 Then launch the TGI server
 ```bash
-model=meta-llama/Llama-2-7b-hf
+model=meta-llama/llama-2-7b-chat-hf
 volume=/workspace1/huggingface/hub
 HF_TOKEN=<your huggingface token>
 
