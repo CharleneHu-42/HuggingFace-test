@@ -1,12 +1,11 @@
 import torch
-import torch.nn as nn
 import time
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from datetime import datetime
 from collections import OrderedDict
 import os
 import numpy as np
-from concurrent.futures import ThreadPoolExecutor
+import requests
 
 DTYPE_STR_MAPPING = {
     "fp32": torch.float32,
@@ -32,11 +31,7 @@ class BenchmarkPipeline:
             self.device,
             args.gpu_memory_utilization,
         )
-        self.tgi_client = (
-            self._load_tgi_client(args.tgi_endpoint)
-            if len(args.tgi_endpoint) > 0 and self.backend == "tgi"
-            else None
-        )
+        self.tgi_endpoint = args.tgi_endpoint
         self.tokenizer = self._load_tokenizer(args.model_name)
         self.pad_id = self.tokenizer.pad_token_id
         self.end_id = self.tokenizer.eos_token_id
@@ -111,12 +106,6 @@ class BenchmarkPipeline:
                 model.to(device)
         return model
 
-    def _load_tgi_client(self, tgi_endpoint):
-        from huggingface_hub import InferenceClient
-
-        client = InferenceClient(model=tgi_endpoint)
-        return client
-
     def _load_tokenizer(self, model_name):
         tokenizer = AutoTokenizer.from_pretrained(
             model_name,
@@ -165,30 +154,26 @@ class BenchmarkPipeline:
         batch_input_ids = [torch.tensor(x, dtype=torch.int32) for x in batch_input_ids]
         return batch_input_ids
 
-    def _send_tgi_request(self, prompt):
-        output = self.tgi_client.text_generation(
-            prompt=prompt,
-            details=True,
-            do_sample=self.do_sample,
-            max_new_tokens=self.max_new_tokens,
-        )
-        return output
-
     def __call__(self, batch_prompt):
         start = time.time()
         if self.backend == "tgi":
-            # since tgi doesn't take text as input, we need to calcuate the input token lenghth
+            # since tgi doesn't take text as input, we need to calcuate the input token length
             batch_input_ids = self.decode_prompt(batch_prompt)
             input_lengths = [x.size()[0] for x in batch_input_ids]
             self.input_lens.append(input_lengths)
             start = time.time()
-            with ThreadPoolExecutor(max_workers=self.batch_size) as executor:
-                futures = [
-                    executor.submit(self._send_tgi_request, prompt)
-                    for prompt in batch_prompt
-                ]
-                outputs = [future.result() for future in futures]
-            output_texts = [output.generated_text for output in outputs]
+            response = requests.post(
+                f"{self.tgi_endpoint}/v1/completions",
+                json={
+                    "model": "tgi",
+                    "prompt": batch_prompt,
+                    "max_tokens": self.max_new_tokens,
+                    "temperature": 0 if not self.do_sample else self.temperature,
+                },
+                stream=False,
+            )
+            response = response.json()
+            output_texts = [out["text"] for out in response["choices"]]
         else:
             batch_input_ids = self.decode_prompt(batch_prompt)
             input_lengths = [x.size()[0] for x in batch_input_ids]
