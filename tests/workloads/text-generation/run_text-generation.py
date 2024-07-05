@@ -109,7 +109,10 @@ if __name__ == "__main__":
     quantization_config = get_bitsandbytes_config(args.quant_type)
     if quantization_config is not None:
         model_kwargs["quantization_config"] = quantization_config
-
+        # when quantization_config is given, model will be loaded with device_map by accelerate
+        # so we should unset device for pipeline
+        device=None
+        
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     generator = pipeline(
         "text-generation",
