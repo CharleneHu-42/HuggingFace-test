@@ -115,7 +115,7 @@ if __name__ == "__main__":
         "text-generation",
         model=model_id,
         torch_dtype=torch_dtype,
-        device=device,
+        device=device if quantization_config is None else None,
         tokenizer=tokenizer,
         model_kwargs=model_kwargs,
         **generation_kwargs,
