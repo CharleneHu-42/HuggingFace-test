@@ -109,7 +109,7 @@ if __name__ == "__main__":
     quantization_config = get_bitsandbytes_config(args.quant_type)
     if quantization_config is not None:
         model_kwargs["quantization_config"] = quantization_config
-        
+
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     generator = pipeline(
         "text-generation",
