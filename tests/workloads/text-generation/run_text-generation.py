@@ -111,14 +111,16 @@ if __name__ == "__main__":
         model_kwargs["quantization_config"] = quantization_config
         # when quantization_config is given, model will be loaded with device_map by accelerate
         # so we should unset device for pipeline
-        device=None
+        pipeline_device=None
+    else:
+        pipeline_device=device
         
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     generator = pipeline(
         "text-generation",
         model=model_id,
         torch_dtype=torch_dtype,
-        device=device,
+        device=pipeline_device,
         tokenizer=tokenizer,
         model_kwargs=model_kwargs,
         **generation_kwargs,
