@@ -124,11 +124,11 @@ if __name__ == "__main__":
         generator.tokenizer.pad_token_id = generator.model.config.eos_token_id
     wrap_forward_for_benchmark(generator)
 
-    matched_model = [name for name in MODEL_LIST if name in model_id.lower()][0]
+    matched_model = [name for name in MODEL_LIST if name in model_id.lower()]
     if len(matched_model) == 0:
-        matched_model = "gpt-j"
+        matched_model = ["gpt-j"]
 
-    input_seq = prompt[matched_model][str(args.input_tokens)]
+    input_seq = prompt[matched_model[0]][str(args.input_tokens)]
     input_seq = [input_seq] * args.batch_size
 
     if args.optimum_intel:
