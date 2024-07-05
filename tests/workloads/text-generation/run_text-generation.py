@@ -16,6 +16,17 @@ from common import get_args, get_torch_dtype, get_bitsandbytes_config, wrap_forw
 
 inference_context = [torch.inference_mode()]
 
+MODEL_LIST = [
+    "gpt-j",
+    "llama",
+    "gpt-neox",
+    "opt",
+    "falcon",
+    "bloom",
+    "baichuan",
+    "t5",
+    "gpt2",
+]
 
 def generate(generator, input_sentence, batch_size, warm_up_steps, run_steps):
     latency = []
@@ -113,7 +124,11 @@ if __name__ == "__main__":
         generator.tokenizer.pad_token_id = generator.model.config.eos_token_id
     wrap_forward_for_benchmark(generator)
 
-    input_seq = prompt["gpt-j"][str(args.input_tokens)]
+    matched_model = [name for name in MODEL_LIST if name in model_id.lower()]
+    if len(matched_model) == 0:
+        matched_model = "gpt-j"
+
+    input_seq = prompt[matched_model[0]][str(args.input_tokens)]
     input_seq = [input_seq] * args.batch_size
 
     if args.optimum_intel:
