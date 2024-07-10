@@ -96,13 +96,16 @@ def main(
         os.path.join(output_dir, "skipped_tests_stats.xlsx"), index=False
     )
     failed_stats = (
-        tests_df[tests_df["result"] == "FAILED"]["message"]
-        .value_counts()
-        .reset_index()
+        tests_df[tests_df["result"] == "FAILED"]["message"].value_counts().reset_index()
     )
     failed_stats.to_excel(
         os.path.join(output_dir, "failed_tests_stats.xlsx"), index=False
     )
+
+    result_stats = tests_df["result"].value_counts()
+    pass_rate = result_stats["PASSED"] / sum(result_stats)
+    print(f"=====UT PASS RATE=====\n{pass_rate}")
+    print(f"=====DETAILS=====\n{result_stats}")
 
 
 if __name__ == "__main__":
