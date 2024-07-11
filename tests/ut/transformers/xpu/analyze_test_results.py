@@ -46,54 +46,6 @@ def replace_unittests(df):
     return df
 
 
-def transform_df(df, col_name):
-    values = df[col_name].unique().tolist()
-    passed = []
-    skipped = []
-    failed = []
-    error = []
-    for i, value in enumerate(values):
-        tmp_df = df[df[col_name] == value]
-        passed.append(0)
-        skipped.append(0)
-        failed.append(0)
-        error.append(0)
-        for i, v in tmp_df["result"].items():
-            if v == "PASSED":
-                passed[-1] = tmp_df["size"][i]
-            elif v == "SKIPPED":
-                skipped[-1] = tmp_df["size"][i]
-            elif v == "ERROR":
-                error[-1] = tmp_df["size"][i]
-            else:
-                failed[-1] = tmp_df["size"][i]
-
-    new_df = pd.DataFrame(
-        {
-            "Test Vector": values,
-            "PASS": passed,
-            "FAIL": failed,
-            "SKIP": skipped,
-            "ERROR": error,
-        }
-    )
-    new_df["TOTAL"] = new_df["PASS"] + new_df["FAIL"] + new_df["SKIP"] + new_df["ERROR"]
-
-    return new_df
-
-
-def extract_category(all_df):
-    category = []
-    for i, v in all_df["Test Vector"].items():
-        end = v.split("/")
-        if len(end) == 2:
-            category.append(end[-1])
-        else:
-            category.append(end[1])
-    all_df["Category"] = category
-    return all_df
-
-
 def main(
     excel_dir: str = "",
     gpu_failed_path: str = "",
@@ -134,28 +86,6 @@ def main(
             tests_df.iloc[index, -1] = 1
 
     tests_df.to_excel(os.path.join(output_dir, "raw_test_results.xlsx"), index=False)
-    # aggregate the results by file_name and result
-    tests_df_agg = tests_df.groupby(["file_name", "result"], as_index=False).size()
-    # transform the result values to individual columns
-    tests_df_agg = transform_df(tests_df_agg, "file_name")
-    # extract the test category from the file name
-    tests_df_agg = extract_category(tests_df_agg)
-
-    tests_stats = tests_df_agg[
-        ["Category", "Test Vector", "PASS", "FAIL", "SKIP", "TOTAL"]
-    ]
-    tests_stats.to_excel(
-        os.path.join(output_dir, "test_stats_by_category_and_file.xlsx"), index=False
-    )
-    # aggregate test results by category
-    tests_stats2 = (
-        tests_df_agg.groupby(["Category"])
-        .agg({"PASS": "sum", "FAIL": "sum", "SKIP": "sum", "TOTAL": "sum"})
-        .reset_index()
-    )
-    tests_stats2.to_excel(
-        os.path.join(output_dir, "test_stats_by_category.xlsx"), index=False
-    )
 
     skip_stats = (
         tests_df[tests_df["result"] == "SKIPPED"]["message"]
@@ -165,6 +95,17 @@ def main(
     skip_stats.to_excel(
         os.path.join(output_dir, "skipped_tests_stats.xlsx"), index=False
     )
+    failed_stats = (
+        tests_df[tests_df["result"] == "FAILED"]["message"].value_counts().reset_index()
+    )
+    failed_stats.to_excel(
+        os.path.join(output_dir, "failed_tests_stats.xlsx"), index=False
+    )
+
+    result_stats = tests_df["result"].value_counts()
+    pass_rate = result_stats["PASSED"] / sum(result_stats)
+    print(f"=====UT PASS RATE=====\n{pass_rate}")
+    print(f"=====DETAILS=====\n{result_stats}")
 
 
 if __name__ == "__main__":
