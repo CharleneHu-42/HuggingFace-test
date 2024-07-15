@@ -94,9 +94,8 @@ async def benchmark_multi_clients(
     request_rate: float,
     disable_tqdm: bool,
 ):
-    if backend in ASYNC_REQUEST_FUNCS:
-        request_func = ASYNC_REQUEST_FUNCS[backend]
-    else:
+    request_func = ASYNC_REQUEST_FUNCS.get(backend)
+    if request_func is None:
         raise ValueError(f"Unknown backend: {backend}")
     print(f"Traffic request rate: {request_rate}")
     benchmark_start_time = time.perf_counter()

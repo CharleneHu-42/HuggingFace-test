@@ -185,9 +185,8 @@ def benchmark_single_client(
     disable_tqdm: bool,
     save_results: bool,
 ):
-    if backend in ASYNC_REQUEST_FUNCS:
-        request_func = ASYNC_REQUEST_FUNCS[backend]
-    else:
+    request_func = ASYNC_REQUEST_FUNCS.get(backend)
+    if request_func is None:
         raise ValueError(f"Unknown backend: {backend}")
 
     print("Starting initial single prompt test run...")
