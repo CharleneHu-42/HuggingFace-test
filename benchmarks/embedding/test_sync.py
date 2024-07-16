@@ -1,4 +1,5 @@
 import argparse
+import csv
 import json
 import os
 import random
@@ -6,15 +7,21 @@ import time
 import warnings
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
-from backend_request_func import (ASYNC_REQUEST_FUNCS, TEIRequestFuncInput,
-                                  TEIRequestFuncOutput, sync_get_request)
 from datasets import load_dataset
+from loguru import logger
 from tqdm.asyncio import tqdm
 from transformers import PreTrainedTokenizerBase
 from vllm.transformers_utils.tokenizer import get_tokenizer
+
+from backend_request_func import (
+    ASYNC_REQUEST_FUNCS,
+    TEIRequestFuncInput,
+    TEIRequestFuncOutput,
+    sync_get_request,
+)
 
 
 @dataclass
@@ -100,7 +107,7 @@ def benchmark_with_bs(
     request_rate: float,
     disable_tqdm: bool,
     save_result: bool,
-):
+) -> BenchmarkMetrics:
     pbar = None if disable_tqdm else tqdm(total=len(input_requests))
     benchmark_start_time = time.perf_counter()
     outputs = []
@@ -173,6 +180,7 @@ def benchmark_with_bs(
             file_name = os.path.join(args.result_dir, file_name)
         with open(file_name, "w") as outfile:
             json.dump(result_json, outfile)
+    return metrics
 
 
 def benchmark_single_client(
@@ -204,8 +212,9 @@ def benchmark_single_client(
         print("Initial test run completed. Starting main benchmark run...")
     print(f"Traffic request rate: {request_rate}")
     bs_list = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
+    outputs: List[Tuple[int, BenchmarkMetrics]] = []
     for bs in bs_list:
-        benchmark_with_bs(
+        m = benchmark_with_bs(
             backend,
             api_url,
             model_id,
@@ -217,6 +226,39 @@ def benchmark_single_client(
             disable_tqdm,
             save_results,
         )
+        if m.completed == len(input_requests):
+            outputs.append((bs, m))
+        else:
+            logger.warning(
+                f"Benchmark failed for batch size {bs}: Completed only {m.completed} / {len(input_requests)}"
+            )
+
+    # Save CSV
+    if args.save_result:
+        filename = f"{backend}-{args.request_rate}qps-{model_id.split('/')[-1]}.csv"
+        if args.result_dir:
+            filename = os.path.join(args.result_dir, filename)
+        with open(filename, "w", newline="") as f:
+            csv_writer = csv.writer(f)
+            csv_writer.writerow(
+                [
+                    "Batch Size",
+                    "Mean Latency (ms)",
+                    "P50 Latency (ms)",
+                    "P99 Latency (ms)",
+                    "Throughput (req/s)",
+                ]
+            )
+            csv_writer.writerows(
+                (
+                    bs,
+                    m.mean_latency_ms,
+                    m.median_latency_ms,
+                    m.p99_latency_ms,
+                    m.request_throughput,
+                )
+                for bs, m in outputs
+            )
 
 
 def main(args: argparse.Namespace):
@@ -256,7 +298,8 @@ def main(args: argparse.Namespace):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Benchmark the online serving throughput."
+        description="Benchmark the online serving throughput.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--backend",
