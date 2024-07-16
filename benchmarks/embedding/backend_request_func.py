@@ -3,12 +3,12 @@ import os
 import sys
 import time
 import traceback
-import requests
 from dataclasses import dataclass, field
 from typing import List, Optional, Union
-import numpy as np
 
 import aiohttp
+import numpy as np
+import requests
 from tqdm.asyncio import tqdm
 
 AIOHTTP_TIMEOUT = aiohttp.ClientTimeout(total=6 * 60 * 60)
@@ -24,11 +24,13 @@ class RequestFuncInput:
     best_of: int = 1
     use_beam_search: bool = False
 
+
 @dataclass
 class TEIRequestFuncInput:
     prompt: Union[str, List[str]]
     api_url: str
     model: str
+
 
 @dataclass
 class TEIRequestFuncOutput:
@@ -37,25 +39,28 @@ class TEIRequestFuncOutput:
     error: str = ""
     batch_size: int = 1
 
+
 @dataclass
 class RequestFuncOutput:
     generated_text: str = ""
     success: bool = False
     latency: float = 0.0
     ttft: float = 0.0  # Time to first token
-    itl: List[float] = field(
-        default_factory=list)  # List of inter-token latencies
+    itl: List[float] = field(default_factory=list)  # List of inter-token latencies
     prompt_len: int = 0
     error: str = ""
+
 
 def sync_get_request(
     input_requests: List[str],
     request_rate: float,
-    batch_size: int,  
+    batch_size: int,
 ):
-    batched_requests = [input_requests[i:i+batch_size] for i in range(0, len(input_requests), batch_size)]
-    input_requests = iter(batched_requests)
-    for request in input_requests:
+    batched_requests = [
+        input_requests[i : i + batch_size]
+        for i in range(0, len(input_requests), batch_size)
+    ]
+    for request in batched_requests:
         yield request
 
         if request_rate == float("inf"):
@@ -66,16 +71,14 @@ def sync_get_request(
         # The next request will be sent after the interval.
         time.sleep(interval)
 
+
 def request_tei(
     request_func_input: TEIRequestFuncInput,
     pbar: Optional[tqdm] = None,
-) -> RequestFuncOutput:
+) -> TEIRequestFuncOutput:
     api_url = request_func_input.api_url
     assert api_url.endswith("embed")
-    req = {
-        "inputs": request_func_input.prompt,
-        "truncate": True
-    }
+    req = {"inputs": request_func_input.prompt, "truncate": True}
     batch_size = len(request_func_input.prompt)
     output = TEIRequestFuncOutput()
     st = time.perf_counter()
@@ -96,21 +99,19 @@ def request_tei(
         pbar.update(batch_size)
     return output
 
+
 async def aysnc_request_tei(
     api_url: str,
     input_requests: List[str],
     batch_size: int,
     request_rate: float,
-    pbar: Optional[tqdm] = None, 
-):
+    pbar: Optional[tqdm] = None,
+) -> list[TEIRequestFuncOutput]:
     assert api_url.endswith("embed")
     async with aiohttp.ClientSession(timeout=AIOHTTP_TIMEOUT) as session:
         outputs = []
         for prompt in sync_get_request(input_requests, request_rate, batch_size):
-            req = {
-                "inputs": prompt,
-                "truncate": True
-            }
+            req = {"inputs": prompt, "truncate": True}
             output = TEIRequestFuncOutput()
             st = time.perf_counter()
             try:
@@ -130,6 +131,7 @@ async def aysnc_request_tei(
             if pbar:
                 pbar.update(batch_size)
         return outputs
+
 
 async def async_request_tgi(
     request_func_input: RequestFuncInput,
@@ -165,8 +167,7 @@ async def async_request_tgi(
                         if not chunk_bytes:
                             continue
 
-                        chunk = remove_prefix(chunk_bytes.decode("utf-8"),
-                                              "data:")
+                        chunk = remove_prefix(chunk_bytes.decode("utf-8"), "data:")
 
                         data = json.loads(chunk)
                         timestamp = time.perf_counter()
@@ -177,8 +178,7 @@ async def async_request_tgi(
 
                         # Decoding phase
                         else:
-                            output.itl.append(timestamp -
-                                              most_recent_timestamp)
+                            output.itl.append(timestamp - most_recent_timestamp)
 
                         most_recent_timestamp = timestamp
 
@@ -230,8 +230,7 @@ async def async_request_trt_llm(
                         if not chunk_bytes:
                             continue
 
-                        chunk = remove_prefix(chunk_bytes.decode("utf-8"),
-                                              "data:")
+                        chunk = remove_prefix(chunk_bytes.decode("utf-8"), "data:")
 
                         data = json.loads(chunk)
                         output.generated_text += data["text_output"]
@@ -243,8 +242,7 @@ async def async_request_trt_llm(
 
                         # Decoding phase
                         else:
-                            output.itl.append(timestamp -
-                                              most_recent_timestamp)
+                            output.itl.append(timestamp - most_recent_timestamp)
 
                         most_recent_timestamp = timestamp
 
@@ -288,8 +286,9 @@ async def async_request_deepspeed_mii(
 
         st = time.perf_counter()
         try:
-            async with session.post(url=request_func_input.api_url,
-                                    json=payload) as response:
+            async with session.post(
+                url=request_func_input.api_url, json=payload
+            ) as response:
                 if response.status == 200:
                     parsed_resp = await response.json()
                     output.latency = time.perf_counter() - st
@@ -327,9 +326,7 @@ async def async_request_openai_completions(
             "max_tokens": request_func_input.output_len,
             "stream": True,
         }
-        headers = {
-            "Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY')}"
-        }
+        headers = {"Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY')}"}
 
         output = RequestFuncOutput()
         output.prompt_len = request_func_input.prompt_len
@@ -339,16 +336,16 @@ async def async_request_openai_completions(
         st = time.perf_counter()
         most_recent_timestamp = st
         try:
-            async with session.post(url=api_url, json=payload,
-                                    headers=headers) as response:
+            async with session.post(
+                url=api_url, json=payload, headers=headers
+            ) as response:
                 if response.status == 200:
                     async for chunk_bytes in response.content:
                         chunk_bytes = chunk_bytes.strip()
                         if not chunk_bytes:
                             continue
 
-                        chunk = remove_prefix(chunk_bytes.decode("utf-8"),
-                                              "data: ")
+                        chunk = remove_prefix(chunk_bytes.decode("utf-8"), "data: ")
                         if chunk == "[DONE]":
                             latency = time.perf_counter() - st
                         else:
@@ -366,8 +363,7 @@ async def async_request_openai_completions(
                                 # usage summary response without a token so we
                                 # do not want to include as inter-token-latency
                                 elif data.get("usage", None) is None:
-                                    output.itl.append(timestamp -
-                                                      most_recent_timestamp)
+                                    output.itl.append(timestamp - most_recent_timestamp)
 
                                 most_recent_timestamp = timestamp
                                 generated_text += data["choices"][0]["text"]
@@ -424,16 +420,16 @@ async def async_request_openai_chat_completions(
         st = time.perf_counter()
         most_recent_timestamp = st
         try:
-            async with session.post(url=api_url, json=payload,
-                                    headers=headers) as response:
+            async with session.post(
+                url=api_url, json=payload, headers=headers
+            ) as response:
                 if response.status == 200:
                     async for chunk_bytes in response.content:
                         chunk_bytes = chunk_bytes.strip()
                         if not chunk_bytes:
                             continue
 
-                        chunk = remove_prefix(chunk_bytes.decode("utf-8"),
-                                              "data: ")
+                        chunk = remove_prefix(chunk_bytes.decode("utf-8"), "data: ")
                         if chunk == "[DONE]":
                             latency = time.perf_counter() - st
                         else:
@@ -449,8 +445,7 @@ async def async_request_openai_chat_completions(
 
                                 # Decoding phase
                                 else:
-                                    output.itl.append(timestamp -
-                                                      most_recent_timestamp)
+                                    output.itl.append(timestamp - most_recent_timestamp)
 
                                 generated_text += delta["content"]
 
@@ -476,7 +471,7 @@ async def async_request_openai_chat_completions(
 # introduced in Python 3.9
 def remove_prefix(text: str, prefix: str) -> str:
     if text.startswith(prefix):
-        return text[len(prefix):]
+        return text[len(prefix) :]
     return text
 
 

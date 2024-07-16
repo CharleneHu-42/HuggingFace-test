@@ -1,30 +1,26 @@
 import argparse
 import asyncio
-import json
-import os
+import itertools
 import random
 import time
 import warnings
 from dataclasses import dataclass
-
-from typing import List, Tuple
-import itertools
+from typing import List
 
 import numpy as np
-from backend_request_func import (ASYNC_REQUEST_FUNCS, TEIRequestFuncOutput)
+from backend_request_func import ASYNC_REQUEST_FUNCS, TEIRequestFuncOutput
+from datasets import load_dataset
 from tqdm.asyncio import tqdm
 from transformers import PreTrainedTokenizerBase
-from datasets import load_dataset
-
 from vllm.transformers_utils.tokenizer import get_tokenizer
 
 
 @dataclass
 class BenchmarkMetrics:
     completed: int
-    mean_latency_ms: int
-    median_latency_ms: int
-    p99_latency_ms: int
+    mean_latency_ms: float
+    median_latency_ms: float
+    p99_latency_ms: float
     request_throughput: float
 
 
@@ -33,10 +29,10 @@ def sample_allnli_requests(
     num_requests: int,
     tokenizer: PreTrainedTokenizerBase,
     min_length: int,
-    max_length: int
+    max_length: int,
 ) -> List[str]:
     dataset = load_dataset("sentence-transformers/all-nli", "pair", split="train")
-    anchor_dataset = dataset['anchor']
+    anchor_dataset: List[str] = dataset["anchor"]  # type: ignore
     # Shuffle the dataset.
     random.seed(seed)
     random.shuffle(anchor_dataset)
@@ -51,22 +47,20 @@ def sample_allnli_requests(
         prompt = anchor_dataset[i]
         prompt_token_ids = tokenizer(prompt).input_ids
         token_len = len(prompt_token_ids)
-        if token_len < min_length:
-            # Prune too short sequences.
-            continue
-        if token_len > max_length:
-            # Prune too long sequences.
+        if not (min_length <= token_len <= max_length):
+            # Prune too short or too long sequences.
             continue
         filtered_dataset.append(prompt)
 
     return filtered_dataset
 
+
 def calculate_metrics(
     outputs: List[TEIRequestFuncOutput],
     dur_s: float,
-) -> Tuple[BenchmarkMetrics, List[int]]:
+) -> BenchmarkMetrics:
     completed = 0
-    latencies = []
+    latencies: List[float] = []
     for i in range(len(outputs)):
         output = outputs[i]
         if output.success:
@@ -77,16 +71,18 @@ def calculate_metrics(
         warnings.warn(
             "All requests failed. This is likely due to a misconfiguration "
             "on the benchmark arguments.",
-            stacklevel=2)
+            stacklevel=2,
+        )
     metrics = BenchmarkMetrics(
         completed=completed,
-        mean_latency_ms=np.mean(latencies or 0) * 1000,
-        median_latency_ms=np.median(latencies or 0) * 1000,
-        p99_latency_ms=np.percentile(latencies or 0, 99) * 1000,
-        request_throughput=completed / dur_s
+        mean_latency_ms=float(np.mean(latencies or 0) * 1000),
+        median_latency_ms=float(np.median(latencies or 0) * 1000),
+        p99_latency_ms=float(np.percentile(latencies or 0, 99) * 1000),
+        request_throughput=completed / dur_s,
     )
 
     return metrics
+
 
 async def benchmark_multi_clients(
     backend: str,
@@ -98,43 +94,40 @@ async def benchmark_multi_clients(
     request_rate: float,
     disable_tqdm: bool,
 ):
-    if backend in ASYNC_REQUEST_FUNCS:
-        request_func = ASYNC_REQUEST_FUNCS.get(backend)
-    else:
+    request_func = ASYNC_REQUEST_FUNCS.get(backend)
+    if request_func is None:
         raise ValueError(f"Unknown backend: {backend}")
     print(f"Traffic request rate: {request_rate}")
     benchmark_start_time = time.perf_counter()
     tasks = []
     split_requests = [input_requests[i::client_num] for i in range(client_num)]
-    pbar = None if disable_tqdm else tqdm(total=len(input_requests)//client_num)
-    tasks = [request_func(api_url,
-                          requests,
-                          batch_size,
-                          request_rate,
-                          pbar) for requests in split_requests]
+    pbar = None if disable_tqdm else tqdm(total=len(input_requests) // client_num)
+    tasks = [
+        request_func(api_url, requests, batch_size, request_rate, pbar)
+        for requests in split_requests
+    ]
     outputs: List[List[TEIRequestFuncOutput]] = await asyncio.gather(*tasks)
     flattened_outputs = list(itertools.chain(*outputs))
 
-    if not disable_tqdm:
+    if pbar is not None:
         pbar.close()
     benchmark_duration = time.perf_counter() - benchmark_start_time
-    metrics = calculate_metrics(
-        outputs=flattened_outputs,
-        dur_s=benchmark_duration
-    )
+    metrics = calculate_metrics(outputs=flattened_outputs, dur_s=benchmark_duration)
 
-    print("{s:{c}^{n}}".format(s=' Serving Benchmark Result ', n=50, c='='))
+    print("{s:{c}^{n}}".format(s=" Serving Benchmark Result ", n=50, c="="))
     print("{:<40} {:<10}".format("batch size:", batch_size))
     print("{:<40} {:<10}".format("Successful requests:", metrics.completed))
-    print("{:<40} {:<10.2f}".format("Benchmark duration (s):",
-                                    benchmark_duration))
+    print("{:<40} {:<10.2f}".format("Benchmark duration (s):", benchmark_duration))
     print("{:<40} {:<10.2f}".format("Mean latency (ms):", metrics.mean_latency_ms))
-    print("{:<40} {:<10.2f}".format("Median latency (ms):",
-                                    metrics.median_latency_ms))
+    print("{:<40} {:<10.2f}".format("Median latency (ms):", metrics.median_latency_ms))
     print("{:<40} {:<10.2f}".format("P99 latency (ms):", metrics.p99_latency_ms))
-    print("{:<40} {:<10.2f}".format("Request throughput (req/s):",
-                                    metrics.request_throughput))
+    print(
+        "{:<40} {:<10.2f}".format(
+            "Request throughput (req/s):", metrics.request_throughput
+        )
+    )
     print("=" * 50)
+
 
 def main(args: argparse.Namespace):
     print(args)
@@ -152,31 +145,31 @@ def main(args: argparse.Namespace):
     tokenizer = get_tokenizer(tokenizer_id)
 
     input_requests = sample_allnli_requests(
-        seed = args.seed,
-        num_requests = args.num_prompts,
-        tokenizer = tokenizer,
-        min_length = args.min_length,
-        max_length = args.max_length
+        seed=args.seed,
+        num_requests=args.num_prompts,
+        tokenizer=tokenizer,
+        min_length=args.min_length,
+        max_length=args.max_length,
     )
 
     asyncio.run(
         benchmark_multi_clients(
-            backend = backend,
-            api_url = api_url,
-            model_id = model_id,
-            client_num = args.client_num,
-            batch_size = args.batch_size,
-            input_requests = input_requests,
-            request_rate = args.request_rate,
-            disable_tqdm = args.disable_tqdm
+            backend=backend,
+            api_url=api_url,
+            model_id=model_id,
+            client_num=args.client_num,
+            batch_size=args.batch_size,
+            input_requests=input_requests,
+            request_rate=args.request_rate,
+            disable_tqdm=args.disable_tqdm,
         )
     )
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Benchmark the online serving throughput.")
+        description="Benchmark the online serving throughput."
+    )
     parser.add_argument(
         "--backend",
         type=str,
@@ -206,8 +199,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--tokenizer",
         type=str,
-        help=
-        "Name or path of the tokenizer, if not using the default tokenizer.",
+        help="Name or path of the tokenizer, if not using the default tokenizer.",
     )
     parser.add_argument(
         "--num-prompts",

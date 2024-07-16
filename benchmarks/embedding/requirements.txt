@@ -1,0 +1,8 @@
+numpy
+requests
+aiohttp
+tqdm
+transformers
+datasets
+vllm
+loguru

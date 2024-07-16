@@ -6,24 +6,23 @@ import time
 import warnings
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Tuple
+from typing import List
 
 import numpy as np
 from backend_request_func import (ASYNC_REQUEST_FUNCS, TEIRequestFuncInput,
                                   TEIRequestFuncOutput, sync_get_request)
+from datasets import load_dataset
 from tqdm.asyncio import tqdm
 from transformers import PreTrainedTokenizerBase
-from datasets import load_dataset
-
 from vllm.transformers_utils.tokenizer import get_tokenizer
 
 
 @dataclass
 class BenchmarkMetrics:
     completed: int
-    mean_latency_ms: int
-    median_latency_ms: int
-    p99_latency_ms: int
+    mean_latency_ms: float
+    median_latency_ms: float
+    p99_latency_ms: float
     request_throughput: float
 
 
@@ -32,10 +31,10 @@ def sample_allnli_requests(
     num_requests: int,
     tokenizer: PreTrainedTokenizerBase,
     min_length: int,
-    max_length: int
+    max_length: int,
 ) -> List[str]:
     dataset = load_dataset("sentence-transformers/all-nli", "pair", split="train")
-    anchor_dataset = dataset['anchor']
+    anchor_dataset: List[str] = dataset["anchor"]  # type: ignore
     # Shuffle the dataset
     random.seed(seed)
     random.shuffle(anchor_dataset)
@@ -60,10 +59,11 @@ def sample_allnli_requests(
 
     return filtered_dataset
 
+
 def calculate_metrics(
     outputs: List[TEIRequestFuncOutput],
     dur_s: float,
-) -> Tuple[BenchmarkMetrics, List[int]]:
+) -> BenchmarkMetrics:
     completed = 0
     latencies = []
     for i in range(len(outputs)):
@@ -76,16 +76,18 @@ def calculate_metrics(
         warnings.warn(
             "All requests failed. This is likely due to a misconfiguration "
             "on the benchmark arguments.",
-            stacklevel=2)
+            stacklevel=2,
+        )
     metrics = BenchmarkMetrics(
         completed=completed,
-        mean_latency_ms=np.mean(latencies or 0) * 1000,
-        median_latency_ms=np.median(latencies or 0) * 1000,
-        p99_latency_ms=np.percentile(latencies or 0, 99) * 1000,
-        request_throughput=completed / dur_s
+        mean_latency_ms=float(np.mean(latencies or 0) * 1000),
+        median_latency_ms=float(np.median(latencies or 0) * 1000),
+        p99_latency_ms=float(np.percentile(latencies or 0, 99) * 1000),
+        request_throughput=completed / dur_s,
     )
 
     return metrics
+
 
 def benchmark_with_bs(
     backend: str,
@@ -93,43 +95,39 @@ def benchmark_with_bs(
     model_id: str,
     tokenizer_id: str,
     input_requests: List[str],
-    request_func, 
+    request_func,
     batch_size: int,
     request_rate: float,
     disable_tqdm: bool,
-    save_result: bool
+    save_result: bool,
 ):
     pbar = None if disable_tqdm else tqdm(total=len(input_requests))
     benchmark_start_time = time.perf_counter()
     outputs = []
     for prompt in sync_get_request(input_requests, request_rate, batch_size):
         request_func_input = TEIRequestFuncInput(
-            model=model_id,
-            prompt=prompt,
-            api_url=api_url
+            model=model_id, prompt=prompt, api_url=api_url
         )
         output = request_func(request_func_input=request_func_input, pbar=pbar)
         outputs.append(output)
-    if not disable_tqdm:
+    if pbar is not None:
         pbar.close()
 
     benchmark_duration = time.perf_counter() - benchmark_start_time
-    metrics = calculate_metrics(
-        outputs=outputs,
-        dur_s=benchmark_duration
-    )
+    metrics = calculate_metrics(outputs=outputs, dur_s=benchmark_duration)
 
-    print("{s:{c}^{n}}".format(s=' Serving Benchmark Result ', n=50, c='='))
+    print("{s:{c}^{n}}".format(s=" Serving Benchmark Result ", n=50, c="="))
     print("{:<40} {:<10}".format("batch size:", batch_size))
     print("{:<40} {:<10}".format("Successful requests:", metrics.completed))
-    print("{:<40} {:<10.2f}".format("Benchmark duration (s):",
-                                    benchmark_duration))
+    print("{:<40} {:<10.2f}".format("Benchmark duration (s):", benchmark_duration))
     print("{:<40} {:<10.2f}".format("Mean latency (ms):", metrics.mean_latency_ms))
-    print("{:<40} {:<10.2f}".format("Median latency (ms):",
-                                    metrics.median_latency_ms))
+    print("{:<40} {:<10.2f}".format("Median latency (ms):", metrics.median_latency_ms))
     print("{:<40} {:<10.2f}".format("P99 latency (ms):", metrics.p99_latency_ms))
-    print("{:<40} {:<10.2f}".format("Request throughput (req/s):",
-                                    metrics.request_throughput))
+    print(
+        "{:<40} {:<10.2f}".format(
+            "Request throughput (req/s):", metrics.request_throughput
+        )
+    )
     print("=" * 50)
 
     result = {
@@ -162,18 +160,20 @@ def benchmark_with_bs(
 
         # Traffic
         result_json["request_rate"] = (
-            args.request_rate if args.request_rate < float("inf") else "inf")
+            args.request_rate if args.request_rate < float("inf") else "inf"
+        )
 
         # Merge with benchmark result
         result_json = {**result_json, **result}
 
         # Save to file
         base_model_id = model_id.split("/")[-1]
-        file_name = f"{backend}-{args.request_rate}qps-{base_model_id}-{batch_size}-{current_dt}.json"  #noqa
+        file_name = f"{backend}-{args.request_rate}qps-{base_model_id}-{batch_size}-{current_dt}.json"  # noqa
         if args.result_dir:
             file_name = os.path.join(args.result_dir, file_name)
         with open(file_name, "w") as outfile:
-            json.dump(result_json, outfile)  
+            json.dump(result_json, outfile)
+
 
 def benchmark_single_client(
     backend: str,
@@ -183,34 +183,41 @@ def benchmark_single_client(
     input_requests: List[str],
     request_rate: float,
     disable_tqdm: bool,
-    save_results: bool
+    save_results: bool,
 ):
-    if backend in ASYNC_REQUEST_FUNCS:
-        request_func = ASYNC_REQUEST_FUNCS.get(backend)
-    else:
+    request_func = ASYNC_REQUEST_FUNCS.get(backend)
+    if request_func is None:
         raise ValueError(f"Unknown backend: {backend}")
 
     print("Starting initial single prompt test run...")
     test_prompt = input_requests[0]
     test_input = TEIRequestFuncInput(
-        model=model_id,
-        prompt=test_prompt,
-        api_url=api_url
+        model=model_id, prompt=test_prompt, api_url=api_url
     )
     test_output = request_func(request_func_input=test_input)
     if not test_output.success:
         raise ValueError(
             "Initial test run failed - Please make sure benchmark arguments "
-            f"are correctly specified. Error: {test_output.error}")
+            f"are correctly specified. Error: {test_output.error}"
+        )
     else:
         print("Initial test run completed. Starting main benchmark run...")
     print(f"Traffic request rate: {request_rate}")
     bs_list = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
     for bs in bs_list:
-        benchmark_with_bs(backend, api_url, model_id, 
-                          tokenizer_id, input_requests, 
-                          request_func, bs, request_rate,
-                          disable_tqdm, save_results)
+        benchmark_with_bs(
+            backend,
+            api_url,
+            model_id,
+            tokenizer_id,
+            input_requests,
+            request_func,
+            bs,
+            request_rate,
+            disable_tqdm,
+            save_results,
+        )
+
 
 def main(args: argparse.Namespace):
     print(args)
@@ -228,27 +235,29 @@ def main(args: argparse.Namespace):
     tokenizer = get_tokenizer(tokenizer_id)
 
     input_requests = sample_allnli_requests(
-        seed = args.seed,
-        num_requests = args.num_prompts,
-        tokenizer = tokenizer,
-        min_length = args.min_length,
-        max_length = args.max_length
+        seed=args.seed,
+        num_requests=args.num_prompts,
+        tokenizer=tokenizer,
+        min_length=args.min_length,
+        max_length=args.max_length,
     )
 
     benchmark_single_client(
-        backend = backend,
-        api_url = api_url,
-        model_id = model_id,
-        tokenizer_id = tokenizer_id,
-        input_requests = input_requests,
-        request_rate = args.request_rate,
-        disable_tqdm = args.disable_tqdm,
-        save_results = args.save_result)
+        backend=backend,
+        api_url=api_url,
+        model_id=model_id,
+        tokenizer_id=tokenizer_id,
+        input_requests=input_requests,
+        request_rate=args.request_rate,
+        disable_tqdm=args.disable_tqdm,
+        save_results=args.save_result,
+    )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Benchmark the online serving throughput.")
+        description="Benchmark the online serving throughput."
+    )
     parser.add_argument(
         "--backend",
         type=str,
@@ -278,8 +287,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--tokenizer",
         type=str,
-        help=
-        "Name or path of the tokenizer, if not using the default tokenizer.",
+        help="Name or path of the tokenizer, if not using the default tokenizer.",
     )
     parser.add_argument(
         "--num-prompts",

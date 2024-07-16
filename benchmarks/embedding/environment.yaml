@@ -13,4 +13,5 @@ dependencies:
     - transformers
     - datasets
     - vllm
+    - loguru
 
