@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import csv
 import itertools
 import random
 import time
@@ -8,11 +9,12 @@ from dataclasses import dataclass
 from typing import List
 
 import numpy as np
-from backend_request_func import ASYNC_REQUEST_FUNCS, TEIRequestFuncOutput
 from datasets import load_dataset
 from tqdm.asyncio import tqdm
 from transformers import PreTrainedTokenizerBase
 from vllm.transformers_utils.tokenizer import get_tokenizer
+
+from backend_request_func import ASYNC_REQUEST_FUNCS, TEIRequestFuncOutput
 
 
 @dataclass
@@ -127,6 +129,7 @@ async def benchmark_multi_clients(
         )
     )
     print("=" * 50)
+    return metrics
 
 
 def main(args: argparse.Namespace):
@@ -168,7 +171,8 @@ def main(args: argparse.Namespace):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Benchmark the online serving throughput."
+        description="Benchmark the online serving throughput.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--backend",
