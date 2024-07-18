@@ -4,7 +4,7 @@ import sys
 import time
 import traceback
 from dataclasses import dataclass, field
-from typing import List, Optional, Union
+from typing import Callable, Coroutine, Dict, List, Optional, Union
 
 import aiohttp
 import numpy as np
@@ -129,7 +129,7 @@ async def aysnc_request_tei(
                 output.error = "".join(traceback.format_exception(*exc_info))
             outputs.append(output)
             if pbar:
-                pbar.update(batch_size)
+                pbar.update(len(prompt))
         return outputs
 
 
@@ -475,14 +475,17 @@ def remove_prefix(text: str, prefix: str) -> str:
     return text
 
 
-ASYNC_REQUEST_FUNCS = {
+ASYNC_REQUEST_FUNCS: Dict[str, Callable[...,Coroutine]] = {
     "tgi": async_request_tgi,
-    "tei": request_tei,
-    "tei-async": aysnc_request_tei,
+    "tei": aysnc_request_tei,
     "vllm": async_request_openai_completions,
     "lmdeploy": async_request_openai_completions,
     "deepspeed-mii": async_request_deepspeed_mii,
     "openai": async_request_openai_completions,
     "openai-chat": async_request_openai_chat_completions,
     "tensorrt-llm": async_request_trt_llm,
+}
+
+SYNC_REQUEST_FUNCS: Dict[str, Callable] = {
+    "tei": request_tei,
 }
