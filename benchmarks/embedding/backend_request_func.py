@@ -119,7 +119,7 @@ async def aysnc_request_tei(
                     if response.status == 200:
                         output.latency = time.perf_counter() - st
                         output.success = True
-                        output.batch_size = batch_size
+                        output.batch_size = len(prompt)
                     else:
                         output.error = response.reason or ""
                         output.success = False

@@ -45,7 +45,9 @@ def benchmark_with_bs(
         pbar.close()
 
     benchmark_duration = time.perf_counter() - benchmark_start_time
-    metrics = calculate_metrics(outputs=outputs, dur_s=benchmark_duration)
+    metrics = calculate_metrics(
+        outputs=outputs, dur_s=benchmark_duration, num_requests=len(outputs)
+    )
 
     print("{s:{c}^{n}}".format(s=" Serving Benchmark Result ", n=50, c="="))
     print("{:<40} {:<10}".format("batch size:", batch_size))
@@ -57,6 +59,11 @@ def benchmark_with_bs(
     print(
         "{:<40} {:<10.2f}".format(
             "Request throughput (req/s):", metrics.request_throughput
+        )
+    )
+    print(
+        "{:<40} {:<10.2f}".format(
+            "Sentence throughput (sentences/s):", metrics.sentence_throughput
         )
     )
     print("=" * 50)
@@ -172,6 +179,7 @@ def benchmark_single_client(
                     "P50 Latency (ms)",
                     "P99 Latency (ms)",
                     "Throughput (req/s)",
+                    "Throughput (sentences/s)",
                 ]
             )
             csv_writer.writerows(
@@ -181,6 +189,7 @@ def benchmark_single_client(
                     m.median_latency_ms,
                     m.p99_latency_ms,
                     m.request_throughput,
+                    m.sentence_throughput,
                 )
                 for bs, m in outputs
             )
