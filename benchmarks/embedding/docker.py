@@ -1,12 +1,12 @@
 import argparse
-from dataclasses import dataclass
 import json
 import subprocess
 import sys
 import time
+from dataclasses import dataclass
 from datetime import datetime as dt
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 from loguru import logger
 
@@ -73,9 +73,9 @@ def add_docker_args(parser: argparse.ArgumentParser):
         "--max_client_batch_size",
         type=int,
         default=32,
-        help="Batch size allowed by client"
-
+        help="Batch size allowed by client",
     )
+
 
 @dataclass
 class DockerArgs(Namespace):
@@ -85,7 +85,7 @@ class DockerArgs(Namespace):
     platform: str
     debug: bool
     docker_port: int
-    docker_env_vars: Optional[list[str]]
+    docker_env_vars: Optional[List[str]]
     trust_remote_code: bool
     max_client_batch_size: int
 
@@ -159,29 +159,25 @@ class DockerProcess:
         if docker_args.debug:
             cmd.extend(["-e", "LOG_LEVEL=debug"])
         if docker_args.is_habana:
-            cmd.extend(
-                [
-                    "--runtime=habana",
-                    "-e",
-                    "HABANA_VISIBLE_DEVICES=all",
-                    "-e",
-                    "OMPI_MCA_btl_vader_single_copy_mechanism=none",
-                    "--cap-add=sys_nice",
-                ]
-            )
+            cmd.extend([
+                "--runtime=habana",
+                "-e",
+                "HABANA_VISIBLE_DEVICES=all",
+                "-e",
+                "OMPI_MCA_btl_vader_single_copy_mechanism=none",
+                "--cap-add=sys_nice",
+            ])
         elif docker_args.is_nvidia:
             cmd.extend(["--gpus", "all"])
         # Docker container args
-        cmd.extend(
-            [
-                docker_args.docker_container,
-                "--model-id",
-                model.name,
-                "--pooling",
-                "cls",
-                f"--max-client-batch-size={docker_args.max_client_batch_size}",
-            ]
-        )
+        cmd.extend([
+            docker_args.docker_container,
+            "--model-id",
+            model.name,
+            "--pooling",
+            "cls",
+            f"--max-client-batch-size={docker_args.max_client_batch_size}",
+        ])
         if JSON_OUTPUT:
             cmd.append("--json-output")
         if model.rev is not None:
