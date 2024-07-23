@@ -3,7 +3,17 @@ import os
 import re
 import time
 from pathlib import Path
-from typing import Callable, Literal, Sequence, Type, TypeVar, Union, overload
+from typing import (
+    Callable,
+    List,
+    Literal,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    overload,
+)
 
 from loguru import logger
 
@@ -53,30 +63,30 @@ class Namespace(argparse.Namespace):
 
     @overload
     def separate_into(
-        self, namespaces: tuple[Type[N1]], *, warn_unused: bool = True
+        self, namespaces: Tuple[Type[N1]], *, warn_unused: bool = True
     ) -> N1: ...
     @overload
     def separate_into(
-        self, namespaces: tuple[Type[N1], Type[N2]], *, warn_unused: bool = True
-    ) -> tuple[N1, N2]: ...
+        self, namespaces: Tuple[Type[N1], Type[N2]], *, warn_unused: bool = True
+    ) -> Tuple[N1, N2]: ...
     @overload
     def separate_into(
         self,
-        namespaces: tuple[Type[N1], Type[N2], Type[N3]],
+        namespaces: Tuple[Type[N1], Type[N2], Type[N3]],
         *,
         warn_unused: bool = True,
-    ) -> tuple[N1, N2, N3]: ...
+    ) -> Tuple[N1, N2, N3]: ...
     def separate_into(
         self,
         namespaces: Union[
-            tuple[Type[N1]],
-            tuple[Type[N1], Type[N2]],
-            tuple[Type[N1], Type[N2], Type[N3]],
-            tuple[Type["Namespace"], ...],
+            Tuple[Type[N1]],
+            Tuple[Type[N1], Type[N2]],
+            Tuple[Type[N1], Type[N2], Type[N3]],
+            Tuple[Type["Namespace"], ...],
         ],
         *,
         warn_unused: bool = True,
-    ) -> Union["Namespace", tuple["Namespace", ...]]:
+    ) -> Union["Namespace", Tuple["Namespace", ...]]:
         """
         Splits all the variables placed by `parse_args()` in `args` into an instance of each class in `namespaces`.
 
@@ -202,7 +212,7 @@ def dict_has_diff(dict1, dict2) -> bool:
     return False
 
 
-def batchify(items: Sequence[T], batch_size: int) -> list[Sequence[T]]:
+def batchify(items: Sequence[T], batch_size: int) -> List[Sequence[T]]:
     num_batches, extra = divmod(len(items), batch_size)
     if extra:
         num_batches += 1

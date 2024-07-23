@@ -1,5 +1,6 @@
 if [[ $# -ne 1 ]]; then
 	echo "Usage: ./run_test.sh <MODEL ID>"
+    exit 1
 fi
 MODEL=$1
 
