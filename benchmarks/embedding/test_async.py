@@ -7,8 +7,7 @@ import random
 import time
 import warnings
 from dataclasses import dataclass
-from math import ceil
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import numpy as np
 from datasets import load_dataset
@@ -112,7 +111,6 @@ async def benchmark_multi_clients(
         request_func(api_url, requests, batch_size, request_rate, pbar)
         for requests in split_requests
     ]
-    num_requests = sum(map(lambda x: ceil(len(x) / batch_size), split_requests))
     outputs: List[List[TEIRequestFuncOutput]] = await asyncio.gather(*tasks)
     flattened_outputs = list(itertools.chain(*outputs))
 
@@ -129,11 +127,7 @@ async def benchmark_multi_clients(
     print("{:<40} {:<10.2f}".format("Mean latency (ms):", metrics.mean_latency_ms))
     print("{:<40} {:<10.2f}".format("Median latency (ms):", metrics.median_latency_ms))
     print("{:<40} {:<10.2f}".format("P99 latency (ms):", metrics.p99_latency_ms))
-    print(
-        "{:<40} {:<10.2f}".format(
-            "Throughput (sentences/s):", metrics.sentence_throughput
-        )
-    )
+    print("{:<40} {:<10.2f}".format("Throughput (sentences/s):", metrics.throughput))
     print("=" * 50)
     return metrics
 
@@ -227,12 +221,6 @@ if __name__ == "__main__":
         type=int,
         default=1,
         help="batch size of an input request prompt.",
-    )
-    parser.add_argument(
-        "--client_num",
-        type=int,
-        default=4,
-        help="num of clients to send requests concurrently",
     )
     add_base_args(parser)
 

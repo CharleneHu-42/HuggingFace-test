@@ -13,7 +13,7 @@ def add_base_args(parser: argparse.ArgumentParser):
     parser.add_argument(
         "--endpoint",
         type=str,
-        default="/v1/completions",
+        default="/embed",
         help="API endpoint.",
     )
     parser.add_argument(

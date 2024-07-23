@@ -54,11 +54,7 @@ def benchmark_with_bs(
     print("{:<40} {:<10.2f}".format("Mean latency (ms):", metrics.mean_latency_ms))
     print("{:<40} {:<10.2f}".format("Median latency (ms):", metrics.median_latency_ms))
     print("{:<40} {:<10.2f}".format("P99 latency (ms):", metrics.p99_latency_ms))
-    print(
-        "{:<40} {:<10.2f}".format(
-            "Throughput (sentences/s):", metrics.throughput
-        )
-    )
+    print("{:<40} {:<10.2f}".format("Throughput (sentences/s):", metrics.throughput))
     print("=" * 50)
 
     result = {
