@@ -27,8 +27,7 @@ class BenchmarkMetrics:
     mean_latency_ms: float
     median_latency_ms: float
     p99_latency_ms: float
-    request_throughput: float
-    sentence_throughput: float
+    throughput: float
 
 
 def sample_allnli_requests(
@@ -65,7 +64,6 @@ def sample_allnli_requests(
 def calculate_metrics(
     outputs: List[TEIRequestFuncOutput],
     dur_s: float,
-    num_requests: int,
 ) -> BenchmarkMetrics:
     completed = 0
     latencies: List[float] = []
@@ -86,8 +84,7 @@ def calculate_metrics(
         mean_latency_ms=float(np.mean(latencies or 0) * 1000),
         median_latency_ms=float(np.median(latencies or 0) * 1000),
         p99_latency_ms=float(np.percentile(latencies or 0, 99) * 1000),
-        request_throughput=num_requests / dur_s,
-        sentence_throughput=completed / dur_s,
+        throughput=completed / dur_s,
     )
 
     return metrics
@@ -122,9 +119,7 @@ async def benchmark_multi_clients(
     if pbar is not None:
         pbar.close()
     benchmark_duration = time.perf_counter() - benchmark_start_time
-    metrics = calculate_metrics(
-        outputs=flattened_outputs, dur_s=benchmark_duration, num_requests=num_requests
-    )
+    metrics = calculate_metrics(outputs=flattened_outputs, dur_s=benchmark_duration)
 
     print("{s:{c}^{n}}".format(s=" Serving Benchmark Result ", n=50, c="="))
     print("{:<40} {:<10}".format("batch size:", batch_size))
@@ -136,12 +131,7 @@ async def benchmark_multi_clients(
     print("{:<40} {:<10.2f}".format("P99 latency (ms):", metrics.p99_latency_ms))
     print(
         "{:<40} {:<10.2f}".format(
-            "Request throughput (req/s):", metrics.request_throughput
-        )
-    )
-    print(
-        "{:<40} {:<10.2f}".format(
-            "Sentence throughput (sentences/s):", metrics.sentence_throughput
+            "Throughput (sentences/s):", metrics.sentence_throughput
         )
     )
     print("=" * 50)
@@ -202,24 +192,20 @@ def main(args: argparse.Namespace):
             filename = os.path.join(args.result_dir, filename)
         with open(filename, "w", newline="") as f:
             csv_writer = csv.writer(f)
-            csv_writer.writerow(
-                [
-                    "Number of Clients",
-                    "Mean Latency (ms)",
-                    "P50 Latency (ms)",
-                    "P99 Latency (ms)",
-                    "Throughput (req/s)",
-                    "Throughput (sentences/s)",
-                ]
-            )
+            csv_writer.writerow([
+                "Number of Clients",
+                "Mean Latency (ms)",
+                "P50 Latency (ms)",
+                "P99 Latency (ms)",
+                "Throughput (sentences/s)",
+            ])
             csv_writer.writerows(
                 (
                     cs,
                     m.mean_latency_ms,
                     m.median_latency_ms,
                     m.p99_latency_ms,
-                    m.request_throughput,
-                    m.sentence_throughput,
+                    m.throughput,
                 )
                 for cs, m in outputs
             )
