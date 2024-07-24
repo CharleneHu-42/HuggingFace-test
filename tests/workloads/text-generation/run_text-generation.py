@@ -145,8 +145,8 @@ if __name__ == "__main__":
         logging.info(f"Use torch compile with {args.backend} backend")
         if args.backend == "ipex":
             import intel_extension_for_pytorch as ipex
-        generator.model.generate = torch.compile(
-            generator.model.generate, backend=args.backend
+        generator.model.forward = torch.compile(
+            generator.model.forward, backend=args.backend, dynamic=True
         )
 
     benchmark(

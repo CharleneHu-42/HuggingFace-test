@@ -178,7 +178,7 @@ if [[ "$device" = "cpu" ]]; then
   export LD_PRELOAD=${CONDA_PREFIX}/lib/libstdc++.so.6
   export KMP_BLOCKTIME=INF
   export KMP_TPAUSE=0
-  export KMP_SETTINGS=1
+  export KMP_SETTINGS=0
   export KMP_AFFINITY=granularity=fine,compact,1,0
   export KMP_FORJOIN_BARRIER_PATTERN=dist,dist
   export KMP_PLAIN_BARRIER_PATTERN=dist,dist

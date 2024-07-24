@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     embeddings_dataset = load_from_disk("./datasets/speech_vector")
     speaker_embedding = (
-        torch.tensor(embeddings_dataset[0]["xvector"]).unsqueeze(0).to(device)
+        torch.tensor(embeddings_dataset[0]["xvector"]).unsqueeze(0).to(device).to(torch_dtype)
     )
     # by default the dtype of speaker_embedding is FP32, if the model dtype is not FP32, we need to manually convert it
     if torch_dtype != torch.float32:
