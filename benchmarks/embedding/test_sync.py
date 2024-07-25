@@ -171,10 +171,10 @@ def benchmark_single_client(
             csv_writer.writerows(
                 (
                     bs,
-                    m.mean_latency_ms,
-                    m.median_latency_ms,
-                    m.p99_latency_ms,
-                    m.throughput,
+                    "{:.2f}".format(m.mean_latency_ms),
+                    "{:.2f}".format(m.median_latency_ms),
+                    "{:.2f}".format(m.p99_latency_ms),
+                    "{:.2f}".format(m.throughput),
                 )
                 for bs, m in outputs
             )

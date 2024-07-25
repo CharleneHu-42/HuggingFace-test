@@ -196,10 +196,10 @@ def main(args: argparse.Namespace):
             csv_writer.writerows(
                 (
                     cs,
-                    m.mean_latency_ms,
-                    m.median_latency_ms,
-                    m.p99_latency_ms,
-                    m.throughput,
+                    "{:.2f}".format(m.mean_latency_ms),
+                    "{:.2f}".format(m.median_latency_ms),
+                    "{:.2f}".format(m.p99_latency_ms),
+                    "{:.2f}".format(m.throughput),
                 )
                 for cs, m in outputs
             )
