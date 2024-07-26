@@ -1,18 +1,23 @@
 import argparse
 import asyncio
+import csv
 import itertools
+import os
 import random
 import time
 import warnings
 from dataclasses import dataclass
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
-from backend_request_func import ASYNC_REQUEST_FUNCS, TEIRequestFuncOutput
 from datasets import load_dataset
+from loguru import logger
 from tqdm.asyncio import tqdm
 from transformers import PreTrainedTokenizerBase
 from vllm.transformers_utils.tokenizer import get_tokenizer
+
+from backend_request_func import ASYNC_REQUEST_FUNCS, TEIRequestFuncOutput
+from base_parser import add_base_args
 
 
 @dataclass
@@ -21,7 +26,7 @@ class BenchmarkMetrics:
     mean_latency_ms: float
     median_latency_ms: float
     p99_latency_ms: float
-    request_throughput: float
+    throughput: float
 
 
 def sample_allnli_requests(
@@ -78,7 +83,7 @@ def calculate_metrics(
         mean_latency_ms=float(np.mean(latencies or 0) * 1000),
         median_latency_ms=float(np.median(latencies or 0) * 1000),
         p99_latency_ms=float(np.percentile(latencies or 0, 99) * 1000),
-        request_throughput=completed / dur_s,
+        throughput=completed / dur_s,
     )
 
     return metrics
@@ -101,7 +106,7 @@ async def benchmark_multi_clients(
     benchmark_start_time = time.perf_counter()
     tasks = []
     split_requests = [input_requests[i::client_num] for i in range(client_num)]
-    pbar = None if disable_tqdm else tqdm(total=len(input_requests) // client_num)
+    pbar = None if disable_tqdm else tqdm(total=len(input_requests))
     tasks = [
         request_func(api_url, requests, batch_size, request_rate, pbar)
         for requests in split_requests
@@ -116,17 +121,15 @@ async def benchmark_multi_clients(
 
     print("{s:{c}^{n}}".format(s=" Serving Benchmark Result ", n=50, c="="))
     print("{:<40} {:<10}".format("batch size:", batch_size))
+    print("{:<40} {:<10}".format("Client num:", client_num))
     print("{:<40} {:<10}".format("Successful requests:", metrics.completed))
     print("{:<40} {:<10.2f}".format("Benchmark duration (s):", benchmark_duration))
     print("{:<40} {:<10.2f}".format("Mean latency (ms):", metrics.mean_latency_ms))
     print("{:<40} {:<10.2f}".format("Median latency (ms):", metrics.median_latency_ms))
     print("{:<40} {:<10.2f}".format("P99 latency (ms):", metrics.p99_latency_ms))
-    print(
-        "{:<40} {:<10.2f}".format(
-            "Request throughput (req/s):", metrics.request_throughput
-        )
-    )
+    print("{:<40} {:<10.2f}".format("Throughput (sentences/s):", metrics.throughput))
     print("=" * 50)
+    return metrics
 
 
 def main(args: argparse.Namespace):
@@ -152,72 +155,66 @@ def main(args: argparse.Namespace):
         max_length=args.max_length,
     )
 
-    asyncio.run(
-        benchmark_multi_clients(
-            backend=backend,
-            api_url=api_url,
-            model_id=model_id,
-            client_num=args.client_num,
-            batch_size=args.batch_size,
-            input_requests=input_requests,
-            request_rate=args.request_rate,
-            disable_tqdm=args.disable_tqdm,
+    client_nums = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
+    outputs: List[Tuple[int, BenchmarkMetrics]] = []
+
+    for clients in client_nums:
+        m = asyncio.run(
+            benchmark_multi_clients(
+                backend=backend,
+                api_url=api_url,
+                model_id=model_id,
+                client_num=clients,
+                batch_size=args.batch_size,
+                input_requests=input_requests,
+                request_rate=args.request_rate,
+                disable_tqdm=args.disable_tqdm,
+            )
         )
-    )
+
+        if m.completed >= len(input_requests):
+            outputs.append((clients, m))
+        else:
+            logger.warning(
+                f"Benchmark failed for client num {clients}: Completed only {m.completed} / {len(input_requests)}"
+            )
+
+    # Save CSV
+    if args.save_result:
+        filename = f"{backend}-async-{args.request_rate}qps-{args.batch_size}bs-{model_id.split('/')[-1]}.csv"
+        if args.result_dir:
+            filename = os.path.join(args.result_dir, filename)
+        with open(filename, "w", newline="") as f:
+            csv_writer = csv.writer(f)
+            csv_writer.writerow([
+                "Number of Clients",
+                "Mean Latency (ms)",
+                "P50 Latency (ms)",
+                "P99 Latency (ms)",
+                "Throughput (sentences/s)",
+            ])
+            csv_writer.writerows(
+                (
+                    cs,
+                    "{:.2f}".format(m.mean_latency_ms),
+                    "{:.2f}".format(m.median_latency_ms),
+                    "{:.2f}".format(m.p99_latency_ms),
+                    "{:.2f}".format(m.throughput),
+                )
+                for cs, m in outputs
+            )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Benchmark the online serving throughput."
+        description="Benchmark the online serving throughput.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--backend",
         type=str,
-        default="tei-async",
+        default="tei",
         choices=list(ASYNC_REQUEST_FUNCS.keys()),
-    )
-    parser.add_argument(
-        "--base-url",
-        type=str,
-        default=None,
-        help="Server or API base url if not using http host and port.",
-    )
-    parser.add_argument("--host", type=str, default="localhost")
-    parser.add_argument("--port", type=int, default=8000)
-    parser.add_argument(
-        "--endpoint",
-        type=str,
-        default="/v1/completions",
-        help="API endpoint.",
-    )
-    parser.add_argument(
-        "--model",
-        type=str,
-        required=True,
-        help="Name of the model.",
-    )
-    parser.add_argument(
-        "--tokenizer",
-        type=str,
-        help="Name or path of the tokenizer, if not using the default tokenizer.",
-    )
-    parser.add_argument(
-        "--num-prompts",
-        type=int,
-        default=128,
-        help="Number of prompts to process.",
-    )
-    parser.add_argument(
-        "--min_length",
-        type=int,
-        default=4,
-        help="min length of input prompt's token id.",
-    )
-    parser.add_argument(
-        "--max_length",
-        type=int,
-        default=1024,
-        help="max length of input prompt's token id.",
     )
     parser.add_argument(
         "--batch_size",
@@ -225,47 +222,7 @@ if __name__ == "__main__":
         default=1,
         help="batch size of an input request prompt.",
     )
-    parser.add_argument(
-        "--client_num",
-        type=int,
-        default=4,
-        help="num of clients to send requests concurrently",
-    )
-    parser.add_argument(
-        "--request-rate",
-        type=float,
-        default=float("inf"),
-        help="Number of requests per second. If this is inf, "
-        "then all the requests are sent at time 0. "
-        "Otherwise, we use Poisson process to synthesize "
-        "the request arrival times.",
-    )
-    parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument(
-        "--disable-tqdm",
-        action="store_true",
-        help="Specify to disable tqdm progress bar.",
-    )
-    parser.add_argument(
-        "--save-result",
-        action="store_true",
-        help="Specify to save benchmark results to a json file",
-    )
-    parser.add_argument(
-        "--metadata",
-        metavar="KEY=VALUE",
-        nargs="*",
-        help="Key-value pairs (e.g, --metadata version=0.3.3 tp=1) "
-        "for metadata of this run to be saved in the result JSON file "
-        "for record keeping purposes.",
-    )
-    parser.add_argument(
-        "--result-dir",
-        type=str,
-        default=None,
-        help="Specify directory to save benchmark json results."
-        "If not specified, results are saved in the current directory.",
-    )
+    add_base_args(parser)
 
     args = parser.parse_args()
     main(args)
