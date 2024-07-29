@@ -196,10 +196,13 @@ class DockerProcess:
         )
         logger.info(f"Started docker process with {self.cmd}")
 
-    def close(self, timeout: Optional[float] = None):
+    def close(self):
         self.stdout.close()
-        self.process.terminate()
-        self.process.wait(timeout)
+        kill_process = subprocess.Popen(
+            ["docker", "kill", self.name]
+        )
+        kill_process.wait()
+        self.process.wait()
 
     def wait_until_ready(
         self,
@@ -253,30 +256,13 @@ class DockerProcess:
         return self
 
     def __exit__(self, _exctype, excinst, exctb):
+        self.close()
+
         if excinst is None:
             # Regular exit
-            self.close()
             return
-        # Error occurred, safe exit.
-        logger.error("Error detected, cleanup in process...")
-        self.stdout.close()
-        num_tries = 0
-        while self.process.poll() is None:
-            if num_tries < 10:
-                num_tries += 1
-                logger.info(f"Terminating docker process. Attempt {num_tries}")
-                self.process.terminate()
-            else:
-                logger.error(
-                    f"Unable to clean up process after {num_tries} attempts... Please check for running docker container and kill manually."
-                )
-                self.process.kill()
-                break
-            time.sleep(1)
-
         if self.error_callback is not None:
             self.error_callback()
-
         raise excinst
 
 
