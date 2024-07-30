@@ -11,7 +11,7 @@ ENDPOINT=/embed
 NUM_PROMPTS=5120
 RESULTS_DIR="../../../hf-benchmarks"
 
-mkdir -p RESULTS_DIR/results
+mkdir -p $RESULTS_DIR/results
 echo "Starting benchmarking suite for $MODEL to https://127.0.0.1:$PORT$ENDPOINT with $NUM_PROMPTS prompts."
 echo "Results will be saved in $RESULTS_DIR"
 

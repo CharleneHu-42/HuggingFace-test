@@ -2,129 +2,117 @@
 
 This directory contains benchmarks for Huggingface embedding frameworks with synchronous and asynchronous tests.
 
-## Prerequisites
+## Setup
 
-Install the Python requirements:
+1. Clone the repository
 
-With `conda`:
-
-```sh
-conda env create -f environment.yml
+```bash
+git clone https://github.com/intel-sandbox/HuggingFace.git
+cd HuggingFace/benchmarks/embedding
 ```
 
-With `pip`:
+2. Install Python requirements
 
-```sh
+```bash
+# With conda:
+conda env create -f environment.yml
+# With pip:
 pip install -r requirements.txt
 ```
 
-## Benchmarking Scripts
+3. Build a docker environment for the project
 
-Benchmarking single-model scripts using synchronous and asynchronous requests are located in scripts `test_sync.py` and `test_async.py`, respectively. The help messages for each script are listed below:
+4. Launch the docker environment
 
-```
-usage: test_async.py [-h] [--backend {tgi,tei,tei-async,vllm,lmdeploy,deepspeed-mii,openai,openai-chat,tensorrt-llm}] [--base-url BASE_URL] [--host HOST] [--port PORT] [--endpoint ENDPOINT] --model MODEL [--tokenizer TOKENIZER] [--num-prompts NUM_PROMPTS] [--min_length MIN_LENGTH] [--max_length MAX_LENGTH]
-                     [--batch_size BATCH_SIZE] [--client_num CLIENT_NUM] [--request-rate REQUEST_RATE] [--seed SEED] [--disable-tqdm] [--save-result] [--metadata [KEY=VALUE ...]] [--result-dir RESULT_DIR]
+- If supported by `docker.py` (see [Support Table](#support-table))
 
-Benchmark the online serving throughput.
-
-options:
-  -h, --help            show this help message and exit
-  --backend {tgi,tei,tei-async,vllm,lmdeploy,deepspeed-mii,openai,openai-chat,tensorrt-llm}
-  --base-url BASE_URL   Server or API base url if not using http host and port.
-  --host HOST
-  --port PORT
-  --endpoint ENDPOINT   API endpoint.
-  --model MODEL         Name of the model.
-  --tokenizer TOKENIZER
-                        Name or path of the tokenizer, if not using the default tokenizer.
-  --num-prompts NUM_PROMPTS
-                        Number of prompts to process.
-  --min_length MIN_LENGTH
-                        min length of input prompt's token id.
-  --max_length MAX_LENGTH
-                        max length of input prompt's token id.
-  --batch_size BATCH_SIZE
-                        batch size of an input request prompt.
-  --client_num CLIENT_NUM
-                        num of clients to send requests concurrently
-  --request-rate REQUEST_RATE
-                        Number of requests per second. If this is inf, then all the requests are sent at time 0. Otherwise, we use Poisson process to synthesize the request arrival times.
-  --seed SEED
-  --disable-tqdm        Specify to disable tqdm progress bar.
-  --save-result         Specify to save benchmark results to a json file
-  --metadata [KEY=VALUE ...]
-                        Key-value pairs (e.g, --metadata version=0.3.3 tp=1) for metadata of this run to be saved in the result JSON file for record keeping purposes.
-  --result-dir RESULT_DIR
-                        Specify directory to save benchmark json results.If not specified, results are saved in the current directory.
+```bash
+python docker.py --model_name <model-name> --docker_container <docker-tag> [--other flags]
 ```
 
-```
-usage: test_sync.py [-h] [--backend {tgi,tei,tei-async,vllm,lmdeploy,deepspeed-mii,openai,openai-chat,tensorrt-llm}] [--base-url BASE_URL] [--host HOST] [--port PORT] [--endpoint ENDPOINT] --model MODEL [--tokenizer TOKENIZER] [--num-prompts NUM_PROMPTS] [--min_length MIN_LENGTH] [--max_length MAX_LENGTH]
-                    [--request-rate REQUEST_RATE] [--seed SEED] [--disable-tqdm] [--save-result] [--metadata [KEY=VALUE ...]] [--result-dir RESULT_DIR]
+- Otherwise, run the docker environment manually according the project specifications. Ensure that batch size of at least 512 is supported by the backend.
 
-Benchmark the online serving throughput.
-
-options:
-  -h, --help            show this help message and exit
-  --backend {tgi,tei,tei-async,vllm,lmdeploy,deepspeed-mii,openai,openai-chat,tensorrt-llm}
-  --base-url BASE_URL   Server or API base url if not using http host and port.
-  --host HOST
-  --port PORT
-  --endpoint ENDPOINT   API endpoint.
-  --model MODEL         Name of the model.
-  --tokenizer TOKENIZER
-                        Name or path of the tokenizer, if not using the default tokenizer.
-  --num-prompts NUM_PROMPTS
-                        Number of prompts to process.
-  --min_length MIN_LENGTH
-                        min length of input prompt's token id.
-  --max_length MAX_LENGTH
-                        max length of input prompt's token id.
-  --request-rate REQUEST_RATE
-                        Number of requests per second. If this is inf, then all the requests are sent at time 0. Otherwise, we use Poisson process to synthesize the request arrival times.
-  --seed SEED
-  --disable-tqdm        Specify to disable tqdm progress bar.
-  --save-result         Specify to save benchmark results to a json file
-  --metadata [KEY=VALUE ...]
-                        Key-value pairs (e.g, --metadata version=0.3.3 tp=1) for metadata of this run to be saved in the result JSON file for record keeping purposes.
-  --result-dir RESULT_DIR
-                        Specify directory to save benchmark json results.If not specified, results are saved in the current directory.
+```bash
+# For TEI on HPU
+docker run \
+    --privileged \
+    --rm \
+    -p 8081:80 \ # PORT
+    -v ~/.cache/huggingface/hub/:/data \
+    --ipc=host \
+    -e HTTP_PROXY=$HTTP_PROXY \
+    -e HTTPS_PROXY=$HTTPS_PROXY \
+    -e MAX_WARMUP_SEQUENCE_LENGTH=512 \
+    -e HABANA_VISIBLE_DEVICES=all \
+    -e OMPI_MCA_btl_vader_single_copy_mechanism=none \
+    --runtime=habana \
+    --cap-add=sys_nice \
+    tei-gaudi \
+    --model-id sentence-transformers/all-mpnet-base-v2 \
+    --pooling cls \
+    --max-client-batch-size 512 \
 ```
+
+> [!NOTE]
+> Keep track of the exposed `PORT` and `MODEL NAME`. They will be used during the benchmark.
+
+## Benchmarking
+
+Two benchmark scripts are provided:
+
+1. `test_sync.py` runs tests that sends requests to the specified backend synchronously, waiting for a response before sending the next request. Each test runs with a different batch size. By default, the following batch sizes are tested: [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]. An example of invoking `test_sync.py` for the TEI project can be seen below:
+
+```bash
+MODEL=sentence-transformers/all-mpnet-base-v2
+PORT=8081
+ENDPOINT=/embed
+RESULTS_DIR=../../../hf-benchmarks
+mkdir -p $RESULTS_DIR/results
+python test_sync.py --model $MODEL \
+    --port $PORT --endpoint $ENDPOINT --max_length=512 \
+    --save-result \
+    --result-dir $RESULTS_DIR \
+    --num-prompts
+```
+
+2. `test_async.py` runs tests that sends parallel requests to the specified backend asynchronously via multiple clients. Each test runs with a different client pool size. By default, the following number of clients are used for each test: [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]. An example of invoking `test_async.py` for the TEI project can be seen below:
+
+```bash
+MODEL=sentence-transformers/all-mpnet-base-v2
+PORT=8081
+ENDPOINT=/embed
+RESULTS_DIR=../../../hf-benchmarks
+mkdir -p $RESULTS_DIR
+python test_async.py --model $MODEL \
+    --port $PORT --endpoint $ENDPOINT --max_length=512 \
+    --save-result \
+    --result-dir $RESULTS_DIR \
+    --num-prompts \
+    --batch_size 8 \
+```
+
+A benchmark suite is also provided in `run_test.sh`. It runs a `test_sync.py` and multiple instances of `test_async.py` sweeping through batch size. All results are saved in `../../../hf-benchmarks/` (outside of this repository).
+
+```bash
+./run_test.sh <MODEL ID>
+```
+
+## Support Table
+
+| Project | `test_sync.py` supported | `test_async.py` supported | `docker.py` supported |
+| ---- | ---- | ---- | ---- |
+| TEI | ✔️ | ✔️ | ✔️ |
+| TGI | - | ✔️ | - |
+| vLLM | - | ✔️ | - |
+| OpenAI completions | - | ✔️ | - |
+| OpenAI chat | - | ✔️ | - |
+| TensorRT LLM | - | ✔️ | - |
 
 ## Utility Scripts
 
 ### `docker.py`
 
 The docker script is a wrapper around the `docker run` command and provides several helper flags in creating a docker environment. Currently, it is only validated for TEI docker environments.
-
-```
-usage: docker.py [-h] [--model_name MODEL_NAME] [--revision REVISION] [--docker_container DOCKER_CONTAINER] [--data_volume DATA_VOLUME] [--truncate] [--platform {gaudi2,a100,cpu}] [--debug] [--docker_port DOCKER_PORT] [--docker_env_vars [DOCKER_ENV_VARS ...]] [--trust_remote_code]
-                 [--max_client_batch_size MAX_CLIENT_BATCH_SIZE]
-
-Launch a docker environment
-
-options:
-  -h, --help            show this help message and exit
-  --model_name MODEL_NAME
-                        Model name to launch the docker environment with. (default: sentence-transformers/all-distilroberta-v1)
-  --revision REVISION   Revision of the model to use (default: None)
-  --docker_container DOCKER_CONTAINER
-                        Name or hash of the docker container to launch. (default: tei-gaudi)
-  --data_volume DATA_VOLUME
-                        Data cache for Huggingface Models. (default: /home/daniel/data)
-  --truncate            Truncate sentences to model token limit. (default: False)
-  --platform {gaudi2,a100,cpu}
-                        Plotform that the benchmark is running on. (default: gaudi2)
-  --debug               Switches log to debug mode. (default: False)
-  --docker_port DOCKER_PORT
-                        Port for sending requests (default: 8081)
-  --docker_env_vars [DOCKER_ENV_VARS ...], -e [DOCKER_ENV_VARS ...]
-                        Docker environment variables in the format `--docker_env_vars <var1>=<val1> <var2>=<val2> ...` (default: None)
-  --trust_remote_code   Enables remote code from model. Required for some models (default: False)
-  --max_client_batch_size MAX_CLIENT_BATCH_SIZE
-                        Batch size allowed by client (default: 32)
-```
 
 The `docker.py` file can also be used as a library for automated docker environment creation and destruction using Python's context manager syntax. A simple usage of it can be shown below:
 
@@ -149,14 +137,3 @@ with DockerProcess(model, open(log_file,"w"), docker_args, name_prefix="testing"
 
 # Docker environment closed here.
 ```
-
-### `run_test.sh`
-
-The run-test script runs a pre-compiled suite of tests for an embedding model.
-
-Usage:
-```sh
-./run_test.sh <MODEL ID>
-```
-
-This will run a synchronous test sweeping through batch size and multiple asynchronous tests to sweep through client size and batch size. The model results will be saved in an external directory `hf-benchmarks`.
