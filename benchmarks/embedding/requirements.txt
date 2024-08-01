@@ -3,6 +3,8 @@ requests
 aiohttp
 tqdm
 transformers
+grpcio
+protobuf<5
 datasets
 vllm
 loguru
