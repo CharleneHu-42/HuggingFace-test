@@ -1,0 +1,52 @@
+# modified from https://github.com/huggingface/transformers/blob/main/docker/transformers-pytorch-deepspeed-latest-gpu/Dockerfile
+FROM nvidia/cuda:12.1.0-devel-ubuntu22.04
+ARG DEBIAN_FRONTEND=noninteractive
+
+ARG PYTORCH='2.3.1'
+ARG CUDA='cu121'
+ARG PYTHON='3.10'
+ARG REF=0f67ba1d741d65b07d549daf4ee157609ce4f9c1
+
+RUN apt-get update && \
+    apt-get -y install \
+    python$PYTHON \
+    python3-pip \
+    python-is-python3 \
+    git \
+    ffmpeg \
+    numactl \
+    wget \
+    vim \
+    bc \
+    tesseract-ocr \
+    espeak-ng \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir --upgrade pip
+
+WORKDIR /workspace
+RUN git clone https://github.com/huggingface/transformers && cd transformers && git checkout $REF && pip install -e .[deepspeed-testing]
+
+RUN pip uninstall -y torch torchvision torchaudio && pip install --no-cache-dir -U torch==$PYTORCH torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/$CUDA
+
+RUN pip install accelerate pyctcdecode timm pytesseract quanto peft autoawq optimum decord galore-torch auto-gptq aqlm gguf fire scikit-learn sentencepiece sacremoses nltk rouge_score hqq pytest-excel librosa soundfile flash-attn g2p_en 
+RUN pip install pretty_midi essentia resampy lomo-optim Levenshtein onnx pytest-excel openpyxl scipy av
+RUN pip install natten==0.17.1+torch230cu121 -f https://shi-labs.com/natten/wheels/
+RUN pip install 'git+https://github.com/facebookresearch/detectron2.git'
+
+# WORKDIR /usr/src
+# RUN git clone https://github.com/NVIDIA/apex
+# RUN cd apex && \
+#     python3 setup.py install && \
+#     pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
+
+# Pre-build **latest** DeepSpeed, so it would be ready for testing (otherwise, the 1st deepspeed test will timeout)
+RUN python3 -m pip uninstall -y deepspeed
+# This has to be run (again) inside the GPU VMs running the tests.
+# The installation works here, but some tests fail, if we don't pre-build deepspeed again in the VMs running the tests.
+# TODO: Find out why test fail.
+RUN DS_BUILD_CPU_ADAM=1 DS_BUILD_FUSED_ADAM=1 python3 -m pip install "deepspeed<=0.14.0" --global-option="build_ext" --global-option="-j8" --no-cache -v --disable-pip-version-check 2>&1
+
+# The base image ships with `pydantic==1.8.2` which is not working - i.e. the next command fails
+RUN python3 -c "from deepspeed.launcher.runner import main"

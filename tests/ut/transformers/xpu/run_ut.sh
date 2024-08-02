@@ -1,11 +1,12 @@
+device="$1"
+excel_dir="$2"
+
 export RUN_SLOW=1
 export RUN_PT_TF_CROSS_TESTS="False"
 export RUN_PT_FLAX_CROSS_TESTS="False"
-export TRANSFORMERS_TEST_DEVICE="xpu"
-export TRANSFORMERS_TEST_DEVICE_SPEC="spec.py"
+export TRANSFORMERS_TEST_DEVICE="${device}"
+export TRANSFORMERS_TEST_DEVICE_SPEC="spec_${device}.py"
 export WANDB_DISABLED="true"
-
-excel_dir="$1"
 
 echo "+++++++++remove excel dir if exists and create a new++++++++++++"
 rm -fr $excel_dir 
