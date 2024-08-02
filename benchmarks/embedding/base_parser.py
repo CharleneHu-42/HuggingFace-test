@@ -80,4 +80,3 @@ def add_base_args(parser: argparse.ArgumentParser):
         help="Specify directory to save benchmark json results."
         "If not specified, results are saved in the current directory.",
     )
-

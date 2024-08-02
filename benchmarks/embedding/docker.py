@@ -159,25 +159,29 @@ class DockerProcess:
         if docker_args.debug:
             cmd.extend(["-e", "LOG_LEVEL=debug"])
         if docker_args.is_habana:
-            cmd.extend([
-                "--runtime=habana",
-                "-e",
-                "HABANA_VISIBLE_DEVICES=all",
-                "-e",
-                "OMPI_MCA_btl_vader_single_copy_mechanism=none",
-                "--cap-add=sys_nice",
-            ])
+            cmd.extend(
+                [
+                    "--runtime=habana",
+                    "-e",
+                    "HABANA_VISIBLE_DEVICES=all",
+                    "-e",
+                    "OMPI_MCA_btl_vader_single_copy_mechanism=none",
+                    "--cap-add=sys_nice",
+                ]
+            )
         elif docker_args.is_nvidia:
             cmd.extend(["--gpus", "all"])
         # Docker container args
-        cmd.extend([
-            docker_args.docker_container,
-            "--model-id",
-            model.name,
-            "--pooling",
-            "cls",
-            f"--max-client-batch-size={docker_args.max_client_batch_size}",
-        ])
+        cmd.extend(
+            [
+                docker_args.docker_container,
+                "--model-id",
+                model.name,
+                "--pooling",
+                "cls",
+                f"--max-client-batch-size={docker_args.max_client_batch_size}",
+            ]
+        )
         if JSON_OUTPUT:
             cmd.append("--json-output")
         if model.rev is not None:
@@ -198,9 +202,7 @@ class DockerProcess:
 
     def close(self):
         self.stdout.close()
-        kill_process = subprocess.Popen(
-            ["docker", "kill", self.name]
-        )
+        kill_process = subprocess.Popen(["docker", "kill", self.name])
         kill_process.wait()
         self.process.wait()
 
