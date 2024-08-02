@@ -35,8 +35,8 @@ RUN apt-get update && \
 #     echo ". /root/miniforge3/etc/profile.d/conda.sh && conda activate base" >> ~/.bashrc    
 
 RUN pip install pyctcdecode timm pytesseract quanto peft autoawq optimum decord galore-torch auto-gptq aqlm gguf fire scikit-learn sentencepiece sacremoses nltk rouge_score hqq 
-RUN pip install pretty_midi essentia resampy lomo-optim Levenshtein onnx pytest-excel openpyxl librosa soundfile g2p_en
-RUN pip install phonemizer scipy av 
+RUN pip install pretty_midi essentia resampy lomo-optim Levenshtein onnx pytest-excel openpyxl librosa soundfile g2p_en pytest-env
+RUN pip install phonemizer scipy av sacrebleu
 RUN pip install natten==0.17.1+torch230cu121 -f https://shi-labs.com/natten/wheels/
 
 WORKDIR /workspace
