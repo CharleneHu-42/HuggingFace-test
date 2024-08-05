@@ -3,34 +3,28 @@ import pandas as pd
 import glob
 import os
 
-
-SKIP_MESSAGES = [
+XPU_MISSING_FEATURES = [
     "test requires natten",
-    "test requires Flash Attention",
-    "test requires TensorFlow",
-    "test requires JAX & Flax",
-    "test requires PyTorch Quantization Toolkit",
-    "test requires multiple GPUs",
-    "test requires 0 or 1 GPU",
-    "test requires 0 or 1 or 2 GPUs",
-    "test requires TorchXLA",
-    "test requires PyTorch NeuronCore",
-    "test requires PyTorch NPU",
-    "test requires multiple NPUs",
-    "test requires Torch-TensorRT FX",
-    "test requires CUDA",
-    "test requires torch>=1.10, using Ampere GPU or newer arch with cuda>=11.0",
-    "test requires Ampere or a newer GPU arch, cuda>=11 and torch>=1.7",
-    "test requires `detectron2`",
-    "test requires Ray/tune",
     "test requires apex",
     "test requires aqlm",
     "test requires bitsandbytes and torch",
     "test requires auto-gptq",
     "test requires autoawq",
     "test requires quanto",
+    "test requires gguf",
+    "test requires LOMO",
+    "test requires `detectron2`",
+    "test requires Flash Attention",
 ]
 
+GPU_ONLY = [
+    "test requires Torch-TensorRT FX",
+    "test requires PyTorch Quantization Toolkit",
+    "test requires TorchXLA",
+    "test requires JAX & Flax",
+    "test requires torch>=1.10, using Ampere GPU or newer arch with cuda>=11.0",
+    "test requires Ampere or a newer GPU arch, cuda>=11 and torch>=1.7",
+]
 
 def replace_unittests(df):
     for i, v in df["file_name"].items():
@@ -49,6 +43,7 @@ def replace_unittests(df):
 def main(
     excel_dir: str = "",
     gpu_failed_path: str = "",
+    gpu_skipped_path: str = "",
     output_dir: str = "",
 ):
     os.makedirs(output_dir, exist_ok=True)
@@ -80,6 +75,7 @@ def main(
             if f"{suite_name}::{test_name}" in gpu_cannot_run:
                 tests_df.iloc[index, -1] = 1
 
+    SKIP_MESSAGES = XPU_MISSING_FEATURES + GPU_ONLY
     tests_df["xpu-irrelevant"] = [0] * tests_df.shape[0]
     for index, row in tests_df.iterrows():
         if row["message"] in SKIP_MESSAGES:
