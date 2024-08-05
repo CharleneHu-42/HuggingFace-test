@@ -118,7 +118,7 @@ The `docker.py` file can also be used as a library for automated docker environm
 
 ```python
 docker_args = DockerArgs(
-    docker_container="tei-gaudi",
+    docker_image="tei-gaudi",
     data_volume="~/data",
     truncate=False,
     platform="gaudi2",
