@@ -27,7 +27,7 @@ RUN pip install --no-cache-dir --upgrade pip
 
 RUN pip uninstall -y torch torchvision torchaudio && pip install --no-cache-dir -U torch==$PYTORCH torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/$CUDA
 
-RUN pip install accelerate pyctcdecode timm pytesseract peft optimum decord galore-torch fire scikit-learn sentencepiece sacremoses nltk rouge_score hqq librosa soundfile g2p_en 
+RUN pip install accelerate pyctcdecode timm pytesseract peft optimum decord galore-torch fire scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en 
 RUN pip install pretty_midi essentia resampy Levenshtein onnx pytest-excel openpyxl scipy av pypi-kenlm sacrebleu pytest-env phonemizer
 
 
