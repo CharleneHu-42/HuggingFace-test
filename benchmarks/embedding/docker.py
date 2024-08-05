@@ -60,6 +60,7 @@ def add_docker_args(parser: argparse.ArgumentParser):
         "--docker_env_vars",
         "-e",
         type=str,
+        default=["MAX_WARMUP_SEQUENCE_LENGTH=512", "MAX_WARMUP_BATCH_SIZE=512"],
         nargs="*",
         help="Docker environment variables in the format `--docker_env_vars <var1>=<val1> <var2>=<val2> ...`",
     )
@@ -72,8 +73,20 @@ def add_docker_args(parser: argparse.ArgumentParser):
     parser.add_argument(
         "--max_client_batch_size",
         type=int,
-        default=32,
+        default=512,
         help="Batch size allowed by client",
+    )
+    parser.add_argument(
+        "--max_warmup_sequence_length",
+        type=int,
+        default=512,
+        help="Warmup sequence length to test up to.",
+    )
+    parser.add_argument(
+        "--max_warmup_batch_size",
+        type=int,
+        default=512,
+        help="Warmup batch size to test up to.",
     )
 
 
@@ -88,6 +101,8 @@ class DockerArgs(Namespace):
     docker_env_vars: Optional[List[str]]
     trust_remote_code: bool
     max_client_batch_size: int
+    max_warmup_sequence_length: int
+    max_warmup_batch_size: int
 
     def validate(self):
         self.data_volume = self.data_volume.resolve()
@@ -149,7 +164,9 @@ class DockerProcess:
             "-e",
             f"NO_PROXY={NO_PROXY}",
             "-e",
-            "MAX_WARMUP_SEQUENCE_LENGTH=512",
+            f"MAX_WARMUP_SEQUENCE_LENGTH={docker_args.max_warmup_sequence_length}",
+            "-e",
+            f"MAX_WARMUP_BATCH_SIZE={docker_args.max_warmup_batch_size}",
         ]
         if docker_args.trust_remote_code or model.remote_code_required:
             cmd.extend(["-e", "TRUST_REMOTE_CODE=1"])
