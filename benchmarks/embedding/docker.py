@@ -23,10 +23,10 @@ def add_docker_args(parser: argparse.ArgumentParser):
     Adds the required docker arguments to the argument parser.
     """
     parser.add_argument(
-        "--docker_container",
+        "--docker_image",
         type=str,
         default="tei-gaudi",
-        help="Name or hash of the docker container to launch.",
+        help="Name or hash of the docker image to launch.",
     )
     parser.add_argument(
         "--data_volume",

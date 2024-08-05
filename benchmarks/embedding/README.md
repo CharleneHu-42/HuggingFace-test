@@ -27,10 +27,10 @@ pip install -r requirements.txt
 - If supported by `docker.py` (see [Support Table](#support-table))
 
 ```bash
-python docker.py --model_name <model-name> --docker_container <docker-tag> [--other flags]
+python docker.py --model_name <model-name> --docker_image <docker-tag> [--other flags]
 ```
 
-- Otherwise, run the docker environment manually according the project specifications. Ensure that batch size of at least 512 is supported by the backend.
+- Otherwise, run the docker environment manually according the project specifications. Please ensure that batch size of at least 512 is supported by the backend. The benchmark will sweep batch sizes up to 512.
 
 ```bash
 # For TEI on HPU
@@ -72,7 +72,7 @@ python test_sync.py --model $MODEL \
     --port $PORT --endpoint $ENDPOINT --max_length=512 \
     --save-result \
     --result-dir $RESULTS_DIR \
-    --num-prompts
+    --num-prompts 5120
 ```
 
 2. `test_async.py` runs tests that sends parallel requests to the specified backend asynchronously via multiple clients. Each test runs with a different client pool size. By default, the following number of clients are used for each test: [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]. An example of invoking `test_async.py` for the TEI project can be seen below:
@@ -87,7 +87,7 @@ python test_async.py --model $MODEL \
     --port $PORT --endpoint $ENDPOINT --max_length=512 \
     --save-result \
     --result-dir $RESULTS_DIR \
-    --num-prompts \
+    --num-prompts 5120 \
     --batch_size 8 \
 ```
 
