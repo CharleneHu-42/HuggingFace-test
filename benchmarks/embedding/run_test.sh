@@ -15,6 +15,10 @@ mkdir -p $RESULTS_DIR/results
 echo "Starting benchmarking suite for $MODEL to https://127.0.0.1:$PORT$ENDPOINT with $NUM_PROMPTS prompts."
 echo "Results will be saved in $RESULTS_DIR"
 
+echo "Ensuring ownership of HF Cache"
+echo "sudo chown -R $USER ~/.cache/huggingface/hub"
+sudo chown -R $USER ~/.cache/huggingface/hub
+
 echo "python test_sync.py --model $MODEL --port $PORT --endpoint $ENDPOINT --max_length=512 --save-result --result-dir $RESULTS_DIR --num-prompts $NUM_PROMPTS "
 python test_sync.py --model $MODEL --port $PORT --endpoint $ENDPOINT --max_length=512 --save-result \
     --result-dir $RESULTS_DIR \

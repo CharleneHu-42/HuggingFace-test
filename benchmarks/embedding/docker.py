@@ -11,9 +11,9 @@ from typing import Callable, List, Optional
 from loguru import logger
 
 from models import Model
-from utils import HTTP_PROXY, HTTPS_PROXY, NO_PROXY, PORT, ROOT_DIR, Namespace
+from utils import HTTP_PROXY, HTTPS_PROXY, NO_PROXY, PORT, Namespace
 
-DATA_VOLUME = ROOT_DIR.parent / "data"
+DATA_VOLUME = Path.home() / ".cache" / "huggingface" / "hub"
 SUPPORTED_PLATFORMS = ["gaudi2", "a100", "cpu"]
 JSON_OUTPUT = True
 
