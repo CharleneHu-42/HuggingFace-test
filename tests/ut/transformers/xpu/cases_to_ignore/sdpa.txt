@@ -1,0 +1,4 @@
+test_sdpa_can_compile_dynamic
+test_sdpa_can_dispatch_on_flash
+tests/models/gemma/test_modeling_gemma.py::GemmaIntegrationTest::test_model_2b_sdpa
+tests/models/mistral/test_modeling_mistral.py::MistralIntegrationTest::test_model_7b_long_prompt_sdpa
