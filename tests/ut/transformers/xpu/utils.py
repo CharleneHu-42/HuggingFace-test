@@ -38,6 +38,8 @@ def save_skipped_cases_to_txt(input_file, output_file):
     df = pd.read_excel(input_file)
     df_skipped = df[df["result"] == "SKIPPED"]
     
+    df_skipped = df_skipped.sort_values(by=["suite_name","test_name"])
+    
     cases = []
     for _, row in df_skipped.iterrows():
         suite_name = row["suite_name"]
