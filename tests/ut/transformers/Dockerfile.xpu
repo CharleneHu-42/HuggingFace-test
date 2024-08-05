@@ -1,5 +1,6 @@
 FROM intel/oneapi-basekit:2024.2.0-devel-ubuntu22.04
 
+ARG PYTHON='3.10'
 ARG REF=0f67ba1d741d65b07d549daf4ee157609ce4f9c1
 
 RUN apt-get update && \
@@ -18,13 +19,13 @@ RUN apt-get update && \
     rsync \
     sudo \
     unzip \
-    python3.10 \
+    python$PYTHON \
     python3-pip \
     python-is-python3 \
     ffmpeg \
     tesseract-ocr \
     espeak-ng \
-    wget && \
+    wget \
     apt-get clean && \
     rm -rf  /var/lib/apt/lists/*
 
@@ -34,10 +35,8 @@ RUN apt-get update && \
 #     echo ". /root/miniforge3/etc/profile.d/conda.sh && conda activate base" >> /etc/skel/.bashrc && \
 #     echo ". /root/miniforge3/etc/profile.d/conda.sh && conda activate base" >> ~/.bashrc    
 
-RUN pip install pyctcdecode timm pytesseract quanto peft autoawq optimum decord galore-torch auto-gptq aqlm gguf fire scikit-learn sentencepiece sacremoses nltk rouge_score hqq 
-RUN pip install pretty_midi essentia resampy lomo-optim Levenshtein onnx pytest-excel openpyxl librosa soundfile g2p_en pytest-env
-RUN pip install phonemizer scipy av sacrebleu
-RUN pip install natten==0.17.1+torch230cu121 -f https://shi-labs.com/natten/wheels/
+RUN pip install accelerate pyctcdecode timm pytesseract peft optimum decord galore-torch fire scikit-learn sentencepiece sacremoses nltk rouge_score hqq librosa soundfile g2p_en
+RUN pip install pretty_midi essentia resampy Levenshtein onnx pytest-excel openpyxl scipy av pypi-kenlm sacrebleu pytest-env phonemizer
 
 WORKDIR /workspace
 RUN git clone https://github.com/huggingface/transformers && cd transformers && git checkout $REF && pip install -e .[deepspeed-testing]
