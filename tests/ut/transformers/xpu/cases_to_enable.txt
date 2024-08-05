@@ -1,0 +1,12 @@
+test_model_parallel_equal_results
+test_model_parallelization
+test_multi_gpu_data_parallel_forward
+tests/models/recurrent_gemma/test_modeling_recurrent_gemma.py::RecurrentGemmaIntegrationTest::test_2b_generate
+tests/models/recurrent_gemma/test_modeling_recurrent_gemma.py::RecurrentGemmaIntegrationTest::test_2b_sample
+tests/models/recurrent_gemma/test_modeling_recurrent_gemma.py::RecurrentGemmaIntegrationTest::test_long_context
+tests/models/llama/test_modeling_llama.py::LlamaIntegrationTest::test_compile_static_cache
+tests/models/gemma/test_modeling_gemma.py::GemmaIntegrationTest::test_compile_static_cache
+tests/models/mistral/test_modeling_mistral.py::MistralIntegrationTest::test_compile_static_cache
+
+
+

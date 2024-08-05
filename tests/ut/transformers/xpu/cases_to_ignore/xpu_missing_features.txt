@@ -17,3 +17,8 @@ UperNetModelTest::test_model_parallelism
 VivitModelTest::test_model_parallelism
 YolosModelTest::test_model_parallelism
 tests/models/blip_2/test_modeling_blip_2.py::Blip2ModelIntegrationTest::test_inference_opt_multi_accelerator
+test_cpu_offload
+test_disk_offload_bin
+tests/models/cohere/test_modeling_cohere.py::CohereIntegrationTest::test_batched_4bit
+tests/quantization/gptq/test_gptq.py
+tests/quantization/quanto_integration/test_quanto.py
