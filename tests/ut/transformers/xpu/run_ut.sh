@@ -13,7 +13,7 @@ rm -fr $excel_dir
 mkdir $excel_dir
 
 # only skip tests that are cpu-only, tpu-only, npu-only, sagemaker-only and tf-only.
-# tests that are not xpu-relevant will be filtered during analysis
+# tests that are not xpu-relevant, e.g. apex, torch.fx, will be filtered during analysis
 NOT_RUN_MARKERS="not (not_device_test)"
 NOT_RUN_KEYWORDS="not (tpu or npu or tf or ModelOnTheFlyConversionTester or SigOpt or TrainerHyperParameterRayIntegrationTest)"
 
