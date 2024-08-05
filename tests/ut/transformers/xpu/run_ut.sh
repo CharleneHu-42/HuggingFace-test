@@ -12,8 +12,10 @@ echo "+++++++++remove excel dir if exists and create a new++++++++++++"
 rm -fr $excel_dir 
 mkdir $excel_dir
 
-NOT_RUN_MARKERS="not (not_device_test or torch_fx or flash_attn_test)"
-NOT_RUN_KEYWORDS="not (tpu or npu or cuda or flax or tf or ModelOnTheFlyConversionTester or SigOpt)"
+# only skip tests that are cpu-only, tpu-only, npu-only, sagemaker-only and tf-only.
+# tests that are not xpu-relevant will be filtered during analysis
+NOT_RUN_MARKERS="not (not_device_test)"
+NOT_RUN_KEYWORDS="not (tpu or npu or tf or ModelOnTheFlyConversionTester or SigOpt or TrainerHyperParameterRayIntegrationTest)"
 
 echo "+++++++++run single test files++++++++++++++++"
 pytest tests/*.py -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --excelreport="${excel_dir}/single_files.xlsx" --make-reports="single_files" --timeout=600
