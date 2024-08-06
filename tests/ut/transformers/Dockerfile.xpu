@@ -1,0 +1,45 @@
+FROM intel/oneapi-basekit:2024.2.0-devel-ubuntu22.04
+
+ARG PYTHON='3.10'
+ARG REF=0f67ba1d741d65b07d549daf4ee157609ce4f9c1
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends --fix-missing \
+    apt-utils \
+    build-essential \
+    ca-certificates \
+    clinfo \
+    curl \
+    git \
+    vim \
+    numactl \
+    gnupg2 \
+    gpg-agent \
+    zlib1g-dev \
+    rsync \
+    sudo \
+    unzip \
+    python$PYTHON \
+    python3-pip \
+    python-is-python3 \
+    ffmpeg \
+    tesseract-ocr \
+    espeak-ng \
+    wget \
+    apt-get clean && \
+    rm -rf  /var/lib/apt/lists/*
+
+# install Miniforge
+# RUN curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh" && bash Miniforge3-$(uname)-$(uname -m).sh -b && \
+#     rm Miniforge3-$(uname)-$(uname -m).sh && \
+#     echo ". /root/miniforge3/etc/profile.d/conda.sh && conda activate base" >> /etc/skel/.bashrc && \
+#     echo ". /root/miniforge3/etc/profile.d/conda.sh && conda activate base" >> ~/.bashrc    
+
+RUN pip install accelerate pyctcdecode timm pytesseract peft optimum decord galore-torch fire scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en
+RUN pip install pretty_midi essentia resampy Levenshtein onnx pytest-excel openpyxl scipy av pypi-kenlm sacrebleu pytest-env phonemizer
+
+WORKDIR /workspace
+RUN git clone https://github.com/huggingface/transformers && cd transformers && git checkout $REF && pip install -e .[deepspeed-testing]
+
+
+
