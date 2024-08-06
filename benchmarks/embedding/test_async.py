@@ -186,13 +186,15 @@ def main(args: argparse.Namespace):
             filename = os.path.join(args.result_dir, filename)
         with open(filename, "w", newline="") as f:
             csv_writer = csv.writer(f)
-            csv_writer.writerow([
-                "Number of Clients",
-                "Mean Latency (ms)",
-                "P50 Latency (ms)",
-                "P99 Latency (ms)",
-                "Throughput (sentences/s)",
-            ])
+            csv_writer.writerow(
+                [
+                    "Number of Clients",
+                    "Mean Latency (ms)",
+                    "P50 Latency (ms)",
+                    "P99 Latency (ms)",
+                    "Throughput (sentences/s)",
+                ]
+            )
             csv_writer.writerows(
                 (
                     cs,
