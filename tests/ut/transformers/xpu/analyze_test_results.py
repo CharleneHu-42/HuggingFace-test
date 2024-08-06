@@ -24,6 +24,7 @@ GPU_ONLY = [
     "test requires JAX & Flax",
     "test requires torch>=1.10, using Ampere GPU or newer arch with cuda>=11.0",
     "test requires Ampere or a newer GPU arch, cuda>=11 and torch>=1.7",
+    "test requires GaLore",
 ]
 
 def replace_unittests(df):
@@ -40,18 +41,33 @@ def replace_unittests(df):
     return df
 
 
+def read_txt_file(ignore_file):
+    cases_list = []
+    if os.path.isfile(ignore_file):
+        with open(ignore_file, "r") as f:
+            cases_list.append([line.strip() for line in f.readlines()])
+    
+    cases = [case for cases in cases_list for case in cases ]
+    return cases
+    
+    
 def main(
     excel_dir: str = "",
-    gpu_failed_path: str = "",
-    gpu_skipped_path: str = "",
+    ignore_cases: str = "",
     output_dir: str = "",
 ):
     os.makedirs(output_dir, exist_ok=True)
 
-    if os.path.isfile(gpu_failed_path):
-        with open(gpu_failed_path, "r") as f:
-            gpu_cannot_run = [line.strip() for line in f.readlines()]
-
+    cuda_also_failed = os.path.join(ignore_cases, "cuda_also_failed.txt")
+    cuda_also_skipped = os.path.join(ignore_cases, "cuda_also_skipped.txt")
+    cuda_only = os.path.join(ignore_cases, "cuda_only.txt")
+    xpu_missing = os.path.join(ignore_cases, "xpu_missing_features.txt")
+    
+    cuda_failed_cases = read_txt_file(cuda_also_failed)
+    cuda_skipped_cases = read_txt_file(cuda_also_skipped)
+    cuda_only_cases = read_txt_file(cuda_only)
+    xpu_missing_cases = read_txt_file(xpu_missing)
+            
     all_test_files = glob.glob(os.path.join(excel_dir, "*.xlsx"))
 
     tests_df = pd.concat(
@@ -64,19 +80,39 @@ def main(
     ]
     # if the file name contains `unittest`, we will need to manually replace it with the actual file name
     tests_df = replace_unittests(tests_df)
+    
+    tests_df["same with gpu?"] = [0] * tests_df.shape[0]
 
-    if os.path.isfile(gpu_failed_path):
-        tests_df["same as gpu?"] = [0] * tests_df.shape[0]
-        df_tmp = tests_df[tests_df["result"] == "FAILED"]
-
-        for index, row in df_tmp.iterrows():
-            suite_name = row["suite_name"]
-            test_name = row["test_name"]
-            if f"{suite_name}::{test_name}" in gpu_cannot_run:
-                tests_df.iloc[index, -1] = 1
-
+    same_with_cuda = cuda_failed_cases + cuda_skipped_cases
+    
+    for index, row in tests_df.iterrows():
+        file_name = row["file_name"]
+        suite_name = row["suite_name"]
+        test_name = row["test_name"]
+        if file_name in same_with_cuda or f"{suite_name}::{test_name}" in same_with_cuda or f"{file_name}::{suite_name}::{test_name}" in same_with_cuda:
+            tests_df.iloc[index, -1] = 1
+    
+    tests_df["cuda only?"] = [0] * tests_df.shape[0]
+    
+    for index, row in tests_df.iterrows():
+        file_name = row["file_name"]
+        suite_name = row["suite_name"]
+        test_name = row["test_name"]
+        if file_name in cuda_only_cases or f"{suite_name}::{test_name}" in cuda_only_cases or f"{file_name}::{suite_name}::{test_name}" in cuda_only_cases:
+            tests_df.iloc[index, -1] = 1
+            
+    tests_df["xpu missing features?"] = [0] * tests_df.shape[0]
+    
+    for index, row in tests_df.iterrows():
+        file_name = row["file_name"]
+        suite_name = row["suite_name"]
+        test_name = row["test_name"]
+        if file_name in xpu_missing_cases or f"{suite_name}::{test_name}" in xpu_missing_cases or f"{file_name}::{suite_name}::{test_name}" in xpu_missing_cases:
+            tests_df.iloc[index, -1] = 1
+    
     SKIP_MESSAGES = XPU_MISSING_FEATURES + GPU_ONLY
-    tests_df["xpu-irrelevant"] = [0] * tests_df.shape[0]
+    tests_df["other skips"] = [0] * tests_df.shape[0]
+    
     for index, row in tests_df.iterrows():
         if row["message"] in SKIP_MESSAGES:
             tests_df.iloc[index, -1] = 1
