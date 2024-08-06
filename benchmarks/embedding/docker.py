@@ -92,7 +92,7 @@ def add_docker_args(parser: argparse.ArgumentParser):
 
 @dataclass
 class DockerArgs(Namespace):
-    docker_container: str
+    docker_image: str
     data_volume: Path
     truncate: bool
     platform: str
@@ -188,10 +188,10 @@ class DockerProcess:
             )
         elif docker_args.is_nvidia:
             cmd.extend(["--gpus", "all"])
-        # Docker container args
+        # Docker image args
         cmd.extend(
             [
-                docker_args.docker_container,
+                docker_args.docker_image,
                 "--model-id",
                 model.name,
                 "--pooling",
