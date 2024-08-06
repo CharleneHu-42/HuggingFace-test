@@ -61,11 +61,13 @@ def main(
     cuda_also_failed = os.path.join(ignore_cases, "cuda_also_failed.txt")
     cuda_also_skipped = os.path.join(ignore_cases, "cuda_also_skipped.txt")
     cuda_only = os.path.join(ignore_cases, "cuda_only.txt")
+    sdpa = os.path.join(ignore_cases, "sdpa.txt")
     xpu_missing = os.path.join(ignore_cases, "xpu_missing_features.txt")
     
     cuda_failed_cases = read_txt_file(cuda_also_failed)
     cuda_skipped_cases = read_txt_file(cuda_also_skipped)
     cuda_only_cases = read_txt_file(cuda_only)
+    sdpa_cases = read_txt_file(sdpa)
     xpu_missing_cases = read_txt_file(xpu_missing)
             
     all_test_files = glob.glob(os.path.join(excel_dir, "*.xlsx"))
@@ -78,6 +80,7 @@ def main(
     tests_df = tests_df[
         ["file_name", "suite_name", "test_name", "result", "message", "duration"]
     ]
+    
     # if the file name contains `unittest`, we will need to manually replace it with the actual file name
     tests_df = replace_unittests(tests_df)
     
@@ -100,7 +103,16 @@ def main(
         test_name = row["test_name"]
         if file_name in cuda_only_cases or f"{suite_name}::{test_name}" in cuda_only_cases or f"{file_name}::{suite_name}::{test_name}" in cuda_only_cases:
             tests_df.iloc[index, -1] = 1
-            
+    
+    tests_df["sdpa?"] = [0] * tests_df.shape[0]
+    
+    for index, row in tests_df.iterrows():
+        file_name = row["file_name"]
+        suite_name = row["suite_name"]
+        test_name = row["test_name"]
+        if file_name in sdpa_cases or f"{suite_name}::{test_name}" in sdpa_cases or f"{file_name}::{suite_name}::{test_name}" in sdpa_cases:
+            tests_df.iloc[index, -1] = 1
+              
     tests_df["xpu missing features?"] = [0] * tests_df.shape[0]
     
     for index, row in tests_df.iterrows():

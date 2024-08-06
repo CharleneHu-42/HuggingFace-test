@@ -1250,3 +1250,7 @@ tests/models/whisper/test_modeling_whisper.py::WhisperModelIntegrationTests::tes
 tests/models/whisper/test_modeling_whisper.py::WhisperModelIntegrationTests::test_whisper_empty_longform
 tests/models/whisper/test_modeling_whisper.py::WhisperModelIntegrationTests::test_whisper_empty_longform_multi_gpu
 tests/trainer/test_trainer_distributed.py::TestTrainerDistributed::test_trainer
+tests/models/fuyu/test_modeling_fuyu.py::FuyuModelIntegrationTest::test_greedy_generation
+tests/models/recurrent_gemma/test_modeling_recurrent_gemma.py::RecurrentGemmaIntegrationTest::test_model_2b_8bit
+tests/models/whisper/test_modeling_whisper.py::WhisperModelIntegrationTests::test_speculative_decoding_distil
+tests/extended/test_trainer_ext.py::TestTrainerExt::test_run_seq2seq_apex
