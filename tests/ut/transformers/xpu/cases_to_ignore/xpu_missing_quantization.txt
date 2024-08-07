@@ -170,3 +170,8 @@ tests/models/table_transformer/test_modeling_table_transformer.py::TableTransfor
 tests/models/video_llava/test_modeling_video_llava.py::VideoLlavaForConditionalGenerationModelTest::test_generate_with_quant_cache
 tests/models/cohere/test_modeling_cohere.py::CohereModelTest::test_generate_with_quant_cache
 tests/models/conditional_detr/test_modeling_conditional_detr.py::ConditionalDetrModelTest::test_generate_with_quant_cache
+tests/quantization/hqq/test_hqq.py::HQQTest::test_f16_quantized_model_with_offloading
+tests/quantization/hqq/test_hqq.py::HQQTest::test_fp16_quantized_model
+tests/quantization/hqq/test_hqq.py::HQQTestMultiGPU::test_fp16_quantized_model_multipgpu
+tests/quantization/hqq/test_hqq.py::HqqConfigTest::test_to_dict
+

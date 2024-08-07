@@ -28,6 +28,7 @@ def read_txt_to_list(ignore_file):
 
 
 def save_list_to_txt(list, output_file):
+    list = sorted(list)
     with open(output_file, "w") as file:
         for case in list:
             file.write(case + "\n")
