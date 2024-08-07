@@ -2046,7 +2046,6 @@ MT5EncoderOnlyModelTest::test_sdpa_can_compile_dynamic
 MT5EncoderOnlyModelTest::test_sdpa_can_dispatch_on_flash
 MT5EncoderOnlyModelTest::test_sdpa_matches_eager_sliding_window
 MT5EncoderOnlyModelTest::test_torch_compile
-MT5EncoderOnlyModelTest::test_torch_fx
 MT5ModelTest::test_custom_4d_attention_mask
 MT5ModelTest::test_eager_matches_sdpa_generate
 MT5ModelTest::test_eager_matches_sdpa_inference_0_float16
@@ -4015,4 +4014,3 @@ YosoModelTest::test_sdpa_can_dispatch_on_flash
 YosoModelTest::test_sdpa_matches_eager_sliding_window
 YosoModelTest::test_torch_compile
 YosoModelTest::test_torch_fx
-MvpModelTest::test_left_padding_compatibility

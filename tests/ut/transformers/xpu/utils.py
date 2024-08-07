@@ -3,45 +3,27 @@ import os
 import pandas as pd 
 
 
-def export_rerun_cases(file_name):
-    df = pd.read_excel(file_name)
-
-    skipped = df[df["result"] == "SKIPPED"]
-    rerun = skipped[skipped["message"].isnull()]
-
+def save_cases_to_bash(df, output_file):
+    df = df.sort_values(by=["suite_name","test_name"])
+    
     cases  = []
     
-    for index, row in rerun.iterrows():
+    for _, row in df.iterrows():
         suite_name = row["suite_name"]
         test_name = row["test_name"]
         cases.append(f"pytest -rA tests -k '{suite_name} and {test_name}' --excelreport RERUN/{suite_name[:10]+test_name[-15:]}.xlsx")
     
-    with open("rerun.sh", "w") as file:
+    with open(output_file, "w") as file:
         for case in cases:
             file.write(case + "\n")
-            
-
-def merge_excel_results(excel_path, output_file_name):    
     
-    all_test_files = glob.glob(os.path.join(excel_path, "*.xlsx"))
-
-    rerun_df = pd.concat(
-            pd.read_excel(excel_file) for excel_file in all_test_files
-        ).reset_index()
-    rerun_df.drop(columns=["index"], inplace=True)
-
-    rerun_df.to_excel(output_file_name, index=False)
-        
     
-def save_skipped_cases_to_txt(input_file, output_file):
+def save_cases_to_txt(df, output_file):
     
-    df = pd.read_excel(input_file)
-    df_skipped = df[df["result"] == "SKIPPED"]
-    
-    df_skipped = df_skipped.sort_values(by=["suite_name","test_name"])
+    df = df.sort_values(by=["suite_name","test_name"])
     
     cases = []
-    for _, row in df_skipped.iterrows():
+    for _, row in df.iterrows():
         suite_name = row["suite_name"]
         test_name = row["test_name"]
         cases.append(f"{suite_name}::{test_name}")
@@ -49,27 +31,77 @@ def save_skipped_cases_to_txt(input_file, output_file):
     with open(output_file, "w") as file:
         for case in cases:
             file.write(case + "\n")
-        
-        
-    
-def mark_same_with_cuda(cuda_df, xpu_df, xpu_df_all):
-    
-    for _, row in cuda_df.iterrows():
-        suite_name = row["suite_name"]
-        test_name = row["test_name"]
-        target = xpu_df[(xpu_df["suite_name"] == suite_name) & (xpu_df["test_name"] == test_name)] 
-        xpu_df_all.loc[target.index, "same with cuda"]  = 1
+            
+            
+def save_cases_with_empty_messages(file_name):
+    df = pd.read_excel(file_name)
 
-    return xpu_df_all
+    skipped = df[(df["result"] == "SKIPPED") | (df["result"] == "FAILED")]
+    rerun = skipped[skipped["message"].isnull()]
     
+    save_cases_to_bash(rerun, "rerun.sh")
+
+
+def merge_excel_files_to_one(input_path, output_file):
     
-def mark_cuda_failed_skipped_cases(xpu_file, cuda_file, output_dir):
+    all_test_files = glob.glob(os.path.join(input_path, "*.xlsx"))
+
+    df_merged = pd.concat(
+            pd.read_excel(excel_file) for excel_file in all_test_files
+        ).reset_index()
+    df_merged.drop(columns=["index"], inplace=True)
+
+    df_merged.to_excel(output_file, index=False)
+                    
+            
+def save_skipped_cases_to_txt(input_file, output_file):
+    
+    df = pd.read_excel(input_file)
+    df_skipped = df[df["result"] == "SKIPPED"]
+    
+    save_cases_to_txt(df_skipped, output_file)
+
+
+def save_failed_cases_to_txt(input_file, output_file):
+    
+    df = pd.read_excel(input_file)
+    df_skipped = df[df["result"] == "FAILED"]
+    
+    save_cases_to_txt(df_skipped, output_file)
+            
+
+def save_skipped_stats_to_excel(input_file, output_file):
+    df = pd.read_excel(input_file)
+    skipped_df = df[df["result"] == "SKIPPED"]["message"].value_counts().reset_index()
+    skipped_df.to_excel(output_file, index=False)
+
+
+def save_failed_stats_to_excel(input_file, output_file):
+    df = pd.read_excel(input_file)
+    skipped_df = df[df["result"] == "FAILED"]["message"].value_counts().reset_index()
+    skipped_df.to_excel(output_file, index=False)
+    
+        
+    
+def mark_cuda_failed_skipped_cases(xpu_file, cuda_file, output_file):
     xpu_df = pd.read_excel(xpu_file)
     cuda_df = pd.read_excel(cuda_file)
+    
+    xpu_df["cuda also"] = [0] * xpu_df.shape[0]
     
     pvc_skipped = xpu_df[xpu_df["result"] == "SKIPPED"]
     cuda_skipped = cuda_df[cuda_df["result"] == "SKIPPED"]
     
+    def mark_same_with_cuda(cuda_df, xpu_df, xpu_df_all):
+        
+        for _, row in cuda_df.iterrows():
+            suite_name = row["suite_name"]
+            test_name = row["test_name"]
+            target = xpu_df[(xpu_df["suite_name"] == suite_name) & (xpu_df["test_name"] == test_name)] 
+            xpu_df_all.loc[target.index, "cuda also"]  = 1
+
+        return xpu_df_all
+
     xpu_df = mark_same_with_cuda(cuda_skipped, pvc_skipped, xpu_df)
 
     pvc_failed = xpu_df[xpu_df["result"] == "FAILED"]
@@ -77,7 +109,7 @@ def mark_cuda_failed_skipped_cases(xpu_file, cuda_file, output_dir):
     
     xpu_df = mark_same_with_cuda(cuda_failed, pvc_failed, xpu_df)
     
-    xpu_df.to_excel(os.path.join(output_dir, "new_raw_test_results.xlsx"), index=False)
+    xpu_df.to_excel(output_file, index=False)
     
 
     
