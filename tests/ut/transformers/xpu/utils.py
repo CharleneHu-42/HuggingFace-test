@@ -3,6 +3,36 @@ import os
 import pandas as pd 
 
 
+def replace_unittests(df):
+    for i, v in df["file_name"].items():
+        if "/unittest/" in str(v):
+            suite_name = df.loc[i, "suite_name"]
+            new_df = (
+                df.groupby(["suite_name", "file_name"], as_index=False)
+                .size()
+                .sort_values(["size"], ascending=False)
+            )
+            new_value = new_df[new_df["suite_name"] == suite_name]["file_name"].iloc[0]
+            df.loc[i, "file_name"] = new_value
+    return df
+
+
+def read_txt_to_list(ignore_file):
+    cases_list = []
+    if os.path.isfile(ignore_file):
+        with open(ignore_file, "r") as f:
+            cases_list.append([line.strip() for line in f.readlines()])
+    
+    cases = [case for cases in cases_list for case in cases ]
+    return cases
+
+
+def save_list_to_txt(list, output_file):
+    with open(output_file, "w") as file:
+        for case in list:
+            file.write(case + "\n")
+
+
 def save_cases_to_bash(df, output_file):
     df = df.sort_values(by=["suite_name","test_name"])
     
@@ -13,9 +43,7 @@ def save_cases_to_bash(df, output_file):
         test_name = row["test_name"]
         cases.append(f"pytest -rA tests -k '{suite_name} and {test_name}' --excelreport RERUN/{suite_name[:10]+test_name[-15:]}.xlsx")
     
-    with open(output_file, "w") as file:
-        for case in cases:
-            file.write(case + "\n")
+    save_list_to_txt(cases, output_file)
     
     
 def save_cases_to_txt(df, output_file):
@@ -28,9 +56,7 @@ def save_cases_to_txt(df, output_file):
         test_name = row["test_name"]
         cases.append(f"{suite_name}::{test_name}")
     
-    with open(output_file, "w") as file:
-        for case in cases:
-            file.write(case + "\n")
+    save_list_to_txt(cases, output_file)
             
             
 def save_cases_with_empty_messages(file_name):
@@ -112,4 +138,9 @@ def mark_cuda_failed_skipped_cases(xpu_file, cuda_file, output_file):
     xpu_df.to_excel(output_file, index=False)
     
 
-    
+def print_ut_stats(tests_df):
+    result_stats = tests_df["result"].value_counts()
+    pass_rate = result_stats["PASSED"] / sum(result_stats)
+    print(f"=====UT PASS RATE=====\n{pass_rate}")
+    print(f"=====TOTAL UT=====\n{tests_df.shape[0]}")
+    print(f"=====DETAILS=====\n{result_stats}")
