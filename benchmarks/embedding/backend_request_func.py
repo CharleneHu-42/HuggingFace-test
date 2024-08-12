@@ -475,7 +475,7 @@ def remove_prefix(text: str, prefix: str) -> str:
     return text
 
 
-ASYNC_REQUEST_FUNCS: Dict[str, Callable[...,Coroutine]] = {
+ASYNC_REQUEST_FUNCS: Dict[str, Callable[..., Coroutine]] = {
     "tgi": async_request_tgi,
     "tei": aysnc_request_tei,
     "vllm": async_request_openai_completions,
