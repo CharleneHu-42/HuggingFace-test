@@ -3,7 +3,7 @@ debug: false
 distributed_type: MULTI_XPU
 downcast_bf16: 'no'
 enable_cpu_affinity: false
-gpu_ids: 2,3,4,5
+gpu_ids: 0,1,2,3
 ipex_config:
   use_xpu: true
 machine_rank: 0
