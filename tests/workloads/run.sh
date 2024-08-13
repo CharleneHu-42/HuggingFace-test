@@ -200,7 +200,7 @@ if [[ "$task_name" == "fine-tune" ]]; then
     source $oneccl_bindings_for_pytorch_path/env/setvars.sh
     accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --bf16 True --use_ipex $ipex_optimize --quant_type $quant_type
   else
-    accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --quant_type $quant_type
+    accelerate launch --config_file $task_name/"$device"_config_ddp.yaml $task_name/run_$task_name.py --quant_type $quant_type
   fi
 else
   numactl -C '0-'${CORES} --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_type $quant_type --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel
