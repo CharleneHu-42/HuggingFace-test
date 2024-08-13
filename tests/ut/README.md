@@ -14,7 +14,7 @@ Run `./build-image.sh -h` for more options.
 ```
 Run `./run-docker.sh -h` for more options. By default, the current directory will be mounted to `/mnt` inside the container.
 
-3. Run tests
+3. Run transformers tests
 Once inside the container, follow the below steps:
 
 3.1 Set up IPEX XPU environment 
@@ -37,3 +37,16 @@ This script will create a folder `test_results` in `/mnt`, which organizes the t
 ```bash 
 python analyze_test_results.py --excel_dir /mnt/test_results --output_dir /mnt/test_stats
 ```
+
+4. Run peft/accelerate/diffusers/trl tests 
+Once inside the docker container, you can use following commands to run unit tests. 
+
+```bash
+# use accelerate as example
+cd accelerate  
+export REPORT=/mnt/accelerate/ut_results.xlsx
+export LOG=/mnt/accelerate/ut_results.log
+RUN_SLOW=1 python -m pytest tests -sv --excelreport $REPORT 2>&1 | tee $LOG
+```
+```
+

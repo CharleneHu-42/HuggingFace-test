@@ -76,6 +76,7 @@ handle_options() {
 # Main script execution
 handle_options "$@"
 
+echo $local_dir 
 
 if [[ $device == "cuda" ]]; then
 	docker run -it \
