@@ -2,7 +2,7 @@
 
 # Default variable values
 device="xpu"
-target="hf-dev"
+target="transformers"
 
 # Function to display script usage
 usage() {
