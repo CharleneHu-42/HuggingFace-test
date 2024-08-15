@@ -174,4 +174,5 @@ tests/quantization/hqq/test_hqq.py::HQQTest::test_f16_quantized_model_with_offlo
 tests/quantization/hqq/test_hqq.py::HQQTest::test_fp16_quantized_model
 tests/quantization/hqq/test_hqq.py::HQQTestMultiGPU::test_fp16_quantized_model_multipgpu
 tests/quantization/hqq/test_hqq.py::HqqConfigTest::test_to_dict
+CacheIntegrationTest::test_sink_cache_hard
 

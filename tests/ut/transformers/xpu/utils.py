@@ -96,19 +96,23 @@ def save_failed_cases_to_txt(input_file, output_file):
     
     save_cases_to_txt(df_skipped, output_file)
             
-
-def save_skipped_stats_to_excel(input_file, output_file):
-    df = pd.read_excel(input_file)
+def save_skipped_stats_to_excel(df, output_file):
     skipped_df = df[df["result"] == "SKIPPED"]["message"].value_counts().reset_index()
     skipped_df.to_excel(output_file, index=False)
 
-
-def save_failed_stats_to_excel(input_file, output_file):
-    df = pd.read_excel(input_file)
+def save_failed_stats_to_excel(df, output_file):
     skipped_df = df[df["result"] == "FAILED"]["message"].value_counts().reset_index()
     skipped_df.to_excel(output_file, index=False)
     
-        
+def save_skipped_stats_to_excel_from_excel(input_file, output_file):
+    df = pd.read_excel(input_file)
+    save_skipped_stats_to_excel(df, output_file)
+
+
+def save_failed_stats_to_excel_from_excel(input_file, output_file):
+    df = pd.read_excel(input_file)
+    save_failed_stats_to_excel(df, output_file)
+    
     
 def mark_cuda_failed_skipped_cases(xpu_file, cuda_file, output_file):
     xpu_df = pd.read_excel(xpu_file)
@@ -145,3 +149,13 @@ def print_ut_stats(tests_df):
     print(f"=====UT PASS RATE=====\n{pass_rate}")
     print(f"=====TOTAL UT=====\n{tests_df.shape[0]}")
     print(f"=====DETAILS=====\n{result_stats}")
+    
+    
+def remove_cases_duplicated(input_txt, output_txt):
+    cases_list = read_txt_to_list(input_txt)
+    cases_list = ["::".join(case.split("::")[-2:])  for case in cases_list]
+
+    cased_unique = list(set(cases_list))
+    cased_unique = sorted(cased_unique)
+
+    save_list_to_txt(cased_unique, "xpu_missing_flash_attn.txt")
