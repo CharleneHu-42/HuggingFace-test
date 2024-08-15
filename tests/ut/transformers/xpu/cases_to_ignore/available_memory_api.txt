@@ -906,3 +906,4 @@ tests/models/starcoder2/test_modeling_starcoder2.py::Starcoder2IntegrationTest::
 tests/models/llama/test_modeling_llama.py::LlamaIntegrationTest::test_compile_static_cache
 tests/models/gemma/test_modeling_gemma.py::GemmaIntegrationTest::test_compile_static_cache
 tests/models/mistral/test_modeling_mistral.py::MistralIntegrationTest::test_compile_static_cache
+tests/models/mistral/test_modeling_mistral.py::MistralIntegrationTest::test_model_7b_long_prompt_sdpa

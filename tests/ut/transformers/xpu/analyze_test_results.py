@@ -3,7 +3,7 @@ import pandas as pd
 import glob
 import os
 
-from utils import read_txt_to_list, print_ut_stats, replace_unittests
+from utils import read_txt_to_list, print_ut_stats, replace_unittests, save_skipped_stats_to_excel, save_failed_stats_to_excel
 
 XPU_MISSING_FEATURES = [
     "test requires natten",
@@ -40,11 +40,13 @@ def main(
     cuda_also_failed = os.path.join(ignore_path, "cuda_also_failed.txt")
     cuda_also_skipped = os.path.join(ignore_path, "cuda_also_skipped.txt")
     cuda_only = os.path.join(ignore_path, "cuda_only.txt")
+    cpu_only = os.path.join(ignore_path, "cpu_only.txt")
     memory_api = os.path.join(ignore_path, "available_memory_api.txt")
 
     cuda_failed_cases = read_txt_to_list(cuda_also_failed)
     cuda_skipped_cases = read_txt_to_list(cuda_also_skipped)
     cuda_only_cases = read_txt_to_list(cuda_only)
+    cpu_only_cases = read_txt_to_list(cpu_only)
     memory_api_cases = read_txt_to_list(memory_api)
     
     xpu_missing_files = glob.glob(os.path.join(ignore_path, "xpu_missing_*.txt"))
@@ -65,44 +67,24 @@ def main(
     # if the file name contains `unittest`, we will need to manually replace it with the actual file name
     tests_df = replace_unittests(tests_df)
     
-    tests_df["same with gpu?"] = [0] * tests_df.shape[0]
-
+    def add_column_and_mark_with_case_list(df, new_column, case_list):
+        df[new_column] = [0] * df.shape[0]
+        
+        for index, row in df.iterrows():
+            file_name = row["file_name"]
+            suite_name = row["suite_name"]
+            test_name = row["test_name"]
+            if f"{suite_name}::{test_name}" in case_list or f"{file_name}::{suite_name}::{test_name}" in case_list:
+                df.iloc[index, -1] = 1
+        return df 
+    
     same_with_cuda = cuda_failed_cases + cuda_skipped_cases
-    
-    for index, row in tests_df.iterrows():
-        file_name = row["file_name"]
-        suite_name = row["suite_name"]
-        test_name = row["test_name"]
-        if f"{suite_name}::{test_name}" in same_with_cuda or f"{file_name}::{suite_name}::{test_name}" in same_with_cuda:
-            tests_df.iloc[index, -1] = 1
-    
-    tests_df["cuda only?"] = [0] * tests_df.shape[0]
-    
-    for index, row in tests_df.iterrows():
-        file_name = row["file_name"]
-        suite_name = row["suite_name"]
-        test_name = row["test_name"]
-        if f"{suite_name}::{test_name}" in cuda_only_cases or f"{file_name}::{suite_name}::{test_name}" in cuda_only_cases:
-            tests_df.iloc[index, -1] = 1
-    
-    tests_df["available memory api?"] = [0] * tests_df.shape[0]
-    
-    for index, row in tests_df.iterrows():
-        file_name = row["file_name"]
-        suite_name = row["suite_name"]
-        test_name = row["test_name"]
-        if f"{suite_name}::{test_name}" in memory_api_cases or f"{file_name}::{suite_name}::{test_name}" in memory_api_cases:
-            tests_df.iloc[index, -1] = 1
-            
-    tests_df["xpu missing features?"] = [0] * tests_df.shape[0]
-    
-    for index, row in tests_df.iterrows():
-        file_name = row["file_name"]
-        suite_name = row["suite_name"]
-        test_name = row["test_name"]
-        if f"{suite_name}::{test_name}" in xpu_missing_cases or f"{file_name}::{suite_name}::{test_name}" in xpu_missing_cases:
-            tests_df.iloc[index, -1] = 1
-    
+    tests_df = add_column_and_mark_with_case_list(tests_df, "same with gpu?", same_with_cuda)
+    tests_df = add_column_and_mark_with_case_list(tests_df, "cuda only?", cuda_only_cases)            
+    tests_df = add_column_and_mark_with_case_list(tests_df, "cpu only?", cpu_only_cases)            
+    tests_df = add_column_and_mark_with_case_list(tests_df, "available memory api?", memory_api_cases)            
+    tests_df = add_column_and_mark_with_case_list(tests_df, "xpu missing features?", xpu_missing_cases)            
+
     SKIP_MESSAGES = XPU_MISSING_FEATURES + GPU_ONLY
     tests_df["other skips?"] = [0] * tests_df.shape[0]
     
@@ -112,20 +94,8 @@ def main(
 
     tests_df.to_excel(os.path.join(output_dir, "raw_test_results.xlsx"), index=False)
 
-    skip_stats = (
-        tests_df[tests_df["result"] == "SKIPPED"]["message"]
-        .value_counts()
-        .reset_index()
-    )
-    skip_stats.to_excel(
-        os.path.join(output_dir, "skipped_tests_stats.xlsx"), index=False
-    )
-    failed_stats = (
-        tests_df[tests_df["result"] == "FAILED"]["message"].value_counts().reset_index()
-    )
-    failed_stats.to_excel(
-        os.path.join(output_dir, "failed_tests_stats.xlsx"), index=False
-    )
+    save_skipped_stats_to_excel(tests_df, "skipped_tests_stats.xlsx")
+    save_failed_stats_to_excel(tests_df, "failed_tests_stats.xlsx")
 
     print_ut_stats(tests_df)
     
