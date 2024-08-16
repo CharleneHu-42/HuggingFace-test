@@ -1,0 +1,4 @@
+MultiDeviceTester::test_pippy
+FeatureExamplesTests::test_pippy_examples_bert
+FeatureExamplesTests::test_pippy_examples_gpt2
+FeatureExamplesTests::test_pippy_examples_t5

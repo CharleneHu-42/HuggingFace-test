@@ -37,21 +37,20 @@ def main(
 ):
     os.makedirs(output_dir, exist_ok=True)
 
-    cuda_also_failed = os.path.join(ignore_path, "cuda_also_failed.txt")
-    cuda_also_skipped = os.path.join(ignore_path, "cuda_also_skipped.txt")
-    cuda_only = os.path.join(ignore_path, "cuda_only.txt")
-    cpu_only = os.path.join(ignore_path, "cpu_only.txt")
     memory_api = os.path.join(ignore_path, "available_memory_api.txt")
-
-    cuda_failed_cases = read_txt_to_list(cuda_also_failed)
-    cuda_skipped_cases = read_txt_to_list(cuda_also_skipped)
-    cuda_only_cases = read_txt_to_list(cuda_only)
-    cpu_only_cases = read_txt_to_list(cpu_only)
     memory_api_cases = read_txt_to_list(memory_api)
     
+    cuda_also_files = glob.glob(os.path.join(ignore_path, "cuda_also_*.txt"))
+    cuda_also_files = [read_txt_to_list(file) for file in cuda_also_files]
+    same_with_cuda = [case for file in cuda_also_files for case in file]
+    
+    only_files = glob.glob(os.path.join(ignore_path, "*_only.txt"))
+    all_only_files = [read_txt_to_list(file) for file in only_files]
+    only_cases = [case for file in all_only_files for case in file]
+    
     xpu_missing_files = glob.glob(os.path.join(ignore_path, "xpu_missing_*.txt"))
-    all_files = [read_txt_to_list(file) for file in xpu_missing_files]
-    xpu_missing_cases = [case for file in all_files for case in file]
+    all_missing_files = [read_txt_to_list(file) for file in xpu_missing_files]
+    xpu_missing_cases = [case for file in all_missing_files for case in file]
     
     all_test_files = glob.glob(os.path.join(excel_dir, "*.xlsx"))
 
@@ -78,10 +77,8 @@ def main(
                 df.iloc[index, -1] = 1
         return df 
     
-    same_with_cuda = cuda_failed_cases + cuda_skipped_cases
     tests_df = add_column_and_mark_with_case_list(tests_df, "same with gpu?", same_with_cuda)
-    tests_df = add_column_and_mark_with_case_list(tests_df, "cuda only?", cuda_only_cases)            
-    tests_df = add_column_and_mark_with_case_list(tests_df, "cpu only?", cpu_only_cases)            
+    tests_df = add_column_and_mark_with_case_list(tests_df, "cuda/cpu/tpu only?", only_cases)                     
     tests_df = add_column_and_mark_with_case_list(tests_df, "available memory api?", memory_api_cases)            
     tests_df = add_column_and_mark_with_case_list(tests_df, "xpu missing features?", xpu_missing_cases)            
 
