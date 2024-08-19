@@ -59,7 +59,7 @@ def add_docker_args(parser: argparse.ArgumentParser):
         "--docker_env_vars",
         "-e",
         type=str,
-        default=["MAX_WARMUP_SEQUENCE_LENGTH=512", "MAX_WARMUP_BATCH_SIZE=512"],
+        default=[],
         nargs="*",
         help="Docker environment variables in the format `--docker_env_vars <var1>=<val1> <var2>=<val2> ...`",
     )

@@ -13,8 +13,7 @@ import numpy as np
 from datasets import load_dataset
 from loguru import logger
 from tqdm.asyncio import tqdm
-from transformers import PreTrainedTokenizerBase
-from vllm.transformers_utils.tokenizer import get_tokenizer
+from transformers import PreTrainedTokenizerBase, AutoTokenizer
 
 from backend_request_func import ASYNC_REQUEST_FUNCS, TEIRequestFuncOutput
 from base_parser import add_base_args
@@ -145,7 +144,7 @@ def main(args: argparse.Namespace):
     else:
         api_url = f"http://{args.host}:{args.port}{args.endpoint}"
 
-    tokenizer = get_tokenizer(tokenizer_id)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_id)
 
     input_requests = sample_allnli_requests(
         seed=args.seed,

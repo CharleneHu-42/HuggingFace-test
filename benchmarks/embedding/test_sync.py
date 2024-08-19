@@ -9,7 +9,7 @@ from typing import List, Tuple
 import numpy as np
 from loguru import logger
 from tqdm.asyncio import tqdm
-from vllm.transformers_utils.tokenizer import get_tokenizer
+from transformers import AutoTokenizer
 
 from backend_request_func import (
     SYNC_REQUEST_FUNCS,
@@ -195,7 +195,7 @@ def main(args: argparse.Namespace):
     else:
         api_url = f"http://{args.host}:{args.port}{args.endpoint}"
 
-    tokenizer = get_tokenizer(tokenizer_id)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_id)
 
     input_requests = sample_allnli_requests(
         seed=args.seed,
