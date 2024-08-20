@@ -191,6 +191,7 @@ CORES=`lscpu | grep 'Core(s) per socket' | awk '{print $4}'`
 export TORCHINDUCTOR_FREEZING=1
 export TRITON_CODEGEN_INTEL_XPU_BACKEND=1
 export OMP_NUM_THREADS=${CORES}
+export TORCHINDUCTOR_CPP_MIN_CHUNK_SIZE=${CORES}
 
 # Perform the desired actions based on the provided flags and arguments
 if [[ "$task_name" == "fine-tune" ]]; then

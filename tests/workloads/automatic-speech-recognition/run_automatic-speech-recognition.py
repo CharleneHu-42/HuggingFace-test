@@ -10,13 +10,13 @@ logging.basicConfig(level=logging.INFO)
 
 import sys
 import os
+import torch._inductor.config
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
 
 inference_context = [torch.inference_mode()]
-
 
 def generate(generator, pipe_input, warm_up_steps, run_steps):
     time_costs = []
@@ -53,6 +53,7 @@ if __name__ == "__main__":
     dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32
 
+    torch._inductor.config.cpp_wrapper = True
     if enable:
         inference_context.append(torch.autocast(device, dtype, enable))
 
