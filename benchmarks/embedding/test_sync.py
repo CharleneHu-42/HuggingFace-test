@@ -94,6 +94,7 @@ def benchmark_with_bs(
         result_json = {**result_json, **result}
 
         # Save to file
+        os.makedirs(os.path.join(args.result_dir, "results"), exist_ok=True)
         base_model_id = model_id.split("/")[-1]
         file_name = f"{backend}-{args.request_rate}qps-{base_model_id}-{batch_size}-{current_dt}.json"  # noqa
         file_name = os.path.join("results", file_name)

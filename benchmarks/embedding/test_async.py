@@ -180,6 +180,7 @@ def main(args: argparse.Namespace):
 
     # Save CSV
     if args.save_result:
+        os.makedirs(args.result_dir, exist_ok=True)
         filename = f"{backend}-async-{args.request_rate}qps-{args.batch_size}bs-{model_id.split('/')[-1]}.csv"
         if args.result_dir:
             filename = os.path.join(args.result_dir, filename)

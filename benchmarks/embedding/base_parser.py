@@ -27,7 +27,7 @@ def add_base_args(parser: argparse.ArgumentParser):
         type=str,
         choices=["embed", "rerank", "classification"],
         default="embed",
-        help="Type of model. Changes the input specifications."
+        help="Type of model. Changes the input specifications.",
     )
     parser.add_argument(
         "--tokenizer",
@@ -83,13 +83,15 @@ def add_base_args(parser: argparse.ArgumentParser):
     parser.add_argument(
         "--result-dir",
         type=str,
-        default=None,
+        default="./benchmark",
         help="Specify directory to save benchmark json results."
-        "If not specified, results are saved in the current directory.",
+        "If not specified, results are saved in ./benchmark`.",
     )
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
     add_base_args(parser)
     parser.print_help()
