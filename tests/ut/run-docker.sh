@@ -76,6 +76,7 @@ handle_options() {
 # Main script execution
 handle_options "$@"
 
+mkdir -p $local_dir/${target}
 
 if [[ $device == "cuda" ]]; then
 	docker run -it \
@@ -83,6 +84,8 @@ if [[ $device == "cuda" ]]; then
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
 		-e no_proxy=${no_proxy} \
+    -e report=/mnt/${target}/ut.xlsx \
+    -e log=/mnt/${target}/ut.log \
 		-v ${HF_HOME}:/root/.cache/huggingface \
 		-v ${local_dir}:/mnt \
     -v /dev/shm:/dev/shm \
@@ -98,6 +101,8 @@ elif [[ $device == "xpu" ]]; then
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
 		-e no_proxy=${no_proxy} \
+    -e report=/mnt/${target}/ut.xlsx \
+    -e log=/mnt/${target}/ut.log \
 		-v ${HF_HOME}:/root/.cache/huggingface \
 		-v ${local_dir}:/mnt \
 		-w /workspace \

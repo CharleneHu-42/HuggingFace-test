@@ -16,7 +16,6 @@ RUN apt-get update && \
     ffmpeg \
     numactl \
     vim \
-    bc \
     tesseract-ocr \
     espeak-ng \
     wget \
@@ -24,22 +23,12 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir --upgrade pip
-
 RUN pip uninstall -y torch torchvision torchaudio && pip install --no-cache-dir -U torch==$PYTORCH torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/$CUDA
 
 RUN pip install accelerate pyctcdecode timm pytesseract peft optimum decord galore-torch fire scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en 
-RUN pip install pretty_midi essentia resampy Levenshtein onnx pytest-excel openpyxl scipy av pypi-kenlm sacrebleu pytest-env phonemizer
+RUN pip install pretty_midi essentia resampy Levenshtein onnx scipy av pypi-kenlm sacrebleu phonemizer pytest-env pytest-timeout pytest-excel openpyxl
 
-
-# Pre-build **latest** DeepSpeed, so it would be ready for testing (otherwise, the 1st deepspeed test will timeout)
-RUN python3 -m pip uninstall -y deepspeed
-# This has to be run (again) inside the GPU VMs running the tests.
-# The installation works here, but some tests fail, if we don't pre-build deepspeed again in the VMs running the tests.
-# TODO: Find out why test fail.
-RUN DS_BUILD_CPU_ADAM=1 DS_BUILD_FUSED_ADAM=1 python3 -m pip install "deepspeed<=0.14.0" --global-option="build_ext" --global-option="-j8" --no-cache -v --disable-pip-version-check 2>&1
-
-# The base image ships with `pydantic==1.8.2` which is not working - i.e. the next command fails
-RUN python3 -c "from deepspeed.launcher.runner import main"
 
 WORKDIR /workspace
+RUN git clone https://github.com/microsoft/DeepSpeed.git && cd DeepSpeed && pip install .
 RUN git clone https://github.com/huggingface/transformers && cd transformers && git checkout $REF && pip install -e .[deepspeed-testing]

@@ -1,0 +1,26 @@
+FROM nvidia/cuda:12.1.0-devel-ubuntu22.04
+ARG DEBIAN_FRONTEND=noninteractive
+ARG PYTHON='3.10'
+ARG REF=13ca7dccb6019e045a7cd2de9d0c832f6efd9aa0
+
+RUN apt-get update && \
+    apt-get -y install \
+    python$PYTHON \
+    python3-pip \
+    python-is-python3 \
+    git \
+    ffmpeg \
+    numactl \
+    vim \
+    wget \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir --upgrade pip
+RUN python3 -m pip install --no-cache-dir bitsandbytes
+
+WORKDIR /workspace
+RUN git clone https://github.com/huggingface/accelerate.git && cd accelerate && git checkout $REF && pip install -e .[testing,test_trackers,deepspeed]
+RUN git clone https://github.com/microsoft/DeepSpeed.git && cd DeepSpeed && pip install .
+RUN pip install pytest-timeout pytest-excel openpyxl clearml schedulefree
+RUN pip uninstall numpy && pip install numpy==1.26.4

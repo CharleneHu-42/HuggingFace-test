@@ -4,7 +4,7 @@ ARG PYTHON='3.10'
 ARG REF=0f67ba1d741d65b07d549daf4ee157609ce4f9c1
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends --fix-missing \
+    apt-get -y install \
     apt-utils \
     build-essential \
     ca-certificates \
@@ -26,20 +26,11 @@ RUN apt-get update && \
     tesseract-ocr \
     espeak-ng \
     wget \
-    apt-get clean && \
-    rm -rf  /var/lib/apt/lists/*
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# install Miniforge
-# RUN curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh" && bash Miniforge3-$(uname)-$(uname -m).sh -b && \
-#     rm Miniforge3-$(uname)-$(uname -m).sh && \
-#     echo ". /root/miniforge3/etc/profile.d/conda.sh && conda activate base" >> /etc/skel/.bashrc && \
-#     echo ". /root/miniforge3/etc/profile.d/conda.sh && conda activate base" >> ~/.bashrc    
-
-RUN pip install accelerate pyctcdecode timm pytesseract peft optimum decord galore-torch fire scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en
-RUN pip install pretty_midi essentia resampy Levenshtein onnx pytest-excel openpyxl scipy av pypi-kenlm sacrebleu pytest-env phonemizer
+RUN pip install accelerate pyctcdecode timm pytesseract peft optimum decord galore-torch fire scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en 
+RUN pip install pretty_midi essentia resampy Levenshtein onnx scipy av pypi-kenlm sacrebleu phonemizer pytest-env pytest-timeout pytest-excel openpyxl
 
 WORKDIR /workspace
 RUN git clone https://github.com/huggingface/transformers && cd transformers && git checkout $REF && pip install -e .[deepspeed-testing]
-
-
-
