@@ -40,9 +40,10 @@ def main(
     memory_api = os.path.join(ignore_path, "available_memory_api.txt")
     memory_api_cases = read_txt_to_list(memory_api)
     
-    cuda_also_files = glob.glob(os.path.join(ignore_path, "cuda_also_*.txt"))
-    cuda_also_files = [read_txt_to_list(file) for file in cuda_also_files]
-    same_with_cuda = [case for file in cuda_also_files for case in file]
+    cuda_also_failed_file = os.path.join(".", "cuda_also_failed.txt")
+    cuda_also_skipped_file = os.path.join(".", "cuda_also_skipped.txt")
+    cuda_also_failed = read_txt_to_list(cuda_also_failed_file)
+    cuda_also_skipped = read_txt_to_list(cuda_also_skipped_file)
     
     only_files = glob.glob(os.path.join(ignore_path, "*_only.txt"))
     all_only_files = [read_txt_to_list(file) for file in only_files]
@@ -77,7 +78,8 @@ def main(
                 df.iloc[index, -1] = 1
         return df 
     
-    tests_df = add_column_and_mark_with_case_list(tests_df, "same with gpu?", same_with_cuda)
+    tests_df = add_column_and_mark_with_case_list(tests_df, "cuda also failed?", cuda_also_failed)
+    tests_df = add_column_and_mark_with_case_list(tests_df, "cuda also skipped?", cuda_also_skipped)
     tests_df = add_column_and_mark_with_case_list(tests_df, "cuda/cpu/tpu only?", only_cases)                     
     tests_df = add_column_and_mark_with_case_list(tests_df, "available memory api?", memory_api_cases)            
     tests_df = add_column_and_mark_with_case_list(tests_df, "xpu missing features?", xpu_missing_cases)            
