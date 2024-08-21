@@ -916,9 +916,6 @@ DinatModelTest::test_multi_gpu_data_parallel_forward
 tests/models/recurrent_gemma/test_modeling_recurrent_gemma.py::RecurrentGemmaIntegrationTest::test_2b_generate
 tests/models/recurrent_gemma/test_modeling_recurrent_gemma.py::RecurrentGemmaIntegrationTest::test_2b_sample
 tests/models/recurrent_gemma/test_modeling_recurrent_gemma.py::RecurrentGemmaIntegrationTest::test_long_context
-tests/models/llama/test_modeling_llama.py::LlamaIntegrationTest::test_compile_static_cache
-tests/models/gemma/test_modeling_gemma.py::GemmaIntegrationTest::test_compile_static_cache
-tests/models/mistral/test_modeling_mistral.py::MistralIntegrationTest::test_compile_static_cache
 LayoutLMv2ModelTest::test_torch_compile
 DinatModelTest::test_torch_compile
 AlbertModelTest::test_torch_compile
@@ -1233,6 +1230,7 @@ tests/models/gemma/test_modeling_gemma.py::GemmaIntegrationTest::test_model_7b_b
 tests/models/gemma/test_modeling_gemma.py::GemmaIntegrationTest::test_model_7b_fp16
 tests/models/gemma/test_modeling_gemma.py::GemmaIntegrationTest::test_model_7b_fp16_static_cache
 tests/models/gemma/test_modeling_gemma.py::GemmaIntegrationTest::test_model_7b_fp32
+tests/models/gemma/test_modeling_gemma.py::GemmaIntegrationTest::test_model_2b_sdpa
 tests/models/grounding_dino/test_modeling_grounding_dino.py::GroundingDinoModelIntegrationTests::test_inference_object_detection_head_equivalence_cpu_gpu
 tests/models/llama/test_modeling_llama.py::Mask4DTestHard::test_partial_stacked_causal_mask
 tests/models/llama/test_modeling_llama.py::Mask4DTestHard::test_partial_stacked_causal_mask_static_cache
@@ -1251,6 +1249,5 @@ tests/models/whisper/test_modeling_whisper.py::WhisperModelIntegrationTests::tes
 tests/models/whisper/test_modeling_whisper.py::WhisperModelIntegrationTests::test_whisper_empty_longform_multi_gpu
 tests/trainer/test_trainer_distributed.py::TestTrainerDistributed::test_trainer
 tests/models/fuyu/test_modeling_fuyu.py::FuyuModelIntegrationTest::test_greedy_generation
-tests/models/recurrent_gemma/test_modeling_recurrent_gemma.py::RecurrentGemmaIntegrationTest::test_model_2b_8bit
 tests/models/whisper/test_modeling_whisper.py::WhisperModelIntegrationTests::test_speculative_decoding_distil
 tests/extended/test_trainer_ext.py::TestTrainerExt::test_run_seq2seq_apex

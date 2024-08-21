@@ -41,7 +41,15 @@ def benchmark(
     input_len = len(tokenizer(input_sentence[0])["input_ids"])
     logging.info(f"input tokens length is {input_len}")
 
+    # warmup for compile
+    generation_kwargs["max_new_tokens"] = output_tokens
+    generation_kwargs["min_new_tokens"] = output_tokens
+    generate(
+        generator, input_sentence, warm_up_steps, run_steps, batch_size
+    )
+
     generation_kwargs["max_new_tokens"] = 1
+    generation_kwargs["min_new_tokens"] = 1
     first_latency, out, _ = generate(
         generator, input_sentence, warm_up_steps, run_steps, batch_size
     )
@@ -52,6 +60,7 @@ def benchmark(
     logging.info(f"output token nums = {out_num}")
 
     generation_kwargs["max_new_tokens"] = output_tokens
+    generation_kwargs["min_new_tokens"] = output_tokens
     latency, out, forward_latency = generate(
         generator, input_sentence, warm_up_steps, run_steps, batch_size
     )
@@ -104,15 +113,12 @@ if __name__ == "__main__":
         raise ValueError("Summarization does not support jit trace")
 
     if args.torch_compile:
-        if device == "cpu":
-            raise ValueError(
-                "Torch compile for summarization in CPU is not work, please change the script if you want to reproduce the bug"
-            )
         if args.backend == "ipex":
             import intel_extension_for_pytorch as ipex
         logging.info(f"Use torch compile with {args.backend} backend")
-        generator.model.generate = torch.compile(
-            generator.model.generate, backend=args.backend
+        torch._inductor.cpp_wrapper = True
+        generator.model.forward = torch.compile(
+            generator.model.forward, backend=args.backend, dynamic=True
         )
     elif args.ipex_optimize:
         import intel_extension_for_pytorch as ipex
