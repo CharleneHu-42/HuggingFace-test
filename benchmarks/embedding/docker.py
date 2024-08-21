@@ -15,7 +15,6 @@ from utils import HTTP_PROXY, HTTPS_PROXY, NO_PROXY, PORT, Namespace
 
 DATA_VOLUME = Path.home() / ".cache" / "huggingface" / "hub"
 SUPPORTED_PLATFORMS = ["gaudi2", "a100", "cpu"]
-JSON_OUTPUT = True
 
 
 def add_docker_args(parser: argparse.ArgumentParser):
@@ -60,7 +59,7 @@ def add_docker_args(parser: argparse.ArgumentParser):
         "--docker_env_vars",
         "-e",
         type=str,
-        default=["MAX_WARMUP_SEQUENCE_LENGTH=512", "MAX_WARMUP_BATCH_SIZE=512"],
+        default=[],
         nargs="*",
         help="Docker environment variables in the format `--docker_env_vars <var1>=<val1> <var2>=<val2> ...`",
     )
@@ -88,6 +87,12 @@ def add_docker_args(parser: argparse.ArgumentParser):
         default=512,
         help="Warmup batch size to test up to.",
     )
+    parser.add_argument(
+        "--json_output",
+        default=False,
+        action="store_true",
+        help="Changes output to json format.",
+    )
 
 
 @dataclass
@@ -103,6 +108,7 @@ class DockerArgs(Namespace):
     max_client_batch_size: int
     max_warmup_sequence_length: int
     max_warmup_batch_size: int
+    json_output: bool
 
     def validate(self):
         self.data_volume = self.data_volume.resolve()
@@ -199,7 +205,7 @@ class DockerProcess:
                 f"--max-client-batch-size={docker_args.max_client_batch_size}",
             ]
         )
-        if JSON_OUTPUT:
+        if docker_args.json_output:
             cmd.append("--json-output")
         if model.rev is not None:
             cmd.extend(["--revision", model.rev])
@@ -218,9 +224,10 @@ class DockerProcess:
         logger.info(f"Started docker process with {self.cmd}")
 
     def close(self):
-        self.stdout.close()
-        kill_process = subprocess.Popen(["docker", "kill", self.name])
-        kill_process.wait()
+        if self.stdout is not sys.stdout:
+            self.stdout.close()
+        subprocess.run(["docker", "kill", self.name], stdout=subprocess.DEVNULL)
+        logger.info(f"Closed docker process: {self.name}")
         self.process.wait()
 
     def wait_until_ready(
@@ -301,6 +308,8 @@ def main():
     )
     add_docker_args(parser)
     args = parser.parse_args(namespace=Namespace())
+    logger.remove()
+    logger.add(sys.stdout, serialize=args.json_output)
     model = Model(args.model_name, args.revision)
     docker_args = args.separate_into((DockerArgs,), warn_unused=False)
     docker_args.validate()
@@ -314,5 +323,4 @@ def main():
 
 
 if __name__ == "__main__":
-    JSON_OUTPUT = False
     main()

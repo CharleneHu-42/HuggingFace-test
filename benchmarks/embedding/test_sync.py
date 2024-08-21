@@ -9,7 +9,7 @@ from typing import List, Tuple
 import numpy as np
 from loguru import logger
 from tqdm.asyncio import tqdm
-from vllm.transformers_utils.tokenizer import get_tokenizer
+from transformers import AutoTokenizer
 
 from backend_request_func import (
     SYNC_REQUEST_FUNCS,
@@ -94,6 +94,7 @@ def benchmark_with_bs(
         result_json = {**result_json, **result}
 
         # Save to file
+        os.makedirs(os.path.join(args.result_dir, "results"), exist_ok=True)
         base_model_id = model_id.split("/")[-1]
         file_name = f"{backend}-{args.request_rate}qps-{base_model_id}-{batch_size}-{current_dt}.json"  # noqa
         file_name = os.path.join("results", file_name)
@@ -195,7 +196,7 @@ def main(args: argparse.Namespace):
     else:
         api_url = f"http://{args.host}:{args.port}{args.endpoint}"
 
-    tokenizer = get_tokenizer(tokenizer_id)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_id)
 
     input_requests = sample_allnli_requests(
         seed=args.seed,
