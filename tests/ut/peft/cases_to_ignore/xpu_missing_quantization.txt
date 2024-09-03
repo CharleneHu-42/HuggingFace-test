@@ -4,3 +4,4 @@ PeftEetqGPUTests::test_causal_lm_training_multi_gpu_eetq
 PeftHqqGPUTests::test_causal_lm_training_hqq
 PeftHqqGPUTests::test_causal_lm_training_hqq_0
 PeftHqqGPUTests::test_causal_lm_training_hqq_1
+PeftHqqGPUTests::test_hqq_lora_model_outputs
