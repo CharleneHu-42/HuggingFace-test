@@ -42,6 +42,7 @@ This script will create a folder `test_results` in `/mnt`, which organizes the t
 cd accelerate  
 RUN_SLOW=1 python -m pytest tests -sv --excelreport $report --timeout 600 2>&1 | tee $log
 ```
+For TRL, you need to specify `export CUDA_VISIBLE_DEVICES=0,1` for tests that require multi-gpu set-up. 
 
 5. Analyze test results 
 ```bash 
