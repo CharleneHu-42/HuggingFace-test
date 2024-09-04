@@ -1,3 +1,3 @@
-tests.test_cli::test_sft_cli
-tests.test_cli::test_dpo_cli
+tests/test_cli.py::test_sft_cli
+tests/test_cli.py::test_dpo_cli
 SFTTrainerTester::test_sft_trainer_llava
