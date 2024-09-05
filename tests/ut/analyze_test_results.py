@@ -70,6 +70,7 @@ def main(
             if (
                 f"{suite_name}::{test_name}" in case_list
                 or f"{file_name}::{suite_name}::{test_name}" in case_list
+                or f"{file_name}::{test_name}" in case_list
             ):
                 df.iloc[index, -1] = 1
         return df
