@@ -94,7 +94,7 @@ if [[ $device == "cuda" ]]; then
 		--gpus all \
 		--entrypoint /bin/bash \
 		--name ${name} \
-		huggingface-ut/${target}:${device}
+		huggingface-ut/${device}
 elif [[ $device == "xpu" ]]; then
 	docker run -it \
 		--privileged  \
@@ -110,7 +110,7 @@ elif [[ $device == "xpu" ]]; then
 		--ipc=host \
 		--entrypoint /bin/bash \
 		--name ${name} \
-		huggingface-ut/${target}:${device}
+		huggingface-ut/${device}
 
 else
 	echo "the given device is not supported."

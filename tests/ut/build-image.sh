@@ -2,7 +2,6 @@
 
 # Default variable values
 device="xpu"
-target="transformers"
 
 # Function to display script usage
 usage() {
@@ -10,7 +9,6 @@ usage() {
  echo "Options:"
  echo " -h, --help            Display this help message"
  echo " -d, --device          Hardware Device[xpu, cuda]"
- echo " -t, --target          Target Name[transformers, peft, accelerate, diffusers, trl]"
 }
 
 has_argument() {
@@ -40,17 +38,6 @@ handle_options() {
 
         shift
         ;;
-      -t | --target*)
-        if ! has_argument $@; then
-          echo "Target library name not specified." >&2
-          usage
-          exit 1
-        fi
-
-        target=$(extract_argument $@)
-
-        shift
-        ;;
     esac
     shift
   done
@@ -59,11 +46,9 @@ handle_options() {
 # Main script execution
 handle_options "$@"
 
-cd $target
-
 docker build \
 	-f Dockerfile.${device} . \
 	--build-arg http_proxy=${http_proxy} \
 	--build-arg https_proxy=${https_proxy} \
 	--build-arg no_proxy=${no_proxy} \
-	-t huggingface-ut/${target}:${device}
+	-t huggingface-ut/${device}
