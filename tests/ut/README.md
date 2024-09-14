@@ -2,11 +2,10 @@
 This repository provides utilities to help you quickly and easily run unit tests of various HuggingFace libraries.  
 
 1. Build docker image
-Taking transformers as an example, you need to first build the docker image for transformers.
 ```bash
-./build-image.sh -d xpu -t transformers 
+./build-image.sh -d xpu 
 ```
-`-d` stands for device and `-t` stands for the target library. Run `./build-image.sh -h` for more options. 
+`-d` stands for device. Use `-d cuda` to build docker image for cuda.
 
 2. Start Docker Container
 ```bash 
@@ -18,7 +17,10 @@ Run `./run-docker.sh -h` for more options. By default, the current directory wil
 Once inside the container, follow the below steps:
 
 3.1 Set up IPEX XPU environment 
-This step is only needed for XPU. Pls follow the installation guide [here](https://github.com/intel/intel-extension-for-pytorch). 
+This step is only needed for XPU. 
+```bash
+source tools/env_activate.sh fine-tuning
+```
 
 3.2 Copy the helper scripts over
 This step is only needed for transformers

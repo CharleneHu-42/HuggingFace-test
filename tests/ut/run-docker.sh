@@ -103,6 +103,8 @@ elif [[ $device == "xpu" ]]; then
 		-e no_proxy=${no_proxy} \
     -e report=/mnt/${target}/ut.xlsx \
     -e log=/mnt/${target}/ut.log \
+    -e OCL_ICD_VENDORS=/etc/OpenCL/vendors \
+    -v /dev/dri/by-path:/dev/dri/by-path \
 		-v ${HF_HOME}:/root/.cache/huggingface \
 		-v ${local_dir}:/mnt \
 		-w /workspace \
