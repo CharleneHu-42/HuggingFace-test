@@ -94,7 +94,7 @@ if [[ $device == "cuda" ]]; then
 		--gpus all \
 		--entrypoint /bin/bash \
 		--name ${name} \
-		huggingface-ut/${target}:${device}
+		huggingface-ut/${device}
 elif [[ $device == "xpu" ]]; then
 	docker run -it \
 		--privileged  \
@@ -103,6 +103,8 @@ elif [[ $device == "xpu" ]]; then
 		-e no_proxy=${no_proxy} \
     -e report=/mnt/${target}/ut.xlsx \
     -e log=/mnt/${target}/ut.log \
+    -e OCL_ICD_VENDORS=/etc/OpenCL/vendors \
+    -v /dev/dri/by-path:/dev/dri/by-path \
 		-v ${HF_HOME}:/root/.cache/huggingface \
 		-v ${local_dir}:/mnt \
 		-w /workspace \
@@ -110,7 +112,7 @@ elif [[ $device == "xpu" ]]; then
 		--ipc=host \
 		--entrypoint /bin/bash \
 		--name ${name} \
-		huggingface-ut/${target}:${device}
+		huggingface-ut/${device}
 
 else
 	echo "the given device is not supported."
