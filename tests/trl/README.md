@@ -2,7 +2,7 @@
 This repository includes examples and training recipes to fine-tune large language modles using the ORPO and KTO algorithm with TRL.
 
 
-## ORPO on XPU 
+## ORPO
 
 ### Installtion 
 To install the necessary dependencies, run the following command:
@@ -20,7 +20,7 @@ To find out more options, run:
 python run_orpo.py -h
 ```
 
-## KTO on XPU 
+## KTO 
 
 
 
