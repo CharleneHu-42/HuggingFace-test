@@ -138,7 +138,7 @@ if __name__ == "__main__":
         "--device_map",
         type=str,
         choices=["cuda", "xpu", "auto"],
-        default="xpu",
+        default="auto",
         help="which hardware device to run the workdload",
     )
     parser.add_argument(
