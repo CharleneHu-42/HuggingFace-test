@@ -9,6 +9,18 @@ To install the necessary dependencies, run the following command:
 ```bash
 pip install -U transformers datasets accelerate peft trl wandb
 ```
+After successful installation, you have to manually modify the 2196 line in `modeling_utils.py` of the transformers library in `${PYTHON_PATH}/site-packages/transformers/modeling_utils.py` as follows:
+```bash
+new_embeddings = nn.Embedding(
+            new_num_tokens,
+            old_embedding_dim,
+            #device=old_embeddings.weight.device,
+            dtype=old_embeddings.weight.dtype,
+        )
+# initialize all new embeddings (in particular added tokens)
+self._init_weights(new_embeddings)
+new_embeddings = new_embeddings.to(old_embeddings.weight.device)
+```
 
 ### Usage 
 #### 1. Specify the visible devices
@@ -19,6 +31,14 @@ For single-card usage:
 export ZE_AFFINITY_MASK=0
 # on CUDA
 export CUDA_VISIBLE_DEVICES=0
+```
+
+For multi-card usage, e.g. 4 cards
+```bash
+# on XPU
+export ZE_AFFINITY_MASK=0,1,2,3
+# on CUDA
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 ```
 
 #### 2. Run training 
