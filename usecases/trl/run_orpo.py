@@ -105,7 +105,7 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run ORPO to with TRL")
+    parser = argparse.ArgumentParser(description="Run ORPO with TRL")
     parser.add_argument(
         "--seed", type=int, default=42, help="Random seed for reproducibility"
     )
