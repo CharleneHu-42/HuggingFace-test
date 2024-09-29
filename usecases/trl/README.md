@@ -1,5 +1,5 @@
 # TRL on XPU&GPU
-This repository includes examples and training recipes to fine-tune large language modles using the ORPO and KTO algorithm with TRL.
+This repository includes examples and training recipes to fine-tune large language models using the ORPO and KTO algorithms with TRL.
 
 
 ## ORPO
