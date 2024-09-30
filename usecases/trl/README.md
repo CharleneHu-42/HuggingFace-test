@@ -10,16 +10,16 @@ To install the necessary dependencies, run the following command:
 pip install -U transformers datasets accelerate peft trl wandb
 ```
 After successful installation, you have to manually modify the 2196 line in `modeling_utils.py` of the transformers library in `${PYTHON_PATH}/site-packages/transformers/modeling_utils.py` as follows:
-```bash
+```diff
 new_embeddings = nn.Embedding(
             new_num_tokens,
             old_embedding_dim,
-            #device=old_embeddings.weight.device,
+-           device=old_embeddings.weight.device,
             dtype=old_embeddings.weight.dtype,
         )
 # initialize all new embeddings (in particular added tokens)
 self._init_weights(new_embeddings)
-new_embeddings = new_embeddings.to(old_embeddings.weight.device)
++ new_embeddings = new_embeddings.to(old_embeddings.weight.device)
 ```
 
 ### Usage 
