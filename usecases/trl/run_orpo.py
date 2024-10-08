@@ -2,6 +2,7 @@ import os
 import argparse
 
 import torch
+import shutil
 from datasets import load_dataset
 from peft import LoraConfig
 from transformers import (
@@ -63,12 +64,21 @@ def main(args):
     model = AutoModelForCausalLM.from_pretrained(
         base_model,
         torch_dtype=torch_dtype,
-        device_map=args.device_map,
+        attn_implementation=args.attn_type,
+    )
+
+    model, tokenizer = setup_chat_format(model, tokenizer)
+
+    tmp_model_dir = "tmp_model"
+    model.save_pretrained(tmp_model_dir)
+    model = AutoModelForCausalLM.from_pretrained(
+        tmp_model_dir,
+        torch_dtype=torch_dtype,
+        device_map="auto",
         attn_implementation=args.attn_type,
     )
     model.gradient_checkpointing_enable()
-
-    model, tokenizer = setup_chat_format(model, tokenizer)
+    shutil.rmtree(tmp_model_dir)
 
     dataset = load_data(tokenizer, args.seed)
 
@@ -133,13 +143,6 @@ if __name__ == "__main__":
         choices=["eager", "sdpa"],
         default="eager",
         help="Attention implementation",
-    )
-    parser.add_argument(
-        "--device_map",
-        type=str,
-        choices=["cuda", "xpu", "auto"],
-        default="auto",
-        help="which hardware device to run the workdload",
     )
     parser.add_argument(
         "--report_to",
