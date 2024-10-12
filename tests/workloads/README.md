@@ -59,6 +59,8 @@ We defaultly use amp bf16 to train [meta-llama/Llama-2-7b-hf](https://huggingfac
 ./run.sh --task fine-tune --device cpu
 ```
 
+**___Note: if you get trouble with oneccl or mpi in bare mental env, please try docker by docker/ipex_oneapi/ipex_oneapi_dockerfile.___**
+
 ### XPU 
 ```bash
 ./run.sh --task fine-tune --device xpu
