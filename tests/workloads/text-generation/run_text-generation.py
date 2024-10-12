@@ -12,7 +12,7 @@ import os
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype, get_bitsandbytes_config, wrap_forward_for_benchmark
+from common import get_args, get_torch_dtype, get_awq_config, get_bitsandbytes_config, wrap_forward_for_benchmark
 
 inference_context = [torch.inference_mode()]
 
@@ -49,10 +49,17 @@ def generate(generator, input_sentence, batch_size, warm_up_steps, run_steps):
 
 
 def benchmark(
-    generator, warm_up_steps, run_steps, input_sentence, output_tokens, batch_size
+    generator, warm_up_steps, run_steps, input_sentence, output_tokens, batch_size, compile=False
 ):
     input_len = len(tokenizer(input_sentence[0])["input_ids"])
     logging.info(f"input tokens length is {input_len}")
+
+    if compile:
+        # warmup for torch compile
+        generation_kwargs["max_new_tokens"] = output_tokens
+        generation_kwargs["min_new_tokens"] = output_tokens
+        _, _, _ = generate(generator, input_sentence, batch_size, 2, 1)
+        print("Torch compile warmup ended ========================================")
 
     generation_kwargs["max_new_tokens"] = 1
     generation_kwargs["min_new_tokens"] = 1
@@ -106,7 +113,14 @@ if __name__ == "__main__":
         inference_context.append(torch.autocast(device, dtype, enable))
     
     model_kwargs = {}
-    quantization_config = get_bitsandbytes_config(args.quant_type)
+    quantization_config = None
+    if args.bitsandbytes in ("int8", "nf4", "fp4"):
+        logging.info(f"Use {args.bitsandbytes} bitsandbytes quantization")
+        quantization_config = get_bitsandbytes_config(args.bitsandbytes)
+    elif args.autoawq in ("int4"):
+        logging.info(f"Use {args.autoawq} AutoAWQ quantization, please use it in a AWQ int4 model like TheBloke/Mistral-7B-v0.1-AWQ")
+        quantization_config = get_awq_config(args.autoawq)
+
     if quantization_config is not None:
         model_kwargs["quantization_config"] = quantization_config
 
@@ -133,7 +147,7 @@ if __name__ == "__main__":
 
     if args.optimum_intel:
         from optimum.intel import IPEXModelForCausalLM
-        generator.model = IPEXModelForCausalLM(generator.model, export=True, torch_dtype=torch_dtype)
+        generator.model = IPEXModelForCausalLM.from_pretrained(model_id, export=True, torch_dtype=torch_dtype)
     elif args.ipex_optimize:
         from optimum.intel import inference_mode as ipex_inference_mode
 
@@ -171,4 +185,5 @@ if __name__ == "__main__":
             input_seq,
             output_tokens=args.output_tokens,
             batch_size=args.batch_size,
+            compile=args.compile
         )

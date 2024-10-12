@@ -25,11 +25,14 @@ from transformers import set_seed
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
 
 from utils import Prompter
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 sys.path.append(os.path.dirname(__file__) + "/..")
-from common import get_bitsandbytes_config
+from common import get_awq_config, get_bitsandbytes_config
 
 SEED = 42
 set_seed(SEED)
@@ -37,6 +40,7 @@ set_seed(SEED)
 def train(
     # model/data params
     base_model: str = "meta-llama/Llama-2-7b-hf",  # the only required argument
+    awq_base_model: str = "TheBloke/firefly-llama2-7B-chat-AWQ",
     data_path: str = "yahma/alpaca-cleaned",
     output_dir: str = "./lora-alpaca",
     # training hyperparams
@@ -62,6 +66,8 @@ def train(
     wandb_log_model: str = "",  # options: false | true
     resume_from_checkpoint: str = None,  # either training checkpoint or final adapter
     prompt_template_name: str = "alpaca",  # The prompt template to use, will default to alpaca.
+    bitsandbytes: str = None,
+    autoawq: str = None,
     **kwargs,
 ):
     local_rank = int(os.environ.get("LOCAL_RANK", 0)) or int(os.environ.get("PMI_RANK", 0))
@@ -119,7 +125,18 @@ def train(
     if len(wandb_log_model) > 0:
         os.environ["WANDB_LOG_MODEL"] = wandb_log_model
 
-    quantization_config = get_bitsandbytes_config(kwargs.pop("quant_type", None))
+    quantization_config = None
+    if bitsandbytes:
+        logging.info(f"Use {bitsandbytes} biteansbytes quantization")
+        quantization_config = get_bitsandbytes_config(bitsandbytes)
+    elif autoawq:
+        logging.info(f"Use {autoawq} AutoAWQ quantization, the model will be changed to awq_base_model")
+        quantization_config = get_awq_config(autoawq)
+        quantization_config.do_fuse = False
+        assert (
+            awq_base_model
+        ), "Please specify a --awq_base_model, e.g. --awq_base_model='TheBloke/firefly-llama2-7B-chat-AWQ'"
+        base_model = awq_base_model
 
     model = AutoModelForCausalLM.from_pretrained(
         base_model,
@@ -127,7 +144,7 @@ def train(
         quantization_config=quantization_config,
     )
 
-    if quantization_config is not None:
+    if bitsandbytes is not None:
         model = prepare_model_for_kbit_training(model)
 
     tokenizer = AutoTokenizer.from_pretrained(base_model)

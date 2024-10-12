@@ -1,7 +1,7 @@
 import argparse
 import torch
 import time
-from transformers import BitsAndBytesConfig
+from transformers import AwqConfig, BitsAndBytesConfig
 
 
 def str2bool(str):
@@ -16,7 +16,6 @@ def get_args():
     parser.add_argument("--jit", default="False", type=str2bool)
     parser.add_argument("--torch_compile", default="False", type=str2bool)
     parser.add_argument("--model_dtype", default="float32", type=str)
-    parser.add_argument("--quant_type", default=None, type=str)
     parser.add_argument("--backend", default="inductor", type=str)
     parser.add_argument("--device", default="cpu", type=str)
     parser.add_argument("--batch_size", default=1, type=int)
@@ -32,6 +31,10 @@ def get_args():
     parser.add_argument("--warm_up_steps", default=10, type=int)
     parser.add_argument("--run_steps", default=10, type=int)
     parser.add_argument("--optimum_intel", default="False", type=str2bool)
+    parser.add_argument("--bitsandbytes", default=None, type=str,
+        help="Apply bitsandbytes quantization and input the quant type choose from [int8, nf4, fp4]")
+    parser.add_argument("--autoawq", default=None, type=str,
+        help="Apply AutoAWQ quantization and input the quant type choose from [int4]")
     args = parser.parse_args()
     return args
 
@@ -52,6 +55,15 @@ def get_bitsandbytes_config(quant_type):
         quantization_config = BitsAndBytesConfig(load_in_4bit=True,
                                                  bnb_4bit_quant_type=quant_type,
                                                  bnb_4bit_use_double_quant=False)
+    else:
+        quantization_config = None
+
+    return quantization_config
+
+
+def get_awq_config(quant_type):
+    if quant_type == "int4":
+        quantization_config = AwqConfig(version="ipex")
     else:
         quantization_config = None
 

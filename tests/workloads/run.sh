@@ -8,7 +8,6 @@ task_name=""
 model_id=""
 model_dtype="float32"
 autocast_dtype="float32"
-quant_type="None"
 backend="inductor"
 device="cpu"
 batch_size=1
@@ -21,6 +20,8 @@ num_processes=4
 warm_up_steps=10
 run_steps=10
 optimum_intel="False"
+bitsandbytes="None"
+autoawq="None"
 
 # Function to display script usage
 usage() {
@@ -34,7 +35,6 @@ usage() {
  echo " -c, --torch_compile   Use torch compile"
  echo " --model_dtype         Indicate the model dtype[float32, bfloat16, float16]"
  echo " --autocast_dtype      Indicate the compute dtype[float32, bfloat16, float16]"
- echo " --quant_type          Indicate the bitsandbytes quantization type[int8, nf4, fp4]"
  echo " --backend             Indicate the torch compile backend[ipex, inductor]"
  echo " --device              Indicate the computation device[cpu, cuda, xpu]"
  echo " --batch_size          Input batch size for text-generation"
@@ -47,6 +47,8 @@ usage() {
  echo " --warm_up_steps       The benchmark warm up steps for all tasks"
  echo " --run_steps           The benchmark run steps for all tasks"
  echo " --optimum_intel       Use optimum-intel optimization"
+ echo " --bitsandbytes        Use bitsandbytes quantization and indicate the bitsandbytes quantization type[int8, nf4, fp4]"
+ echo " --autoawq             Use AutoAWQ quantization and indicate the AutoAWQ quantization type[int4]"
 }
 
 has_argument() {
@@ -107,10 +109,6 @@ handle_options() {
         autocast_dtype=$(extract_argument $@)
         shift
         ;;
-      --quant_type)
-        quant_type=$(extract_argument $@)
-        shift
-        ;;
       --backend)
         backend=$(extract_argument $@)
         shift
@@ -159,6 +157,14 @@ handle_options() {
         optimum_intel=$(extract_argument $@)
         shift
         ;;
+      --bitsandbytes)
+        bitsandbytes=$(extract_argument $@)
+        shift
+        ;;
+      --autoawq)
+        autoawq=$(extract_argument $@)
+        shift
+        ;;
       *)
         echo "Invalid option: $1" >&2
         usage
@@ -199,10 +205,10 @@ if [[ "$task_name" == "fine-tune" ]]; then
     export CCL_WORKER_COUNT=1
     oneccl_bindings_for_pytorch_path=$(python -c "from oneccl_bindings_for_pytorch import cwd; print(cwd)")
     source $oneccl_bindings_for_pytorch_path/env/setvars.sh
-    accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --bf16 True --use_ipex $ipex_optimize --quant_type $quant_type
+    accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --bf16 True --use_ipex $ipex_optimize --bitsandbytes $bitsandbytes --autoawq $autoawq
   else
-    accelerate launch --config_file $task_name/"$device"_config_ddp.yaml $task_name/run_$task_name.py --quant_type $quant_type
+    accelerate launch --config_file $task_name/"$device"_config_ddp.yaml $task_name/run_$task_name.py --bitsandbytes $bitsandbytes --autoawq $autoawq
   fi
 else
-  numactl -C '0-'${CORES} --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_type $quant_type --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel
+  numactl -C '0-'${CORES} --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --bitsandbytes $bitsandbytes --autoawq $autoawq --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel
 fi
