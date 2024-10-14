@@ -10,7 +10,7 @@ import os
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
 logging.basicConfig(level=logging.INFO)
 SEED = 20
@@ -41,6 +41,7 @@ def benchmark(extractor, sentences, seed, nb_pass):
     for _ in range(nb_pass):
         torch.manual_seed(seed)
         extractor.forward_time = 0
+        synchronize_device(extractor.device.type)
         start = time.time()
         encoded_input = extractor.tokenizer(
             sentences, padding=True, truncation=True, return_tensors="pt"
@@ -53,6 +54,7 @@ def benchmark(extractor, sentences, seed, nb_pass):
             mean_pooling(model_output[1], encoded_input["attention_mask"][1])
         )
         score = torch.inner(sentence_embeddings_1, sentence_embeddings_2)
+        synchronize_device(extractor.device.type)
         duration = time.time() - start
         elapsed_times.append(duration * 1000)
         forward_times.append(extractor.forward_time * 1000)

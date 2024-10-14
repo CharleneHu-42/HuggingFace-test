@@ -12,7 +12,7 @@ import os
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype, get_bitsandbytes_config, wrap_forward_for_benchmark
+from common import get_args, get_torch_dtype, get_bitsandbytes_config, wrap_forward_for_benchmark, synchronize_device
 
 inference_context = [torch.inference_mode()]
 
@@ -34,10 +34,12 @@ def generate(generator, input_sentence, batch_size, warm_up_steps, run_steps):
     with ContextManagers(inference_context):
         for i in range(warm_up_steps + run_steps):
             generator.forward_time = 0
+            synchronize_device(generator.device.type)
             pre = time.time()
             output = generator(
                 input_sentence, batch_size=batch_size, **generation_kwargs
             )
+            synchronize_device(generator.device.type)
             latency.append((time.time() - pre) * 1000)
             forward_latency.append(generator.forward_time * 1000)
 
