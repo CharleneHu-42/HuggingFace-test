@@ -11,7 +11,7 @@ sys.setrecursionlimit(10000000)
 import os
 
 sys.path.append(os.path.dirname(__file__) + "/..")
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
 logging.basicConfig(level=logging.INFO)
 inference_context = [torch.inference_mode()]
@@ -33,8 +33,10 @@ def benchmark(pipe, question, context, warm_up_steps, run_steps):
     with ContextManagers(inference_context):
         for i in range(warm_up_steps + run_steps):
             pipe.forward_time = 0
+            synchronize_device(pipe.device.type)
             pre = time.time()
             output = pipe(question=question, context=context)
+            synchronize_device(pipe.device.type)
             time_costs.append((time.time() - pre) * 1000)
             forward_times.append(pipe.forward_time * 1000)
 

@@ -12,7 +12,7 @@ import os
 import sys
 
 sys.path.append(os.path.dirname(__file__) + "/..")
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
 SEED = 24
 IMG_URL = "http://images.cocodataset.org/val2017/000000039769.jpg"
@@ -41,8 +41,10 @@ def benchmark(pipeline, image, seed, nb_pass):
     for _ in range(nb_pass):
         torch.manual_seed(seed)
         pipeline.forward_time = 0
+        synchronize_device(pipeline.device.type)
         start = time.time()
         outputs = pipeline(image)
+        synchronize_device(pipeline.device.type)
         duration = time.time() - start
         elapsed_times.append(duration * 1000)
         forward_times.append(pipeline.forward_time * 1000)
