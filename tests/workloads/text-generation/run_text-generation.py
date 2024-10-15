@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
     if args.optimum_intel:
         from optimum.intel import IPEXModelForCausalLM
-        generator.model = IPEXModelForCausalLM(generator.model, export=True, torch_dtype=torch_dtype)
+        generator.model = IPEXModelForCausalLM.from_pretrained(model_id, export=True, torch_dtype=torch_dtype)
     elif args.ipex_optimize:
         from optimum.intel import inference_mode as ipex_inference_mode
 

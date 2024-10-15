@@ -39,7 +39,7 @@ def parse_args():
     parser.add_argument("--max_new_tokens", type=int, default=1)
     parser.add_argument("--max_input_length", type=int, default=2048)
     parser.add_argument("--num_beams", type=int, default=1)
-    parser.add_argument("--do_sample", type=bool, default=False)
+    parser.add_argument("--do_sample", action="store_true", help="Whether set do_sample")
     parser.add_argument("--temperature", type=float, default=1e-6)
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument(
