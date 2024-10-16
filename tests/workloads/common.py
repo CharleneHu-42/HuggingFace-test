@@ -7,6 +7,11 @@ from transformers import AwqConfig, BitsAndBytesConfig
 def str2bool(str):
     return True if str.lower() == "true" else False
 
+def synchronize_device(device):
+    if device == "xpu":
+        torch.xpu.synchronize()
+    elif device == "cuda":
+        torch.cuda.synchronize()
 
 def get_args():
     parser = argparse.ArgumentParser()

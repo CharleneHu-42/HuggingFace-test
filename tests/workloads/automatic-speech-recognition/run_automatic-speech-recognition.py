@@ -14,7 +14,7 @@ import torch._inductor.config
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
 inference_context = [torch.inference_mode()]
 
@@ -24,8 +24,10 @@ def generate(generator, pipe_input, warm_up_steps, run_steps):
     with ContextManagers(inference_context):
         for i in range(warm_up_steps + run_steps):
             generator.forward_time = 0
+            synchronize_device(generator.device.type)
             pre = time.time()
             output = generator(pipe_input)
+            synchronize_device(generator.device.type)
             time_costs.append((time.time() - pre) * 1000)
             forward_times.append(generator.forward_time * 1000)
 

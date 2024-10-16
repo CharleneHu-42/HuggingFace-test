@@ -32,7 +32,9 @@ logging.basicConfig(level=logging.INFO)
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 sys.path.append(os.path.dirname(__file__) + "/..")
-from common import get_awq_config, get_bitsandbytes_config
+
+from common import get_awq_config, get_bitsandbytes_config, synchronize_device
+
 
 SEED = 42
 set_seed(SEED)
@@ -299,7 +301,9 @@ def train(
     # ).__get__(model, type(model))
 
     start = time.time()
+    synchronize_device(trainer.device.type)
     trainer.train(resume_from_checkpoint=resume_from_checkpoint)
+    synchronize_device(trainer.device.type)
     end = time.time()
     print(f"total training and evaluation time: {end-start}s")
 
