@@ -16,11 +16,7 @@ pip install .
 <TBF>
 
 ### Install HF Transformers
-Please notice that the original transformers may not work, it depends on the [PR](https://github.com/huggingface/transformers/pull/31098).
-You can install the transformers in a proper folder by the following command:
-```bash
-git clone --branch bnb_cpu https://github.com/jiqing-feng/transformers.git && cd transformers/ && pip install .
-```
+Please make sure `transformers >= 4.45.0`
 
 ## use case
 Go to tests/workloads directory.
