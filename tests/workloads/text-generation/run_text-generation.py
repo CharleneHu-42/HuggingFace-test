@@ -184,5 +184,5 @@ if __name__ == "__main__":
             input_seq,
             output_tokens=args.output_tokens,
             batch_size=args.batch_size,
-            compile=args.compile
+            compile=args.torch_compile
         )
