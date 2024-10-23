@@ -37,7 +37,7 @@ def generate(generator, input_sentence, batch_size, warm_up_steps, run_steps):
             synchronize_device(generator.device.type)
             pre = time.time()
             output = generator(
-                input_sentence, batch_size=batch_size, **generation_kwargs
+                input_sentence, batch_size=batch_size, generation_config=generation_config
             )
             synchronize_device(generator.device.type)
             latency.append((time.time() - pre) * 1000)
@@ -56,8 +56,8 @@ def benchmark(
     input_len = len(tokenizer(input_sentence[0])["input_ids"])
     logging.info(f"input tokens length is {input_len}")
 
-    generation_kwargs["max_new_tokens"] = 1
-    generation_kwargs["min_new_tokens"] = 1
+    generation_config.max_new_tokens = 1
+    generation_config.min_new_tokens = 1
 
     first_latency, out, _ = generate(
         generator, input_sentence, batch_size, warm_up_steps, run_steps
@@ -66,8 +66,8 @@ def benchmark(
     logging.info(f"1st token latency = {first_latency} ms")
     logging.info(f"output token nums = {batch_size}")
 
-    generation_kwargs["max_new_tokens"] = output_tokens
-    generation_kwargs["min_new_tokens"] = output_tokens
+    generation_config.max_new_tokens = output_tokens
+    generation_config.min_new_tokens = output_tokens
     latency, out, forward_latency = generate(
         generator, input_sentence, batch_size, warm_up_steps, run_steps
     )
@@ -97,7 +97,6 @@ if __name__ == "__main__":
     with open("./datasets/prompt.json", "r") as f:
         prompt = json.load(f)
 
-    generation_kwargs = dict(do_sample=False, num_beams=args.num_beams, use_cache=True)
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32
@@ -117,10 +116,18 @@ if __name__ == "__main__":
         device=device if quantization_config is None else None,
         tokenizer=tokenizer,
         model_kwargs=model_kwargs,
-        **generation_kwargs,
     )
+    generation_config = generator.model.generation_config
+    generation_config.do_sample = False
+    generation_config.use_cache = True
+    generation_config.temperature = 1.0
+    generation_config.num_beams = args.num_beams
+    generation_config.max_new_tokens = args.output_tokens
+    generation_config.min_new_tokens = args.output_tokens
+    generation_config.top_p = 1.0
+
     if "llama" in model_id:
-        generator.tokenizer.pad_token_id = generator.model.config.eos_token_id
+        generator.tokenizer.pad_token_id = generator.tokenizer.eos_token_id
     wrap_forward_for_benchmark(generator)
 
     model = [name for name in MODEL_LIST if name in model_id.lower()]
@@ -155,13 +162,18 @@ if __name__ == "__main__":
         generator.model = ipex.optimize_transformers(
             generator.model, dtype=torch_dtype, device=device
         )
-    elif args.torch_compile:
+    if args.torch_compile:
         logging.info(f"Use torch compile with {args.backend} backend")
         if args.backend == "ipex":
             import intel_extension_for_pytorch as ipex
+        generation_config.cache_implementation="static"
+        # pipeline warmup
+        _, _, _ = generate(generator, input_seq, args.batch_size, 1, 1)
         generator.model.forward = torch.compile(
-            generator.model.forward, backend=args.backend, dynamic=True
+            generator.model.forward, backend=args.backend
         )
+        # compile warmup
+        _, _, _ = generate(generator, input_seq, args.batch_size, 1, 1)
 
     benchmark(
             generator,
