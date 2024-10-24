@@ -12,9 +12,16 @@ import os
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype, get_bitsandbytes_config, wrap_forward_for_benchmark, synchronize_device
+from common import (
+    get_args,
+    get_torch_dtype,
+    get_bitsandbytes_config,
+    wrap_forward_for_benchmark,
+    synchronize_device,
+    get_batched_prompts,
+)
 
-inference_context = [torch.inference_mode()]
+inference_context = [torch.no_grad()]
 
 MODEL_LIST = [
     "gpt-j",
@@ -125,6 +132,7 @@ if __name__ == "__main__":
     generation_config.max_new_tokens = args.output_tokens
     generation_config.min_new_tokens = args.output_tokens
     generation_config.top_p = 1.0
+    generation_config.cache_implementation="static"
 
     if "llama" in model_id:
         generator.tokenizer.pad_token_id = generator.tokenizer.eos_token_id
@@ -134,31 +142,16 @@ if __name__ == "__main__":
     if len(model) == 0:
         model = ["gpt-j"]
 
-    input_seq = prompt[model[0]][str(args.input_tokens)]
-    input_seq = [input_seq] * args.batch_size
+    prompt = prompt[model[0]][str(args.input_tokens)]
+    input_seq = get_batched_prompts(prompt, args.batch_size)
 
     if args.optimum_intel:
         from optimum.intel import IPEXModelForCausalLM
-        generator.model = IPEXModelForCausalLM(generator.model, export=True, torch_dtype=torch_dtype)
-    elif args.ipex_optimize:
-        from optimum.intel import inference_mode as ipex_inference_mode
-
-        logging.info("Use ipex optimization")
-        with ipex_inference_mode(
-            generator, dtype=torch_dtype, verbose=False, jit=args.jit
-        ) as ipex_pipe:
-            benchmark(
-                ipex_pipe,
-                warm_up_steps,
-                run_steps,
-                input_seq,
-                output_tokens=args.output_tokens,
-                batch_size=args.batch_size,
-            )
-        exit()
+        generator.model = IPEXModelForCausalLM(
+            generator.model, export=True, torch_dtype=torch_dtype
+        )
     elif args.ipex_optimize_transformers:
         import intel_extension_for_pytorch as ipex
-
         generator.model = ipex.optimize_transformers(
             generator.model, dtype=torch_dtype, device=device
         )
@@ -166,7 +159,8 @@ if __name__ == "__main__":
         logging.info(f"Use torch compile with {args.backend} backend")
         if args.backend == "ipex":
             import intel_extension_for_pytorch as ipex
-        generation_config.cache_implementation="static"
+        from torch._inductor import config
+        torch._inductor.config.cpp_wrapper = True
         # pipeline warmup
         _, _, _ = generate(generator, input_seq, args.batch_size, 1, 1)
         generator.model.forward = torch.compile(
