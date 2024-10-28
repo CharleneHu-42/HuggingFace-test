@@ -4,6 +4,7 @@ import time
 import random
 from transformers import BitsAndBytesConfig
 
+random.seed(42)
 
 def str2bool(str):
     return True if str.lower() == "true" else False
