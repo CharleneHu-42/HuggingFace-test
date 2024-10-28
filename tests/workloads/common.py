@@ -4,6 +4,7 @@ import time
 import random
 from transformers import BitsAndBytesConfig
 
+random.seed(42)
 
 def str2bool(str):
     return True if str.lower() == "true" else False
@@ -81,9 +82,8 @@ def wrap_forward_for_benchmark(pipeline):
 def get_batched_prompts(prompt, batch_size):
     prompt_list = [prompt]
     token_list = prompt.split(" ")
-    prompt_len = len(token_list)
     for _ in range(batch_size - 1):
-        prompt_len //= 2
+        prompt_len = random.randint(1, len(token_list) - 2)
         new_prompt = " ".join(token_list[:prompt_len])
         prompt_list.append(new_prompt)
     return prompt_list
