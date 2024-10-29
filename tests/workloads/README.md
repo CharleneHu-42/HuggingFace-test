@@ -26,14 +26,7 @@ Use `--optimum_intel` in `image-classification`, `question-answering`, and `text
 sh run.sh -t image-classification -m google/vit-base-patch16-224 --model_dtype bfloat16 --optimum_intel True
 
 ### XPU
-Before running the test cases, please use the following command to first verify whether you are in the right XPU test environment:
-```bash
-source {ONEAPI_ROOT}/compiler/env/vars.sh
-source {ONEAPI_ROOT}/mkl/env/vars.sh
-source {ONEAPI_ROOT}/ccl/env/vars.sh
-python -c "import torch; import intel_extension_for_pytorch as ipex; print(torch.__version__); print(ipex.__version__); [print(f'[{i}]: {torch.xpu.get_device_properties(i)}') for i in range(torch.xpu.device_count())];"
-```
-The command should return PyTorch* and Intel® Extension for PyTorch* versions installed, as well as GPU card(s) information detected. If it fails, you will need follow [the IPEX official documentation](https://intel.github.io/intel-extension-for-pytorch/index.html#installation?platform=gpu&version=v2.1.10%2Bxpu) to set-up the correct environment. Please note that the first 3 source commands are needed in order to use IPEX. But you only need to run it once for one termial session. You can use the given `env.sh` to activate the required oneAPI environment, e.g. if your oneAPI basekit is installed under `/opt/intel/oneapi`, you can run `./env.sh /opt/intel/oneapi`.
+Before running the test cases, you need to follow [the IPEX official documentation](https://intel.github.io/intel-extension-for-pytorch/index.html#installation?platform=gpu&version=v2.1.10%2Bxpu) to set-up the correct environment.
 
 For Intel Native Experience on XPU, first install the testcase software dependencies:
 ```bash
