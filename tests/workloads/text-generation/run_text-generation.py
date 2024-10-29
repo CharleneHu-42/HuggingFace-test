@@ -136,6 +136,10 @@ if __name__ == "__main__":
 
     if "llama" in model_id:
         generator.tokenizer.pad_token_id = generator.tokenizer.eos_token_id
+    elif "falcon" in model_id:
+        # For the correct shape of static cache
+        if not getattr(generator.model.config, "new_decoder_architecture", False):
+            generator.model.config.num_key_value_heads = 1
     wrap_forward_for_benchmark(generator)
 
     model = [name for name in MODEL_LIST if name in model_id.lower()]
