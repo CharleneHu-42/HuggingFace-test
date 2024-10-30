@@ -63,6 +63,8 @@ def benchmark(
     input_len = len(tokenizer(input_sentence[0])["input_ids"])
     logging.info(f"input tokens length is {input_len}")
 
+    _, _, _ = generate(generator, input_sentence, batch_size, warm_up_steps, run_steps)
+    
     generation_config.max_new_tokens = 1
     generation_config.min_new_tokens = 1
 
@@ -134,7 +136,7 @@ if __name__ == "__main__":
     generation_config.top_p = 1.0
     generation_config.cache_implementation="static"
 
-    if "llama" in model_id:
+    if "llama" in model_id or "gpt" in model_id:
         generator.tokenizer.pad_token_id = generator.tokenizer.eos_token_id
     elif "falcon" in model_id:
         # For the correct shape of static cache
