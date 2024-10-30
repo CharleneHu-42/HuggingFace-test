@@ -31,6 +31,7 @@ Before running the test cases, you need to follow [the IPEX official documentati
 For Intel Native Experience on XPU, first install the testcase software dependencies:
 ```bash
 pip install -r requirements_xpu.txt
+pip install https://github.com/kpu/kenlm/archive/master.zip
 ```
 **___Note: if the installation of transformers and accelerate fail, you will have to install them from source.___**
 

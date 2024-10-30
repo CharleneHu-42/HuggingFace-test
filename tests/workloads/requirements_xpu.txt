@@ -13,4 +13,3 @@ requests
 transformers
 accelerate
 datasets
-https://github.com/kpu/kenlm/archive/master.zip
