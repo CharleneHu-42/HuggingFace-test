@@ -26,11 +26,12 @@ Use `--optimum_intel` in `image-classification`, `question-answering`, and `text
 sh run.sh -t image-classification -m google/vit-base-patch16-224 --model_dtype bfloat16 --optimum_intel True
 
 ### XPU
-Before running the test cases, you need to follow [the IPEX official documentation](https://intel.github.io/intel-extension-for-pytorch/index.html#installation?platform=gpu&version=v2.1.10%2Bxpu) to set-up the correct environment.
+Before running the test cases, you need to follow [the IPEX official documentation](https://intel.github.io/intel-extension-for-pytorch/index.html#installation?platform=gpu&version=v2.1.10%2Bxpu) to set up the correct environment.
 
 For Intel Native Experience on XPU, first install the testcase software dependencies:
 ```bash
 pip install -r requirements_xpu.txt
+# kenlm is required by "jonatasgrosman/wav2vec2-large-xlsr-53-english"
 pip install https://github.com/kpu/kenlm/archive/master.zip
 ```
 **___Note: if the installation of transformers and accelerate fail, you will have to install them from source.___**
