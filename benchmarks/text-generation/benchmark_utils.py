@@ -218,9 +218,9 @@ class BenchmarkPipeline:
                     self.tokenizer.decode(output_id, skip_special_tokens=True)
                     for output_id in output_ids
                 ]
+        self.synchronize_device()
         end = time.time()
         self.latencies.append((end - start) * 1000)
-        self.synchronize_device()
         return output_texts
 
     def synchronize_device(self):

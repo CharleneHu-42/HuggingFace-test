@@ -131,7 +131,8 @@ if __name__ == "__main__":
     device = args.device
     if device == "xpu":
         import intel_extension_for_pytorch as ipex
-
+        torch.use_deterministic_algorithms(True)
+        
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32

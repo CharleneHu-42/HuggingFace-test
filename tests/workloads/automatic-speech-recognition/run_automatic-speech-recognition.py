@@ -30,7 +30,6 @@ def generate(generator, pipe_input, warm_up_steps, run_steps):
             synchronize_device(generator.device.type)
             time_costs.append((time.time() - pre) * 1000)
             forward_times.append(generator.forward_time * 1000)
-
     average_time = sum(time_costs[warm_up_steps:]) / run_steps
     average_fwd_time = sum(forward_times[warm_up_steps:]) / run_steps
     logging.info(f"total time [ms]: {time_costs}")
@@ -49,7 +48,8 @@ if __name__ == "__main__":
     device = args.device
     if device == "xpu":
         import intel_extension_for_pytorch as ipex
-
+        torch.use_deterministic_algorithms(True)
+        
     data = load_from_disk("./datasets/speech_demo")
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
