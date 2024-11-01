@@ -215,3 +215,19 @@ def update_ut_result_after_rerun(rerun_excel_path, ori_excel_file, output_file):
         ori_df.loc[sample.index, "message"] = message
 
     ori_df.to_excel(output_file, index=False)
+    
+    
+def add_column_and_mark_with_case_list(df, new_column, case_list):
+    df[new_column] = [0] * df.shape[0]
+
+    for index, row in df.iterrows():
+        file_name = row["file_name"]
+        suite_name = row["suite_name"]
+        test_name = row["test_name"]
+        if (
+            f"{suite_name}::{test_name}" in case_list
+            or f"{file_name}::{suite_name}::{test_name}" in case_list
+            or f"{file_name}::{test_name}" in case_list
+        ):
+            df.iloc[index, -1] = 1
+    return df
