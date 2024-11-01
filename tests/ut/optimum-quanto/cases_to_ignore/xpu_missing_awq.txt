@@ -514,3 +514,7 @@ test.tensor.weights.optimized.test_awq_weight_qbits_tensor::test_awq_weight_qbit
 test.tensor.weights.optimized.test_awq_weight_qbits_tensor::test_awq_weight_qbits_tensor_linear[no-bias-4096-16384-48-2]
 test.tensor.weights.optimized.test_awq_weight_qbits_tensor::test_awq_weight_qbits_tensor_linear[no-bias-4096-16384-64-1]
 test.tensor.weights.optimized.test_awq_weight_qbits_tensor::test_awq_weight_qbits_tensor_linear[no-bias-4096-16384-64-2]
+test.library.test_mm::test_gemm_fp16_int4[gemv-256-256]
+test.library.test_mm::test_gemm_fp16_int4[gemv-512-256]
+test.library.test_mm::test_gemm_fp16_int4[gemm-256-256]
+test.library.test_mm::test_gemm_fp16_int4[gemm-512-256]
