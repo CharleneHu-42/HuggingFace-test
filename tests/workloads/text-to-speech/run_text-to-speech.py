@@ -86,7 +86,7 @@ if __name__ == "__main__":
         if "Bark" in synthesiser.model.__class__.__name__:
             synthesiser.model.semantic.forward = torch.compile(synthesiser.model.semantic.forward)
             synthesiser.model.coarse_acoustics.forward = torch.compile(synthesiser.model.coarse_acoustics.forward)
-            synthesiser.model.fine_acoustics.generate = torch.compile(synthesiser.model.fine_acoustics.generate)
+            synthesiser.model.fine_acoustics.forward = torch.compile(synthesiser.model.fine_acoustics.forward)
         else:
             synthesiser.model.generate = torch.compile(synthesiser.model.generate)
     elif args.ipex_optimize:
