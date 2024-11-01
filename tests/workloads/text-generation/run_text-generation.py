@@ -63,7 +63,7 @@ def benchmark(
     input_len = len(tokenizer(input_sentence[0])["input_ids"])
     logging.info(f"input tokens length is {input_len}")
 
-    _, _, _ = generate(generator, input_sentence, batch_size, warm_up_steps, run_steps)
+    _, _, _ = generate(generator, input_sentence, batch_size, 1, 1)
     
     generation_config.max_new_tokens = 1
     generation_config.min_new_tokens = 1
