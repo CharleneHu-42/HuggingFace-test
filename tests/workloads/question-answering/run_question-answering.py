@@ -85,8 +85,7 @@ if __name__ == "__main__":
         logging.info(f"Use torch compile with {args.backend} backend")
         if args.backend == "ipex":
             import intel_extension_for_pytorch as ipex
-        pipe.model = torch.compile(pipe.model, backend=args.backend)
-        pipe.model.generate = torch.compile(pipe.model.generate, backend=args.backend)
+        pipe.model.forward = torch.compile(pipe.model.forward, backend=args.backend)
     if args.ipex_optimize:
         logging.info("Use ipex optimize")
         import intel_extension_for_pytorch as ipex

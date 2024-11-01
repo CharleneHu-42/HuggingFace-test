@@ -99,7 +99,7 @@ def apply_torch_compile(classifier, backend):
     logging.info(f"using torch compile with {backend} backend for acceleration...")
     if backend == "ipex":
         import intel_extension_for_pytorch as ipex
-    classifier.model = torch.compile(classifier.model, backend=backend)
+    classifier.model.forward = torch.compile(classifier.model.forward, backend=backend)
     return classifier
 
 

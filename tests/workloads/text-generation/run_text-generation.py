@@ -136,9 +136,8 @@ if __name__ == "__main__":
     generation_config.top_p = 1.0
     generation_config.cache_implementation="static"
 
-    if "llama" in model_id or "gpt" in model_id:
-        generator.tokenizer.pad_token_id = generator.tokenizer.eos_token_id
-    elif "falcon" in model_id:
+    generator.tokenizer.pad_token_id = generator.tokenizer.eos_token_id
+    if "falcon" in model_id:
         # For the correct shape of static cache
         if not getattr(generator.model.config, "new_decoder_architecture", False):
             generator.model.config.num_key_value_heads = 1

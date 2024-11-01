@@ -76,8 +76,12 @@ if __name__ == "__main__":
         logging.info(f"Use torch compile with {args.backend} backend")
         if args.backend == "ipex":
             import intel_extension_for_pytorch as ipex
-        pipe.model = torch.compile(pipe.model, backend=args.backend)
-        pipe.model.generate = torch.compile(pipe.model.generate, backend=args.backend)
+        if "Blip" in pipe.model.__class__.__name__:
+            pipe.model.vision_model.forward = torch.compile(pipe.model.vision_model.forward, backend=args.backend)
+            pipe.model.text_encoder.forward = torch.compile(pipe.model.text_encoder.forward, backend=args.backend)
+            pipe.model.text_decoder.forward = torch.compile(pipe.model.text_decoder.forward, backend=args.backend)
+        else:
+            pipe.model.forward = torch.compile(pipe.model.forward, backend=args.backend)
     elif args.ipex_optimize:
         logging.info("Use ipex optimize")
         import intel_extension_for_pytorch as ipex
