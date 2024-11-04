@@ -6,7 +6,7 @@
 Please make sure you have installed mkl gperftools:
 ```bash
 apt-get update
-apt-get install libstdc++6 libtcmalloc-minimal4
+apt-get install google-perftools
 pip install intel-openmp
 ```
 
