@@ -175,7 +175,7 @@ handle_options "$@"
 
 if [[ "$device" = "cpu" ]]; then
   # Setup environment variables for performance on Xeon
-  export LD_PRELOAD=/usr/local/lib/libstdc++.so.6
+  export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6
   export KMP_BLOCKTIME=INF
   export KMP_TPAUSE=0
   export KMP_SETTINGS=0
@@ -183,7 +183,7 @@ if [[ "$device" = "cpu" ]]; then
   export KMP_FORJOIN_BARRIER_PATTERN=dist,dist
   export KMP_PLAIN_BARRIER_PATTERN=dist,dist
   export KMP_REDUCTION_BARRIER_PATTERN=dist,dist
-  export LD_PRELOAD=${LD_PRELOAD}:/usr/lib/x86_64-linux-gnu/libiomp5.so # Intel OpenMP
+  export LD_PRELOAD=${LD_PRELOAD}:/usr/local/lib/libiomp5.so # Intel OpenMP
   # Tcmalloc is a recommended malloc implementation that emphasizes fragmentation avoidance and scalable concurrency support.
   export LD_PRELOAD=${LD_PRELOAD}:/usr/lib/x86_64-linux-gnu/libtcmalloc_minimal.so.4
 fi
