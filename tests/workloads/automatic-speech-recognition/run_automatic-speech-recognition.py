@@ -76,10 +76,7 @@ if __name__ == "__main__":
             if args.backend == "ipex":
                 import intel_extension_for_pytorch as ipex
             logging.info(f"using torch compile with {args.backend} backend")
-            generator.model.generate = torch.compile(
-                generator.model.generate, backend=args.backend
-            )
-            generator.model = torch.compile(generator.model, backend=args.backend)
+            generator.model.forward = torch.compile(generator.model.forward, backend=args.backend)
         elif args.ipex_optimize:
             import intel_extension_for_pytorch as ipex
 
@@ -99,7 +96,7 @@ if __name__ == "__main__":
             logging.info(f"using torch compile with {args.backend} backend")
             if args.backend == "ipex":
                 import intel_extension_for_pytorch as ipex
-            generator = torch.compile(generator, backend=args.backend)
+            generator.model.forward = torch.compile(generator.model.forward, backend=args.backend)
         elif args.ipex_optimize:
             logging.info("Pyannote do not support ipex optimize")
 

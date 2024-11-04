@@ -83,10 +83,12 @@ if __name__ == "__main__":
         logging.info(f"Use torch compile with {args.backend} backend")
         if args.backend == "ipex":
             import intel_extension_for_pytorch as ipex
-        synthesiser.model.generate = torch.compile(
-            synthesiser.model.generate, backend=args.backend
-        )
-        synthesiser.model = torch.compile(synthesiser.model, backend=args.backend)
+        if "Bark" in synthesiser.model.__class__.__name__:
+            synthesiser.model.semantic.forward = torch.compile(synthesiser.model.semantic.forward)
+            synthesiser.model.coarse_acoustics.forward = torch.compile(synthesiser.model.coarse_acoustics.forward)
+            synthesiser.model.fine_acoustics.generate = torch.compile(synthesiser.model.fine_acoustics.generate)
+        else:
+            synthesiser.model.generate = torch.compile(synthesiser.model.generate)
     elif args.ipex_optimize:
         logging.info("Use ipex optimize")
         import intel_extension_for_pytorch as ipex

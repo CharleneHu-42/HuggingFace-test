@@ -68,10 +68,7 @@ if __name__ == "__main__":
         logging.info(f"Use torch compile with {args.backend} backend")
         if args.backend == "ipex":
             import intel_extension_for_pytorch as ipex
-        image_to_text.model.generate = torch.compile(
-            image_to_text.model.generate, backend=args.backend
-        )
-        image_to_text.model = torch.compile(image_to_text.model, backend=args.backend)
+        image_to_text.model.forward = torch.compile(image_to_text.model.forward, backend=args.backend)
     elif args.ipex_optimize:
         logging.info("Use ipex optimize")
         import intel_extension_for_pytorch as ipex

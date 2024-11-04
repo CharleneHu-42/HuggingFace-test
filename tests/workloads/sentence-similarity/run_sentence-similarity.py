@@ -113,7 +113,7 @@ def apply_torch_compile(extractor, backend):
     logging.info(f"using torch compile with {backend} backend for acceleration...")
     if backend == "ipex":
         import intel_extension_for_pytorch as ipex
-    extractor.model = torch.compile(extractor.model, backend=backend)
+    extractor.model.forward = torch.compile(extractor.model.forward, backend=backend)
     return extractor
 
 
