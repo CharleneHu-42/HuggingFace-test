@@ -43,9 +43,7 @@ def generate(generator, input_sentence, batch_size, warm_up_steps, run_steps):
             generator.forward_time = 0
             synchronize_device(generator.device.type)
             pre = time.time()
-            output = generator(
-                input_sentence, batch_size=batch_size, generation_config=generation_config
-            )
+            output = generator(input_sentence, batch_size=batch_size)
             synchronize_device(generator.device.type)
             latency.append((time.time() - pre) * 1000)
             forward_latency.append(generator.forward_time * 1000)
@@ -64,7 +62,7 @@ def benchmark(
     logging.info(f"input tokens length is {input_len}")
 
     _, _, _ = generate(generator, input_sentence, batch_size, 1, 1)
-    
+    generation_config = generator.model.generation_config
     generation_config.max_new_tokens = 1
     generation_config.min_new_tokens = 1
 
@@ -118,6 +116,7 @@ if __name__ == "__main__":
         model_kwargs["quantization_config"] = quantization_config
 
     tokenizer = AutoTokenizer.from_pretrained(model_id)
+    tokenizer.padding_side = 'left'
     generator = pipeline(
         "text-generation",
         model=model_id,
