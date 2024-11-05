@@ -118,6 +118,7 @@ if __name__ == "__main__":
         model_kwargs["quantization_config"] = quantization_config
 
     tokenizer = AutoTokenizer.from_pretrained(model_id)
+    tokenizer.padding_side = 'left'
     generator = pipeline(
         "text-generation",
         model=model_id,

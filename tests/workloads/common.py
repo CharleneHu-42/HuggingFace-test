@@ -82,8 +82,9 @@ def wrap_forward_for_benchmark(pipeline):
 def get_batched_prompts(prompt, batch_size):
     prompt_list = [prompt]
     token_list = prompt.split(" ")
+    assert len(token_list) > 18
     for _ in range(batch_size - 1):
-        prompt_len = random.randint(1, len(token_list) - 2)
+        prompt_len = random.randint(16, len(token_list) - 2)
         new_prompt = " ".join(token_list[:prompt_len])
         prompt_list.append(new_prompt)
     return prompt_list
