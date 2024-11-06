@@ -282,9 +282,9 @@ def train(
     # ).__get__(model, type(model))
 
     start = time.time()
-    synchronize_device(trainer.device.type)
+    synchronize_device(trainer.args.device.type)
     trainer.train(resume_from_checkpoint=resume_from_checkpoint)
-    synchronize_device(trainer.device.type)
+    synchronize_device(trainer.args.device.type)
     end = time.time()
     print(f"total training and evaluation time: {end-start}s")
 
