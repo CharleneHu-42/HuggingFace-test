@@ -280,11 +280,11 @@ def train(
     # model.state_dict = (
     #     lambda self, *_, **__: get_peft_model_state_dict(self, old_state_dict())
     # ).__get__(model, type(model))
-
+    
+    synchronize_device(trainer.args.device.type)
     start = time.time()
-    synchronize_device(trainer.device.type)
     trainer.train(resume_from_checkpoint=resume_from_checkpoint)
-    synchronize_device(trainer.device.type)
+    synchronize_device(trainer.args.device.type)
     end = time.time()
     print(f"total training and evaluation time: {end-start}s")
 
