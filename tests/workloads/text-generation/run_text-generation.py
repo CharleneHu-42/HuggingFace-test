@@ -59,7 +59,7 @@ def generate(generator, input_sentence, batch_size, warm_up_steps, run_steps):
 
 
 def benchmark(
-    generator, warm_up_steps, run_steps, input_sentence, output_tokens, batch_size, compile=False
+    generator, warm_up_steps, run_steps, input_sentence, output_tokens, batch_size
 ):
     input_len = len(tokenizer(input_sentence[0])["input_ids"])
     logging.info(f"input tokens length is {input_len}")
@@ -187,5 +187,4 @@ if __name__ == "__main__":
             input_seq,
             output_tokens=args.output_tokens,
             batch_size=args.batch_size,
-            compile=args.torch_compile
         )
