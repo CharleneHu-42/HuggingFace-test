@@ -13,7 +13,7 @@ usage() {
  echo " -h, --help            Display this help message"
  echo " -d, --device          Hardware Device[xpu, cuda]"
  echo " -t, --target          Target Name[transformers, peft, accelerate, diffusers, trl]"
- echo " -w, --local_dir       The local directory to be mounted inside the container"
+ echo " -l, --local_dir       The local directory to be mounted inside the container"
  echo " -n, --name            The container name"
 }
 
@@ -55,7 +55,7 @@ handle_options() {
 
         shift
         ;;
-      -w | --local_dir)
+      -l | --local_dir)
         local_dir=$(extract_argument $@)
         shift
         ;;
@@ -89,7 +89,7 @@ if [[ $device == "cuda" ]]; then
 		-v ${HF_HOME}:/root/.cache/huggingface \
 		-v ${local_dir}:/mnt \
     -v /dev/shm:/dev/shm \
-		-w /workspace \
+		-w /tests/${target} \
 		--runtime=nvidia \
 		--gpus all \
 		--entrypoint /bin/bash \
@@ -107,7 +107,7 @@ elif [[ $device == "xpu" ]]; then
     -v /dev/dri/by-path:/dev/dri/by-path \
 		-v ${HF_HOME}:/root/.cache/huggingface \
 		-v ${local_dir}:/mnt \
-		-w /workspace \
+		-w /tests/${target} \
 		--device=/dev/dri \
 		--ipc=host \
 		--entrypoint /bin/bash \

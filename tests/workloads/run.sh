@@ -181,7 +181,6 @@ handle_options "$@"
 
 if [[ "$device" = "cpu" ]]; then
   # Setup environment variables for performance on Xeon
-  export LD_PRELOAD=${CONDA_PREFIX}/lib/libstdc++.so.6
   export KMP_BLOCKTIME=INF
   export KMP_TPAUSE=0
   export KMP_SETTINGS=0
@@ -189,9 +188,9 @@ if [[ "$device" = "cpu" ]]; then
   export KMP_FORJOIN_BARRIER_PATTERN=dist,dist
   export KMP_PLAIN_BARRIER_PATTERN=dist,dist
   export KMP_REDUCTION_BARRIER_PATTERN=dist,dist
-  export LD_PRELOAD=${LD_PRELOAD}:${CONDA_PREFIX}/lib/libiomp5.so # Intel OpenMP
+  export LD_PRELOAD=${LD_PRELOAD}:/usr/local/lib/libiomp5.so # Intel OpenMP
   # Tcmalloc is a recommended malloc implementation that emphasizes fragmentation avoidance and scalable concurrency support.
-  export LD_PRELOAD=${LD_PRELOAD}:${CONDA_PREFIX}/lib/libtcmalloc.so
+  export LD_PRELOAD=${LD_PRELOAD}:/usr/lib/x86_64-linux-gnu/libtcmalloc.so.4
 fi
 CORES=`lscpu | grep 'Core(s) per socket' | awk '{print $4}'`
 export TORCHINDUCTOR_FREEZING=1
@@ -203,8 +202,7 @@ export TORCHINDUCTOR_CPP_MIN_CHUNK_SIZE=${CORES}
 if [[ "$task_name" == "fine-tune" ]]; then
   if [[ "$device" == "cpu" ]]; then
     export CCL_WORKER_COUNT=1
-    oneccl_bindings_for_pytorch_path=$(python -c "from oneccl_bindings_for_pytorch import cwd; print(cwd)")
-    source $oneccl_bindings_for_pytorch_path/env/setvars.sh
+    source /opt/intel/oneapi/setvars.sh
     accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --bf16 True --use_ipex $ipex_optimize --bitsandbytes $bitsandbytes --autoawq $autoawq
   else
     accelerate launch --config_file $task_name/"$device"_config_ddp.yaml $task_name/run_$task_name.py --bitsandbytes $bitsandbytes --autoawq $autoawq

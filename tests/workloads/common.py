@@ -1,8 +1,10 @@
 import argparse
 import torch
 import time
+import random
 from transformers import AwqConfig, BitsAndBytesConfig
 
+random.seed(42)
 
 def str2bool(str):
     return True if str.lower() == "true" else False
@@ -87,3 +89,14 @@ def wrap_forward_for_benchmark(pipeline):
     pipeline.forward_time = 0
     pipeline.__class__._orig_forward = pipeline.__class__._forward
     pipeline.__class__._forward = wrapped_forward
+
+
+def get_batched_prompts(prompt, batch_size):
+    prompt_list = [prompt]
+    token_list = prompt.split(" ")
+    assert len(token_list) > 18
+    for _ in range(batch_size - 1):
+        prompt_len = random.randint(16, len(token_list) - 2)
+        new_prompt = " ".join(token_list[:prompt_len])
+        prompt_list.append(new_prompt)
+    return prompt_list

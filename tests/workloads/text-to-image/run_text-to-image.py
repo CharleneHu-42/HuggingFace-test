@@ -168,7 +168,7 @@ def apply_torch_compile(pipe, backend):
     logging.info(f"using torch compile with {backend} backend for acceleration...")
     if backend == "ipex":
         import intel_extension_for_pytorch as ipex
-    pipe.unet = torch.compile(pipe.unet, backend=backend)
+    pipe.unet.forward = torch.compile(pipe.unet.forward, backend=backend)
 
     return pipe
 

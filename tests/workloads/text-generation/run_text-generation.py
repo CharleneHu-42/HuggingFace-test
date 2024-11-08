@@ -12,9 +12,17 @@ import os
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
-from common import get_args, get_torch_dtype, get_awq_config, get_bitsandbytes_config, wrap_forward_for_benchmark, synchronize_device
+from common import (
+    get_args,
+    get_torch_dtype,
+    get_awq_config,
+    get_bitsandbytes_config,
+    wrap_forward_for_benchmark,
+    synchronize_device,
+    get_batched_prompts,
+)
 
-inference_context = [torch.inference_mode()]
+inference_context = [torch.no_grad()]
 
 MODEL_LIST = [
     "gpt-j",
@@ -37,7 +45,7 @@ def generate(generator, input_sentence, batch_size, warm_up_steps, run_steps):
             synchronize_device(generator.device.type)
             pre = time.time()
             output = generator(
-                input_sentence, batch_size=batch_size, **generation_kwargs
+                input_sentence, batch_size=batch_size, generation_config=generation_config
             )
             synchronize_device(generator.device.type)
             latency.append((time.time() - pre) * 1000)
@@ -56,15 +64,9 @@ def benchmark(
     input_len = len(tokenizer(input_sentence[0])["input_ids"])
     logging.info(f"input tokens length is {input_len}")
 
-    if compile:
-        # warmup for torch compile
-        generation_kwargs["max_new_tokens"] = output_tokens
-        generation_kwargs["min_new_tokens"] = output_tokens
-        _, _, _ = generate(generator, input_sentence, batch_size, 2, 1)
-        print("Torch compile warmup ended ========================================")
-
-    generation_kwargs["max_new_tokens"] = 1
-    generation_kwargs["min_new_tokens"] = 1
+    _, _, _ = generate(generator, input_sentence, batch_size, 1, 1)
+    generation_config.max_new_tokens = 1
+    generation_config.min_new_tokens = 1
 
     first_latency, out, _ = generate(
         generator, input_sentence, batch_size, warm_up_steps, run_steps
@@ -73,8 +75,8 @@ def benchmark(
     logging.info(f"1st token latency = {first_latency} ms")
     logging.info(f"output token nums = {batch_size}")
 
-    generation_kwargs["max_new_tokens"] = output_tokens
-    generation_kwargs["min_new_tokens"] = output_tokens
+    generation_config.max_new_tokens = output_tokens
+    generation_config.min_new_tokens = output_tokens
     latency, out, forward_latency = generate(
         generator, input_sentence, batch_size, warm_up_steps, run_steps
     )
@@ -104,7 +106,6 @@ if __name__ == "__main__":
     with open("./datasets/prompt.json", "r") as f:
         prompt = json.load(f)
 
-    generation_kwargs = dict(do_sample=False, num_beams=args.num_beams, use_cache=True)
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32
@@ -124,6 +125,7 @@ if __name__ == "__main__":
         model_kwargs["quantization_config"] = quantization_config
 
     tokenizer = AutoTokenizer.from_pretrained(model_id)
+    tokenizer.padding_side = 'left'
     generator = pipeline(
         "text-generation",
         model=model_id,
@@ -131,51 +133,52 @@ if __name__ == "__main__":
         device=device if quantization_config is None else None,
         tokenizer=tokenizer,
         model_kwargs=model_kwargs,
-        **generation_kwargs,
     )
-    if "llama" in model_id:
-        generator.tokenizer.pad_token_id = generator.model.config.eos_token_id
+    generation_config = generator.model.generation_config
+    generation_config.do_sample = False
+    generation_config.use_cache = True
+    generation_config.temperature = 1.0
+    generation_config.num_beams = args.num_beams
+    generation_config.max_new_tokens = args.output_tokens
+    generation_config.min_new_tokens = args.output_tokens
+    generation_config.top_p = 1.0
+    generation_config.cache_implementation="static"
+
+    generator.tokenizer.pad_token_id = generator.tokenizer.eos_token_id
+    if "falcon" in model_id:
+        # For the correct shape of static cache
+        if not getattr(generator.model.config, "new_decoder_architecture", False):
+            generator.model.config.num_key_value_heads = 1
     wrap_forward_for_benchmark(generator)
 
     model = [name for name in MODEL_LIST if name in model_id.lower()]
     if len(model) == 0:
         model = ["gpt-j"]
 
-    input_seq = prompt[model[0]][str(args.input_tokens)]
-    input_seq = [input_seq] * args.batch_size
+    prompt = prompt[model[0]][str(args.input_tokens)]
+    input_seq = get_batched_prompts(prompt, args.batch_size)
 
     if args.optimum_intel:
         from optimum.intel import IPEXModelForCausalLM
-        generator.model = IPEXModelForCausalLM.from_pretrained(model_id, export=True, torch_dtype=torch_dtype)
-    elif args.ipex_optimize:
-        from optimum.intel import inference_mode as ipex_inference_mode
-
-        logging.info("Use ipex optimization")
-        with ipex_inference_mode(
-            generator, dtype=torch_dtype, verbose=False, jit=args.jit
-        ) as ipex_pipe:
-            benchmark(
-                ipex_pipe,
-                warm_up_steps,
-                run_steps,
-                input_seq,
-                output_tokens=args.output_tokens,
-                batch_size=args.batch_size,
-            )
-        exit()
+        generator.model = IPEXModelForCausalLM(generator.model, export=True, torch_dtype=torch_dtype)
     elif args.ipex_optimize_transformers:
         import intel_extension_for_pytorch as ipex
-
         generator.model = ipex.optimize_transformers(
             generator.model, dtype=torch_dtype, device=device
         )
-    elif args.torch_compile:
+    if args.torch_compile:
         logging.info(f"Use torch compile with {args.backend} backend")
         if args.backend == "ipex":
             import intel_extension_for_pytorch as ipex
+        from torch._inductor import config
+        torch._inductor.config.cpp_wrapper = True
+        # pipeline warmup
+        _, _, _ = generate(generator, input_seq, args.batch_size, 1, 1)
         generator.model.forward = torch.compile(
-            generator.model.forward, backend=args.backend, dynamic=True
+            generator.model.forward, backend=args.backend
         )
+        # compile warmup
+        _, _, _ = generate(generator, input_seq, args.batch_size, 1, 1)
 
     benchmark(
             generator,

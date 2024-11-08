@@ -78,7 +78,7 @@ for model in "${models_list[@]}"; do
                     echo Start: $start_time
                     tmp_log_name=$tmp_log_folder/$model/BS_${batch_size}_beam_${num_beam}_ip_${input_len}_op_${output_len}.log
                     mkdir -p "$(dirname "$tmp_log_name")" && touch "$tmp_log_name"
-                    python3 /workspace/benchmark/main.py --task_name $task_name --model_name $hf_model_dir --engine_dir $model_engine_dir --data_dir $data_dir --data_type $precision --device $device --input_tokens $input_len --max_new_tokens $output_len --max_input_len $max_input_len --backend $backend --batch_size $batch_size --num_beams $num_beam --do_sample $do_sample 2>&1 | tee $tmp_log_name 
+                    python3 /workspace/benchmark/main.py --task_name $task_name --model_name $hf_model_dir --engine_dir $model_engine_dir --data_dir $data_dir --data_type $precision --device $device --input_tokens $input_len --max_new_tokens $output_len --max_input_len $max_input_len --backend $backend --batch_size $batch_size --num_beams $num_beam  2>&1 | tee $tmp_log_name
                     wait
                     end_time=$(date +%F-%T)
                     end_time_epoch=$(date +%s)

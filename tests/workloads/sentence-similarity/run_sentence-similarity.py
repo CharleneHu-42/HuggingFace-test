@@ -113,7 +113,7 @@ def apply_torch_compile(extractor, backend):
     logging.info(f"using torch compile with {backend} backend for acceleration...")
     if backend == "ipex":
         import intel_extension_for_pytorch as ipex
-    extractor.model = torch.compile(extractor.model, backend=backend)
+    extractor.model.forward = torch.compile(extractor.model.forward, backend=backend)
     return extractor
 
 
@@ -131,7 +131,8 @@ if __name__ == "__main__":
     device = args.device
     if device == "xpu":
         import intel_extension_for_pytorch as ipex
-
+        torch.use_deterministic_algorithms(True)
+        
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32
