@@ -23,35 +23,35 @@ Go to tests/workloads directory.
 ### Inference
 #### bf16(baseline)
 ```
-sh run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16
+./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16
 ```
 #### int8
 ```
-sh run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --bitsandbytes int8
+./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --bitsandbytes int8
 ```
 #### nf4
 ```
-sh run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --bitsandbytes nf4
+./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --bitsandbytes nf4
 ```
 #### fp4
 ```
-sh run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --bitsandbytes fp4
+./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --bitsandbytes fp4
 ```
 
 ### Finetune
 #### bf16 LoRA(baseline)
 ```
-sh run.sh -t fine-tune
+./run.sh -t fine-tune
 ```
 #### int8 LoRA
 ```
-sh run.sh -t fine-tune --bitsandbytes int8
+./run.sh -t fine-tune --bitsandbytes int8
 ```
 #### nf4 QLoRA
 ```
-sh run.sh -t fine-tune --bitsandbytes nf4
+./run.sh -t fine-tune --bitsandbytes nf4
 ```
 #### fp4 QLoRA
 ```
-sh run.sh -t fine-tune --bitsandbytes fp4
+./run.sh -t fine-tune --bitsandbytes fp4
 ```
