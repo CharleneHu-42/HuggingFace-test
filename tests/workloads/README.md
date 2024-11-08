@@ -7,7 +7,7 @@ Please make sure you have installed mkl gperftools:
 ```bash
 apt-get update
 apt-get install google-perftools
-pip install intel-openmp
+pip install -U intel-openmp
 ```
 
 We defaultly use BF16 OOB and BF16 + torch.compile in CPU for all inference tasks, run the following command:
