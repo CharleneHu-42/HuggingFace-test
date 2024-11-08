@@ -10,5 +10,5 @@ RUN apt-get update && apt install -y intel-basekit
 # Install system tools
 RUN apt install -y numactl && apt-get install -y python3-dev
 
-# Install transformers
-RUN pip install transformers
+# Install deepspeed and transformers
+RUN pip install transformers deepspeed
