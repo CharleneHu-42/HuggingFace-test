@@ -196,7 +196,7 @@ if [[ "$task_name" == "fine-tune" ]]; then
   if [[ "$device" == "cpu" ]]; then
     export CCL_WORKER_COUNT=1
     source /opt/intel/oneapi/setvars.sh
-    accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --bf16 True --use_ipex $ipex_optimize --bitsandbytes $bitsandbytes --autoawq $autoawq --device $device
+    accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --use_ipex $ipex_optimize --bitsandbytes $bitsandbytes --autoawq $autoawq --device $device
   else
     accelerate launch --config_file $task_name/"$device"_config_ddp.yaml $task_name/run_$task_name.py --bitsandbytes $bitsandbytes --autoawq $autoawq --device $device
   fi

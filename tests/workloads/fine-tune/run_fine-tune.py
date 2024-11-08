@@ -144,6 +144,7 @@ def train(
     model = AutoModelForCausalLM.from_pretrained(
         base_model,
         low_cpu_mem_usage=True,
+        torch_dtype=torch.bfloat16 if device == "cpu" else torch.float16,
         quantization_config=quantization_config,
     )
 
