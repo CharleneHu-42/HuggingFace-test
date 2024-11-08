@@ -1,5 +1,5 @@
-# The base image contain ipex-2.4.0+cpu and torch-2.4.0+cpu
-FROM intel/intel-extension-for-pytorch:2.4.0-pip-base as base
+# The base image contain ipex-2.5.0+cpu and torch-2.5.0+cpu
+FROM intel/intel-extension-for-pytorch:2.5.0-pip-base as base
 
 # Install oneapi
 RUN apt update && apt install -y gpg-agent
@@ -10,5 +10,5 @@ RUN apt-get update && apt install -y intel-basekit
 # Install system tools
 RUN apt install -y numactl && apt-get install -y python3-dev
 
-# Install deepspeed and transformers
-RUN pip install transformers deepspeed
+# Install transformers
+RUN pip install transformers
