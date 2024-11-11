@@ -11,6 +11,7 @@ pip install git+https://github.com/casper-hansen/AutoAWQ.git
 
 ## use case
 Go to tests/workloads directory.
+The following commands defaultly use CPU, please add flag: `--device xpu --model_dtype float16` if you use XPU.
 ### Inference
 #### bf16(baseline)
 ```
@@ -21,11 +22,6 @@ Go to tests/workloads directory.
 ./run.sh -t text-generation -m TheBloke/firefly-llama2-7B-chat-AWQ --autoawq int4
 ```
 
-for XPU:
-```
-./run.sh -t text-generation -m TheBloke/firefly-llama2-7B-chat-AWQ --autoawq int4 --device xpu --model_dtype float16
-```
-
 ### Finetune
 #### bf16 LoRA(baseline)
 ```
@@ -33,10 +29,5 @@ for XPU:
 ```
 #### int4 LoRA
 ```
-./run.sh -t fine-tune --awq_base_model TheBloke/firefly-llama2-7B-chat-AWQ --autoawq int4
-```
-
-for XPU:
-```
-./run.sh -t fine-tune --awq_base_model TheBloke/firefly-llama2-7B-chat-AWQ --autoawq int4 --devicee xpu
+./run.sh -t fine-tune -m TheBloke/firefly-llama2-7B-chat-AWQ --autoawq int4
 ```

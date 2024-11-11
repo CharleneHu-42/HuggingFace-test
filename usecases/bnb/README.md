@@ -20,6 +20,7 @@ Please make sure `transformers >= 4.45.0`
 
 ## use case
 Go to tests/workloads directory.
+The following commands defaultly use CPU, please add flag: `--device xpu --model_dtype float16` if you use XPU.
 ### Inference
 #### bf16(baseline)
 ```

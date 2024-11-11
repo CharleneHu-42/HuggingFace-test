@@ -133,13 +133,8 @@ def train(
         logging.info(f"Use {bitsandbytes} biteansbytes quantization")
         quantization_config = get_bitsandbytes_config(bitsandbytes)
     elif autoawq:
-        logging.info(f"Use {autoawq} AutoAWQ quantization, the model will be changed to awq_base_model")
+        logging.info(f"Use {autoawq} AutoAWQ quantization, please pass a quantized model like 'TheBloke/firefly-llama2-7B-chat-AWQ'")
         quantization_config = get_awq_config(autoawq)
-        quantization_config.do_fuse = False
-        assert (
-            awq_base_model
-        ), "Please specify a --awq_base_model, e.g. --awq_base_model='TheBloke/firefly-llama2-7B-chat-AWQ'"
-        base_model = awq_base_model
 
     model = AutoModelForCausalLM.from_pretrained(
         base_model,
