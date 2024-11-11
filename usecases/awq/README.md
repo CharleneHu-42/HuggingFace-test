@@ -11,8 +11,8 @@ pip install git+https://github.com/casper-hansen/AutoAWQ.git
 
 ## use case
 Go to tests/workloads directory.
-The following commands defaultly use CPU, please add flag: `--device xpu --model_dtype float16` if you use XPU.
 ### Inference
+The following commands defaultly use CPU, please add flag: `--device xpu --model_dtype float16` if you use XPU.
 #### bf16(baseline)
 ```
 ./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16
@@ -23,9 +23,10 @@ The following commands defaultly use CPU, please add flag: `--device xpu --model
 ```
 
 ### Finetune
+The following commands defaultly use CPU, please add flag: `--device xpu` if you use XPU.
 #### bf16 LoRA(baseline)
 ```
-./run.sh -t fine-tune --base_model meta-llama/Llama-2-7b-chat-hf
+./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf
 ```
 #### int4 LoRA
 ```
