@@ -69,7 +69,6 @@ def train(
     prompt_template_name: str = "alpaca",  # The prompt template to use, will default to alpaca.
     bitsandbytes: str = None,
     autoawq: str = None,
-    device: str = None,
     **kwargs,
 ):
     local_rank = int(os.environ.get("LOCAL_RANK", 0)) or int(os.environ.get("PMI_RANK", 0))
@@ -138,7 +137,6 @@ def train(
     model = AutoModelForCausalLM.from_pretrained(
         base_model,
         low_cpu_mem_usage=True,
-        device_map=device,
         torch_dtype=torch.bfloat16,
         quantization_config=quantization_config,
     )
