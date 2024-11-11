@@ -42,7 +42,6 @@ set_seed(SEED)
 def train(
     # model/data params
     base_model: str = "meta-llama/Llama-2-7b-hf",  # the only required argument
-    awq_base_model: str = "TheBloke/firefly-llama2-7B-chat-AWQ",
     data_path: str = "yahma/alpaca-cleaned",
     output_dir: str = "./lora-alpaca",
     # training hyperparams
@@ -139,6 +138,7 @@ def train(
     model = AutoModelForCausalLM.from_pretrained(
         base_model,
         low_cpu_mem_usage=True,
+        device_map=device,
         torch_dtype=torch.bfloat16 if device == "cpu" else torch.float16,
         quantization_config=quantization_config,
     )
