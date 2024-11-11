@@ -21,6 +21,11 @@ Go to tests/workloads directory.
 ./run.sh -t text-generation -m TheBloke/firefly-llama2-7B-chat-AWQ --autoawq int4
 ```
 
+for XPU:
+```
+./run.sh -t text-generation -m TheBloke/firefly-llama2-7B-chat-AWQ --autoawq int4 --device xpu --model_dtype float16
+```
+
 ### Finetune
 #### bf16 LoRA(baseline)
 ```
@@ -29,4 +34,9 @@ Go to tests/workloads directory.
 #### int4 LoRA
 ```
 ./run.sh -t fine-tune --awq_base_model TheBloke/firefly-llama2-7B-chat-AWQ --autoawq int4
+```
+
+for XPU:
+```
+./run.sh -t fine-tune --awq_base_model TheBloke/firefly-llama2-7B-chat-AWQ --autoawq int4 --devicee xpu
 ```

@@ -112,7 +112,7 @@ if __name__ == "__main__":
     if enable:
         inference_context.append(torch.autocast(device, dtype, enable))
     
-    model_kwargs = {}
+    model_kwargs = dict(torch_dtype=torch_dtype, device_map=device)
     quantization_config = None
     if args.bitsandbytes in ("int8", "nf4", "fp4"):
         logging.info(f"Use {args.bitsandbytes} bitsandbytes quantization")
@@ -126,11 +126,10 @@ if __name__ == "__main__":
 
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     tokenizer.padding_side = 'left'
+    tokenizer.pad_token_id = tokenizer.eos_token_id
     generator = pipeline(
         "text-generation",
         model=model_id,
-        torch_dtype=torch_dtype,
-        device=device if quantization_config is None else None,
         tokenizer=tokenizer,
         model_kwargs=model_kwargs,
     )
@@ -144,7 +143,6 @@ if __name__ == "__main__":
     generation_config.top_p = 1.0
     generation_config.cache_implementation="static"
 
-    generator.tokenizer.pad_token_id = generator.tokenizer.eos_token_id
     if "falcon" in model_id:
         # For the correct shape of static cache
         if not getattr(generator.model.config, "new_decoder_architecture", False):
