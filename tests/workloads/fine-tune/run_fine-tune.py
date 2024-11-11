@@ -139,7 +139,7 @@ def train(
         base_model,
         low_cpu_mem_usage=True,
         device_map=device,
-        torch_dtype=torch.bfloat16 if device == "cpu" else torch.float16,
+        torch_dtype=torch.bfloat16,
         quantization_config=quantization_config,
     )
 
@@ -149,6 +149,7 @@ def train(
     tokenizer = AutoTokenizer.from_pretrained(base_model)
 
     tokenizer.pad_token_id = 0  # unk. we want this to be different from the eos token
+    tokenizer.padding_side = "right"
 
     def tokenize(prompt, add_eos_token=True):
         # there's probably a way to do this with the tokenizer settings
