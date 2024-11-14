@@ -69,6 +69,7 @@ def train(
     prompt_template_name: str = "alpaca",  # The prompt template to use, will default to alpaca.
     bitsandbytes: str = None,
     autoawq: str = None,
+    device: str = None,
     **kwargs,
 ):
     local_rank = int(os.environ.get("LOCAL_RANK", 0)) or int(os.environ.get("PMI_RANK", 0))
@@ -134,11 +135,18 @@ def train(
         logging.info(f"Use {autoawq} AutoAWQ quantization, please pass a quantized model like 'TheBloke/firefly-llama2-7B-chat-AWQ'")
         quantization_config = get_awq_config(autoawq)
 
+    if device == "cpu":
+        device_map = None
+    elif device == "xpu":
+        device_map = {'':torch.xpu.current_device()}
+    elif device == "cuda":
+        device_map = {'':torch.cuda.current_device()}
     model = AutoModelForCausalLM.from_pretrained(
         base_model,
         low_cpu_mem_usage=True,
         torch_dtype=torch.bfloat16,
         quantization_config=quantization_config,
+        device_map=device_map,
     )
 
     if bitsandbytes is not None:

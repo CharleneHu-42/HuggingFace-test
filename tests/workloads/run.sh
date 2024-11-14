@@ -196,9 +196,9 @@ if [[ "$task_name" == "fine-tune" ]]; then
   if [[ "$device" == "cpu" ]]; then
     export CCL_WORKER_COUNT=1
     source /opt/intel/oneapi/setvars.sh
-    accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --base_model $model_id --use_ipex $ipex_optimize --bitsandbytes $bitsandbytes --autoawq $autoawq
+    accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --base_model $model_id --use_ipex $ipex_optimize --bitsandbytes $bitsandbytes --autoawq $autoawq --device $device
   else
-    accelerate launch --config_file $task_name/"$device"_config_ddp.yaml $task_name/run_$task_name.py --base_model $model_id --bitsandbytes $bitsandbytes --autoawq $autoawq
+    accelerate launch --config_file $task_name/"$device"_config_ddp.yaml $task_name/run_$task_name.py --base_model $model_id --bitsandbytes $bitsandbytes --autoawq $autoawq --devicee $device
   fi
 else
   numactl -C '0-'${CORES} --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --bitsandbytes $bitsandbytes --autoawq $autoawq --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel
