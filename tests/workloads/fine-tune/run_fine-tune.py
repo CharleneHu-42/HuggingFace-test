@@ -11,6 +11,7 @@ from typing import List
 import fire
 import torch
 import transformers
+from accelerate import Accelerator
 from datasets import load_dataset
 
 from peft import (
@@ -137,10 +138,8 @@ def train(
 
     if device == "cpu":
         device_map = None
-    elif device == "xpu":
-        device_map = {'':torch.xpu.current_device()}
-    elif device == "cuda":
-        device_map = {'':torch.cuda.current_device()}
+    else:
+        device_map={'': Accelerator().process_index}
     model = AutoModelForCausalLM.from_pretrained(
         base_model,
         low_cpu_mem_usage=True,
