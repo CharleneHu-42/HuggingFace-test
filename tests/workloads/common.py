@@ -60,6 +60,7 @@ def get_bitsandbytes_config(quant_type):
         quantization_config = BitsAndBytesConfig(load_in_8bit=True)
     elif quant_type in ("nf4", "fp4"):
         quantization_config = BitsAndBytesConfig(load_in_4bit=True,
+                                                 bnb_4bit_compute_dtype=torch.bfloat16,
                                                  bnb_4bit_quant_type=quant_type,
                                                  bnb_4bit_use_double_quant=False)
     else:
