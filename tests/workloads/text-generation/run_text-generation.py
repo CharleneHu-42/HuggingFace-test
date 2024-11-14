@@ -112,7 +112,8 @@ if __name__ == "__main__":
     if enable:
         inference_context.append(torch.autocast(device, dtype, enable))
     
-    model_kwargs = dict(torch_dtype=torch_dtype, device_map=device)
+    device_map = {"": 0} if device != "cpu" else "cpu"
+    model_kwargs = dict(torch_dtype=torch_dtype, device_map=device_map)
     quantization_config = None
     if args.bitsandbytes in ("int8", "nf4", "fp4"):
         logging.info(f"Use {args.bitsandbytes} bitsandbytes quantization")
