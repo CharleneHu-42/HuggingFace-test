@@ -34,7 +34,7 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir --upgrade pip
-RUN pip uninstall -y torch torchvision torchaudio && pip install --no-cache-dir -U torch==$PYTORCH_VER torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/$CUDA
+RUN pip install --no-cache-dir -U torch==$PYTORCH_VER torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/$CUDA_VER
 
 WORKDIR /.tests
 RUN git clone https://github.com/huggingface/optimum-quanto.git && cd optimum-quanto && git checkout $QUANTO_COMMIT && pip install .[dev]
