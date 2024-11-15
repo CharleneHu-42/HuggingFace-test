@@ -12,9 +12,9 @@ usage() {
  echo "Options:"
  echo " -h, --help            Display this help message"
  echo " -d, --device          Hardware Device[xpu, cuda]"
- echo " -t, --target          Target Name[transformers, peft, accelerate, diffusers, trl]"
- echo " -l, --local_dir       The local directory to be mounted inside the container"
- echo " -n, --name            The container name"
+ echo " -t, --target          Target Name[transformers, peft, accelerate, diffusers, trl, optimum-quanto]"
+ echo " -l, --local_dir       Local directory to be mounted inside the container; Default value is the current directory"
+ echo " -n, --name            Container name"
 }
 
 has_argument() {
