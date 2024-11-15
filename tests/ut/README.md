@@ -4,7 +4,7 @@ This repository provides utilities to help you quickly and easily run unit tests
 ### 1. Build docker image
 
 ```bash
-./build-image.sh -d <device> 
+./build_image.sh -d <device> 
 ```
 
 `-d` options: "xpu" and "cuda"
@@ -12,10 +12,10 @@ This repository provides utilities to help you quickly and easily run unit tests
 ### 2. Launch Docker Container
 
 ```bash 
-./run-docker.sh -d xpu -t transformers 
+./run_docker.sh -d xpu -t transformers 
 ```
 
-Run `./run-docker.sh -h` for more options. By default, current directory will be mounted to `/mnt` directory of the container. You can specify your own mount directory.
+Run `./run_docker.sh -h` for more options. By default, current directory will be mounted to `/mnt` directory of the container. You can specify your own mount directory.
 
 ### 3. Prepare test
 In container, follow the below steps:
@@ -24,7 +24,7 @@ In container, follow the below steps:
 
 This step is only needed for XPU. 
 ```bash
-source tools/env_activate.sh fine-tuning
+source tools/activate_env.sh finetuning
 ```
 
 #### 3.2 Copy the helper scripts over
