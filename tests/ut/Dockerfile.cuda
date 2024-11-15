@@ -39,13 +39,13 @@ RUN pip install --no-cache-dir -U torch==$PYTORCH_VER torchvision torchaudio --e
 WORKDIR /.tests
 RUN git clone https://github.com/huggingface/optimum-quanto.git && cd optimum-quanto && git checkout $QUANTO_COMMIT && pip install .[dev]
 RUN git clone https://github.com/huggingface/transformers && cd transformers && git checkout $TRANSFORMERS_COMMIT && pip install .[deepspeed-testing]
-RUN git clone https://github.com/huggingface/accelerate.git && cd accelerate && git checkout $ACCELERATE_COMMIT && pip install .[testing,test_trackers,deepspeed]
+RUN git clone https://github.com/huggingface/accelerate.git && cd accelerate && git checkout $ACCELERATE_COMMIT && pip install .[testing,test_trackers]
 RUN git clone https://github.com/huggingface/peft.git && cd peft && git checkout $PEFT_COMMIT && pip install .[test]
 RUN git clone https://github.com/huggingface/diffusers.git && cd diffusers && git checkout $DIFFUSERS_COMMIT && pip install .[test]
 RUN git clone https://github.com/huggingface/trl.git && cd trl && git checkout $TRL_COMMIT && pip install .[test]
 
 RUN pip install pyctcdecode timm pytesseract optimum decord galore-torch fire scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en auto-gptq
 RUN pip install pretty_midi essentia resampy Levenshtein onnx scipy av pypi-kenlm sacrebleu phonemizer pytest-env pytest-timeout pytest-excel openpyxl tensorboard
-RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets invisible_watermark schedulefree clearml deepspeed
+RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets invisible_watermark schedulefree clearml
 RUN python3 -m pip install --no-cache-dir bitsandbytes
 RUN pip install onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/
