@@ -37,7 +37,7 @@ RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -U torch==$PYTORCH_VER torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/$CUDA_VER
 
 WORKDIR /.tests
-RUN git clone https://github.com/huggingface/optimum-quanto.git && cd optimum-quanto && git checkout $QUANTO_COMMIT && pip install .[dev]
+RUN git clone https://github.com/huggingface/optimum-quanto.git quanto && cd quanto && git checkout $QUANTO_COMMIT && pip install .[dev]
 RUN git clone https://github.com/huggingface/transformers && cd transformers && git checkout $TRANSFORMERS_COMMIT && pip install .[deepspeed-testing]
 RUN git clone https://github.com/huggingface/accelerate.git && cd accelerate && git checkout $ACCELERATE_COMMIT && pip install .[testing,test_trackers,deepspeed]
 RUN git clone https://github.com/huggingface/peft.git && cd peft && git checkout $PEFT_COMMIT && pip install .[test]
