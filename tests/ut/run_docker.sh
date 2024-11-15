@@ -84,12 +84,12 @@ if [[ $device == "cuda" ]]; then
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
 		-e no_proxy=${no_proxy} \
-    -e report=/mnt/${target}/ut.xlsx \
-    -e log=/mnt/${target}/ut.log \
+		-e report=/mnt/${target}/ut.xlsx \
+		-e log=/mnt/${target}/ut.log \
 		-v ${HF_HOME}:/root/.cache/huggingface \
 		-v ${local_dir}:/mnt \
-    -v /dev/shm:/dev/shm \
-		-w /tests/${target} \
+		-v /dev/shm:/dev/shm \
+		-w /.tests/${target} \
 		--runtime=nvidia \
 		--gpus all \
 		--entrypoint /bin/bash \
@@ -101,13 +101,13 @@ elif [[ $device == "xpu" ]]; then
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
 		-e no_proxy=${no_proxy} \
-    -e report=/mnt/${target}/ut.xlsx \
-    -e log=/mnt/${target}/ut.log \
-    -e OCL_ICD_VENDORS=/etc/OpenCL/vendors \
-    -v /dev/dri/by-path:/dev/dri/by-path \
+		-e report=/mnt/${target}/ut.xlsx \
+		-e log=/mnt/${target}/ut.log \
+		-e OCL_ICD_VENDORS=/etc/OpenCL/vendors \
+		-v /dev/dri/by-path:/dev/dri/by-path \
 		-v ${HF_HOME}:/root/.cache/huggingface \
 		-v ${local_dir}:/mnt \
-		-w /tests/${target} \
+		-w /.tests/${target} \
 		--device=/dev/dri \
 		--ipc=host \
 		--entrypoint /bin/bash \
