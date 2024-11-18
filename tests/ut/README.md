@@ -24,7 +24,6 @@ In container, follow the below steps:
 
 This step is only needed for XPU. 
 ```bash
-apt-get update && apt-get install ncurses-term
 cd /tmp
 unset no_proxy # if you have intel proxy set  
 # install GPU dependencies for PyTorch development 
@@ -44,7 +43,7 @@ cp /mnt/transformers/xpu/* .
 ```
 
 ### 4. Start testing
-### 4.1 optimum-quanto UT
+#### 4.1 optimum-quanto UT
 ```bash
 cd optimum-quanto
 pytest -rA test --excelreport $report | tee $log
