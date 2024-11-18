@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Copied from https://github.com/intel-innersource/frameworks.ai.pytorch.ipex-gpu/blob/releases/2.3.110%2Bxpu_rc/examples/gpu/llm/tools/env_activate.sh
-MSG_USAGE="Usage: source $0 [inference|fine-tuning]"
+MSG_USAGE="Usage: source $0 [inference|finetuning]"
 if [ $# -eq 0 ]; then
     echo ${MSG_USAGE}
     return 1
 fi
 MODE=$1
-if [ ${MODE} != "inference" ] && [ ${MODE} != "fine-tuning" ]; then
+if [ ${MODE} != "inference" ] && [ ${MODE} != "finetuning" ]; then
     echo ${MSG_USAGE}
     return 2
 fi
