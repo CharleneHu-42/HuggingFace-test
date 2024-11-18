@@ -21,10 +21,9 @@ Run `./run_docker.sh -h` for more options. By default, current directory will be
 In container, follow the below steps:
 
 #### 3.1 Set up IPEX XPU environment
-
 This step is only needed for XPU. 
 ```bash
-source tools/activate_env.sh finetuning
+source /opt/intel/oneapi/pti/latest/env/vars.sh
 ```
 
 #### 3.2 Copy the helper scripts over
@@ -36,14 +35,19 @@ cp /mnt/transformers/xpu/* .
 ```
 
 ### 4. Start testing
-#### 4.1 transformers UT
+#### 4.1 optimum-quanto UT
 ```bash
-# run tests
+cd optimum-quanto
+pytest -rA test --excelreport $report | tee $log
+```
+
+#### 4.2 transformers UT
+```bash
 ./run-ut.sh xpu /mnt/test_results
 ```
 This script will create a folder `test_results` in `/mnt`, which organizes the test results in excel files for later analysis. 
 
-#### 4.2 accelerate/peft/diffusers/trl UT
+#### 4.3 accelerate/peft/diffusers/trl UT
 
 ```bash
 # take accelerate as example

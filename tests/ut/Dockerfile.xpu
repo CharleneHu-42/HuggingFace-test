@@ -1,6 +1,7 @@
-FROM appliedmlwf/hf-ut:ipex2.3.110
+FROM intel/intel-extension-for-pytorch:2.3.110-xpu
 
 ARG PYTHON_VER='3.10'
+ARG QUANTO_COMMIT=450870266df82a0c2ecf0d86c9fa738172763a5c
 ARG TRANSFORMERS_COMMIT=0f67ba1d741d65b07d549daf4ee157609ce4f9c1
 ARG ACCELERATE_COMMIT=13ca7dccb6019e045a7cd2de9d0c832f6efd9aa0
 ARG PEFT_COMMIT=e72a96f7cfdb330236c1b6dfe49be398d83f089e
@@ -24,25 +25,33 @@ RUN apt-get update && \
     sudo \
     unzip \
     python$PYTHON_VER \
+    python$PYTHON_VER-dev \
     python3-pip \
     python-is-python3 \
     ffmpeg \
     tesseract-ocr \
     espeak-ng \
     wget \
+    ncurses-term \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+RUN wget https://registrationcenter-download.intel.com/akdlm/IRC_NAS/884eaa22-d56f-45dc-9a65-901f1c625f9e/l_intel-pti-dev_p_0.9.0.38_offline.sh && sh ./l_intel-pti-dev_p_0.9.0.38_offline.sh -a -s --eula accept
+
+RUN python -m pip install https://intel-extension-for-pytorch.s3.us-east-1.amazonaws.com/ipex_dev/xpu/torch-2.5.0a0%2Bgite84e33f-cp310-cp310-linux_x86_64.whl
+RUN python -m pip install https://intel-extension-for-pytorch.s3.us-east-1.amazonaws.com/ipex_dev/xpu/torchaudio-2.5.0a0%2B56bc006-cp310-cp310-linux_x86_64.whl
+RUN python -m pip install https://intel-extension-for-pytorch.s3.us-east-1.amazonaws.com/ipex_dev/xpu/torchvision-0.20.0a0%2B8e8a208-cp310-cp310-linux_x86_64.whl
+RUN python -m pip install https://intel-extension-for-pytorch.s3.us-east-1.amazonaws.com/ipex_dev/xpu/intel_extension_for_pytorch-2.5.10%2Bgit9d489a8-cp310-cp310-linux_x86_64.whl
+RUN python -m pip install https://intel-extension-for-pytorch.s3.us-east-1.amazonaws.com/ipex_dev/xpu/oneccl_bind_pt-2.5.0%2Bxpu-cp310-cp310-linux_x86_64.whl
 
 WORKDIR /.tests
+RUN git clone https://github.com/huggingface/optimum-quanto.git && cd optimum-quanto && git checkout $QUANTO_COMMIT && pip install .[dev]
 RUN git clone https://github.com/huggingface/transformers && cd transformers && git checkout $TRANSFORMERS_COMMIT && pip install .[deepspeed-testing]
-RUN git clone https://github.com/huggingface/accelerate.git && cd accelerate && git checkout $ACCELERATE_COMMIT && pip install .[testing,test_trackers,deepspeed]
+RUN git clone https://github.com/huggingface/accelerate.git && cd accelerate && git checkout $ACCELERATE_COMMIT && pip install .[testing,test_trackers]
 RUN git clone https://github.com/huggingface/peft.git && cd peft && git checkout $PEFT_COMMIT && pip install .[test]
 RUN git clone https://github.com/huggingface/diffusers.git && cd diffusers && git checkout $DIFFUSERS_COMMIT && pip install .[test]
 RUN git clone https://github.com/huggingface/trl.git && cd trl && git checkout $TRL_COMMIT && pip install .[test]
 
 RUN pip install accelerate pyctcdecode timm pytesseract peft optimum decord galore-torch fire scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en 
-RUN pip install pretty_midi essentia resampy Levenshtein onnx scipy av pypi-kenlm sacrebleu phonemizer pytest-env pytest-timeout pytest-excel openpyxl
-RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets invisible_watermark schedulefree clearml deepspeed
-
-COPY env_activate.sh .
+RUN pip install pretty_midi essentia resampy Levenshtein onnx scipy av sacrebleu phonemizer pytest-env pytest-timeout pytest-excel openpyxl
+RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets invisible_watermark schedulefree clearml
