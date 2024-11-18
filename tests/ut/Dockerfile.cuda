@@ -1,5 +1,5 @@
 # modified from https://github.com/huggingface/transformers/blob/main/docker/transformers-pytorch-deepspeed-latest-gpu/Dockerfile
-FROM nvidia/cuda:12.1.0-devel-ubuntu22.04
+FROM nvidia/cuda:12.6.2-devel-ubuntu22.04
 ARG DEBIAN_FRONTEND=noninteractive
 
 ARG CUDA_VER='cu121'
@@ -7,7 +7,7 @@ ARG PYTHON_VER='3.10'
 ARG PYTORCH_VER='2.5.1'
 
 ARG QUANTO_COMMIT=450870266df82a0c2ecf0d86c9fa738172763a5c
-ARG TRANSFORMERS_COMMIT=405b56269812056d9593869e22b7b264d806cb1e
+ARG TRANSFORMERS_COMMIT=13493215abceafc1653af88b045120014fb4c1fc
 ARG ACCELERATE_COMMIT=ba7ab93f5e688466ea56908ea3b056fae2f9a023
 ARG PEFT_COMMIT=8eeae0a63f28a80ef42b6bfc977c34ffc0b650ff
 ARG DIFFUSERS_COMMIT=9a92b8177cb3f8bf4b095fff55da3b45a3607960
@@ -34,7 +34,6 @@ RUN apt-get update && \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -U torch==$PYTORCH_VER torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/$CUDA_VER
 
 WORKDIR /.tests
