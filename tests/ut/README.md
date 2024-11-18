@@ -21,16 +21,8 @@ Run `./run_docker.sh -h` for more options. By default, current directory will be
 In container, follow the below steps:
 
 #### 3.1 Set up IPEX XPU environment
-
 This step is only needed for XPU. 
 ```bash
-cd /tmp
-unset no_proxy # if you have intel proxy set  
-# install GPU dependencies for PyTorch development 
-wget https://registrationcenter-download.intel.com/akdlm/IRC_NAS/884eaa22-d56f-45dc-9a65-901f1c625f9e/l_intel-for-pytorch-gpu-dev_p_0.5.3.36_offline.sh && sh ./l_intel-for-pytorch-gpu-dev_p_0.5.3.36_offline.sh
-# install PTI
-wget https://registrationcenter-download.intel.com/akdlm/IRC_NAS/884eaa22-d56f-45dc-9a65-901f1c625f9e/l_intel-pti-dev_p_0.9.0.38_offline.sh && sh ./l_intel-pti-dev_p_0.9.0.38_offline.sh
-
 source /opt/intel/oneapi/pti/latest/env/vars.sh
 ```
 

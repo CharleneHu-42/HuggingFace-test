@@ -78,6 +78,10 @@ handle_options "$@"
 
 mkdir -p $local_dir/${target}
 
+if [[ -z "${HF_HOME}" ]]; then
+  HF_HOME=$HOME/.cache/huggingface
+fi
+
 if [[ $device == "cuda" ]]; then
 	docker run -it \
 		--privileged \
