@@ -49,7 +49,7 @@ RUN_SLOW=1 python -m pytest tests -sv --excelreport $report --timeout 600 2>&1 |
 ```
 For `trl`, you need to set `export CUDA_VISIBLE_DEVICES=0,1` for multi-card tests. 
 
-#### 4. Analyze test results 
+### 4. Analyze test results 
 ```bash 
 python analyze_test_results.py --excel_dir /mnt/test_results --output_dir /mnt/test_stats
 ```
