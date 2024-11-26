@@ -20,13 +20,6 @@ Run `./run_docker.sh -h` for more options. By default, current directory will be
 ### 3. Prepare test
 In container, follow the below steps:
 
-#### 3.1 Set up IPEX XPU environment
-This step is only needed for XPU. 
-```bash
-source /opt/intel/oneapi/pti/latest/env/vars.sh
-```
-
-#### 3.2 Copy the helper scripts over
 This step is only needed for transformers
 ```bash
 cd transformers
