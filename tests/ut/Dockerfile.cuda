@@ -1,5 +1,6 @@
 # modified from https://github.com/huggingface/transformers/blob/main/docker/transformers-pytorch-deepspeed-latest-gpu/Dockerfile
 FROM nvidia/cuda:12.1.0-devel-ubuntu22.04
+
 ARG DEBIAN_FRONTEND=noninteractive
 
 ARG CUDA_VER='cu121'
@@ -50,3 +51,5 @@ RUN pip install pretty_midi essentia resampy Levenshtein onnx scipy av pypi-kenl
 RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets invisible_watermark schedulefree clearml
 RUN python3 -m pip install --no-cache-dir bitsandbytes
 RUN pip install onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/
+
+ENTRYPOINT ["/bin/bash", "-c"]

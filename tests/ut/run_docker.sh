@@ -96,7 +96,6 @@ if [[ $device == "cuda" ]]; then
 		-w /.tests/${target} \
 		--runtime=nvidia \
 		--gpus all \
-		--entrypoint /bin/bash \
 		--name ${name} \
 		huggingface-ut/${device}
 elif [[ $device == "xpu" ]]; then
@@ -114,7 +113,6 @@ elif [[ $device == "xpu" ]]; then
 		-w /.tests/${target} \
 		--device=/dev/dri \
 		--ipc=host \
-		--entrypoint /bin/bash \
 		--name ${name} \
 		huggingface-ut/${device}
 
