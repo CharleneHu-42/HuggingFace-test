@@ -1,14 +1,27 @@
 FROM intel/intel-extension-for-pytorch:2.3.110-xpu
 
-SHELL ["/bin/bash", "-c"]
-
 ARG PYTHON_VER='3.10'
 ARG QUANTO_COMMIT=450870266df82a0c2ecf0d86c9fa738172763a5c
-ARG TRANSFORMERS_COMMIT=0f67ba1d741d65b07d549daf4ee157609ce4f9c1
+ARG TRANSFORMERS_COMMIT=13493215abceafc1653af88b045120014fb4c1fc
 ARG ACCELERATE_COMMIT=13ca7dccb6019e045a7cd2de9d0c832f6efd9aa0
 ARG PEFT_COMMIT=e72a96f7cfdb330236c1b6dfe49be398d83f089e
 ARG DIFFUSERS_COMMIT=15eb77bc4cf2ccb40781cb630b9a734b43cffcb8
 ARG TRL_COMMIT=a9a756553f0e727703b2e8ee3e49a74e8d5ad350
+
+# libssl.so.1.1 is not installed on Ubuntu 22.04 by default, install it
+RUN wget http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb && \
+    dpkg -i ./libssl1.1_1.1.1f-1ubuntu2_amd64.deb
+
+RUN wget -qO - https://repositories.intel.com/gpu/intel-graphics.key | gpg --dearmor | tee /usr/share/keyrings/intel-graphics.gpg > /dev/null
+
+RUN wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
+    | gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null && echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list
+
+RUN echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/intel-for-pytorch-gpu-dev all main" > /tmp/intel-for-pytorch-gpu-dev.list
+
+RUN mv /tmp/intel-for-pytorch-gpu-dev.list /etc/apt/sources.list.d
+
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt install -y intel-basekit=2024.2.1-98 xpu-smi cmake ninja-build pciutils intel-pti-dev-0.9
 
 RUN apt-get update && \
     apt-get -y install \
@@ -38,8 +51,6 @@ RUN apt-get update && \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN wget https://registrationcenter-download.intel.com/akdlm/IRC_NAS/884eaa22-d56f-45dc-9a65-901f1c625f9e/l_intel-pti-dev_p_0.9.0.38_offline.sh && sh ./l_intel-pti-dev_p_0.9.0.38_offline.sh -a -s --eula accept
-
 RUN python -m pip install https://intel-extension-for-pytorch.s3.us-east-1.amazonaws.com/ipex_dev/xpu/torch-2.5.0a0%2Bgite84e33f-cp310-cp310-linux_x86_64.whl
 RUN python -m pip install https://intel-extension-for-pytorch.s3.us-east-1.amazonaws.com/ipex_dev/xpu/torchaudio-2.5.0a0%2B56bc006-cp310-cp310-linux_x86_64.whl
 RUN python -m pip install https://intel-extension-for-pytorch.s3.us-east-1.amazonaws.com/ipex_dev/xpu/torchvision-0.20.0a0%2B8e8a208-cp310-cp310-linux_x86_64.whl
@@ -57,18 +68,14 @@ RUN git clone https://github.com/huggingface/trl.git && cd trl && git checkout $
 RUN pip install accelerate pyctcdecode timm pytesseract peft optimum decord galore-torch fire scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en 
 RUN pip install pretty_midi essentia resampy Levenshtein onnx scipy av sacrebleu phonemizer pytest-env pytest-timeout pytest-excel openpyxl
 RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets invisible_watermark schedulefree clearml
+RUN pip install triton-xpu==3.0.0b2 --no-cache-dir
 
-ENV CCL_ROOT="/usr/local"
-ENV I_MPI_ROOT="/usr/local"
-ENV CLASSPATH="${I_MPI_ROOT}/lib/mpi.jar"
-ENV PATH="${I_MPI_ROOT}/bin/libfabric:${PATH}"
-ENV LD_LIBRARY_PATH="${I_MPI_ROOT}/lib/libfabric:${LD_LIBRARY_PATH}"
-ENV FI_PROVIDER_PATH="${I_MPI_ROOT}/lib/libfabric/prov:/usr/lib/x86_64-linux-gnu/libfabric"
-ENV CCL_ATL_TRANSPORT=ofi
-
-RUN touch /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-RUN echo "#!/bin/bash" >> /entrypoint.sh
-RUN echo "source /opt/intel/oneapi/pti/latest/env/vars.sh && /bin/bash" >> /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
+ENV CCL_ROOT=/opt/intel/oneapi/ccl/latest
+ENV I_MPI_ROOT=/opt/intel/oneapi/mpi/latest
+ENV FI_PROVIDER_PATH=/opt/intel/oneapi/mpi/latest/opt/mpi/libfabric/lib/prov:/usr/lib/x86_64-linux-gnu/libfabric
+ENV LIBRARY_PATH=/opt/intel/oneapi/mpi/latest/lib:/opt/intel/oneapi/ccl/latest/lib/:/opt/intel/oneapi/mkl/latest/lib/:/opt/intel/oneapi/compiler/latest/lib
+ENV LD_LIBRARY_PATH=/opt/intel/oneapi/ccl/latest/lib/:/opt/intel/oneapi/mpi/latest/opt/mpi/libfabric/lib:/opt/intel/oneapi/mpi/latest/lib:/opt/intel/oneapi/mkl/latest/lib:/opt/intel/oneapi/compiler/latest/opt/compiler/lib:/opt/intel/oneapi/compiler/latest/lib:/opt/intel/oneapi/lib:/opt/intel/oneapi/lib/intel64:/opt/intel/oneapi/pti/0.9/lib:/opt/conda/lib
+ENV PATH=/opt/conda/bin:/opt/intel/oneapi/mpi/latest/opt/mpi/libfabric/bin:/opt/intel/oneapi/mpi/latest/bin:/opt/intel/oneapi/mpi/latest/opt/mpi/libfabric/bin:/opt/intel/oneapi/mkl/latest/bin/:/opt/intel/oneapi/compiler/latest/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV CCL_ZE_IPC_EXCHANGE=sockets
+ENV CMAKE_PREFIX_PATH=/opt/intel/oneapi/mkl/latest/lib/cmake:/opt/intel/oneapi/compiler/latest
+ENV CPATH=/opt/intel/oneapi/mpi/latest/include:/opt/intel/oneapi/ccl/latest/include:/opt/intel/oneapi/mkl/latest/include
