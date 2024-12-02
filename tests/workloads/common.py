@@ -44,7 +44,7 @@ def get_args():
         help="Apply AutoAWQ quantization and input the quant type choose from [int4]")
     args = parser.parse_args()
 
-    quant_count = sum(1 for x in (args.bitsandbytes, args.autoawq) if x is None)
+    quant_count = sum(1 for x in (args.bitsandbytes, args.autoawq) if x is not None)
     if quant_count > 1:
         raise ValueError("Please apply at most 1 quantization method in your command")
 
