@@ -71,4 +71,5 @@ RUN chmod +x /entrypoint.sh
 RUN echo "#!/bin/bash" >> /entrypoint.sh
 RUN echo "source /opt/intel/oneapi/pti/latest/env/vars.sh && /bin/bash" >> /entrypoint.sh
 
+COPY run_ut.sh spec_cuda.py spec_xpu.py /.tests/
 ENTRYPOINT ["/entrypoint.sh"]

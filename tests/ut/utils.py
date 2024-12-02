@@ -42,7 +42,10 @@ def save_list_to_txt(list, output_file):
         for case in list:
             file.write(case + "\n")
 
-
+def reorder_txt_cases(file):            
+    cases = read_txt_to_list(file)
+    save_list_to_txt(cases, file)
+    
 def save_cases_to_bash(df, output_file):
     df = df.sort_values(by=["suite_name", "test_name"])
 

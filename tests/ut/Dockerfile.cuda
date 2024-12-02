@@ -51,4 +51,4 @@ RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets invisible_wa
 RUN python3 -m pip install --no-cache-dir bitsandbytes
 RUN pip install onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/
 
-ENTRYPOINT ["/bin/bash", "-c"]
+COPY run_ut.sh spec_cuda.py spec_xpu.py /.tests/
