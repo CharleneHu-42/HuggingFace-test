@@ -1,5 +1,5 @@
 # The base image contain ipex-2.5.0+cpu and torch-2.5.0+cpu
-FROM intel/intel-extension-for-pytorch:2.4.0-idp-base as base
+FROM intel/intel-extension-for-pytorch:2.5.0-idp-base as base
 
 # Install oneapi
 RUN apt update && apt install -y gpg-agent
