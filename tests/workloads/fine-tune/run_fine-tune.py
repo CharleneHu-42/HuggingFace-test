@@ -130,7 +130,7 @@ def train(
 
     quantization_config = None
     if bitsandbytes:
-        logging.info(f"Use {bitsandbytes} biteansbytes quantization")
+        logging.info(f"Use {bitsandbytes} bitsandbytes quantization")
         quantization_config = get_bitsandbytes_config(bitsandbytes)
     elif autoawq:
         logging.info(f"Use {autoawq} AutoAWQ quantization, please pass a quantized model like 'TheBloke/firefly-llama2-7B-chat-AWQ'")
