@@ -15,6 +15,8 @@ if [[ $target == "transformers" ]]; then
 	NOT_RUN_MARKERS="not (not_device_test)"
 	NOT_RUN_KEYWORDS="not (tpu or npu or tf or ModelOnTheFlyConversionTester or SigOpt or TrainerHyperParameterRayIntegrationTest or TrainerHyperParameterWandbIntegrationTest or TestTrainerDistributedNeuronCore or TestTrainerDistributedNPU)"
 
+	cp spec_${device}.py $target
+	cd $target 
 
 	echo "+++++++++run single test files++++++++++++++++"
 	pytest tests/*.py -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --collectonly -q 2>&1 | tee "${excel_dir}/single_files.txt"
