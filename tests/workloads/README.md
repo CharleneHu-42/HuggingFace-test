@@ -7,7 +7,7 @@ Please make sure you have installed mkl gperftools:
 ```bash
 apt-get update
 apt-get install google-perftools
-pip install intel-openmp
+pip install -U intel-openmp
 ```
 
 We defaultly use BF16 OOB and BF16 + torch.compile in CPU for all inference tasks, run the following command:
@@ -54,6 +54,8 @@ We defaultly use amp bf16 to train [meta-llama/Llama-2-7b-hf](https://huggingfac
 ```bash
 ./run.sh --task fine-tune --device cpu
 ```
+
+**___Note: if you get trouble with oneccl or mpi in bare mental env, please try docker by docker/ipex_oneapi/Dockerfile.cpu.___**
 
 ### XPU 
 ```bash

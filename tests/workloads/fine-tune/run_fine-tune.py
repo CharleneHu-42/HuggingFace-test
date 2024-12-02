@@ -11,6 +11,7 @@ from typing import List
 import fire
 import torch
 import transformers
+from accelerate import Accelerator
 from datasets import load_dataset
 
 from peft import (
@@ -25,11 +26,16 @@ from transformers import set_seed
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
 
 from utils import Prompter
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 sys.path.append(os.path.dirname(__file__) + "/..")
-from common import get_bitsandbytes_config, synchronize_device
+
+from common import get_awq_config, get_bitsandbytes_config, synchronize_device
+
 
 SEED = 42
 set_seed(SEED)
@@ -62,6 +68,9 @@ def train(
     wandb_log_model: str = "",  # options: false | true
     resume_from_checkpoint: str = None,  # either training checkpoint or final adapter
     prompt_template_name: str = "alpaca",  # The prompt template to use, will default to alpaca.
+    device: str = "cpu",
+    quant_algo: str = None,
+    quant_dtype: str = None,
     **kwargs,
 ):
     local_rank = int(os.environ.get("LOCAL_RANK", 0)) or int(os.environ.get("PMI_RANK", 0))
@@ -103,7 +112,6 @@ def train(
 
     prompter = Prompter(template_path)
 
-    # device_map = "auto"
     world_size = int(os.environ.get("WORLD_SIZE", 0)) or int(os.environ.get("PMI_SIZE", 0))
     ddp = world_size > 1
 
@@ -119,21 +127,33 @@ def train(
     if len(wandb_log_model) > 0:
         os.environ["WANDB_LOG_MODEL"] = wandb_log_model
 
-    quantization_config = get_bitsandbytes_config(kwargs.pop("quant_type", None))
+    quantization_config = None
+    if quant_algo == "bitsandbytes":
+        logging.info(f"Use {quant_dtype} bitsandbytes quantization")
+        quantization_config = get_bitsandbytes_config(quant_dtype)
+    elif quant_algo == "autoawq":
+        logging.info(f"Use {quant_dtype} AutoAWQ quantization, please pass a quantized model like 'TheBloke/firefly-llama2-7B-chat-AWQ'")
+        quantization_config = get_awq_config(quant_dtype)
 
+    if device == "cpu":
+        device_map = None
+    else:
+        device_map={'': Accelerator().process_index}
     model = AutoModelForCausalLM.from_pretrained(
         base_model,
         low_cpu_mem_usage=True,
+        torch_dtype=torch.bfloat16,
         quantization_config=quantization_config,
+        device_map=device_map,
     )
 
-    if quantization_config is not None:
+    if quant_algo == "bitsandbytes" is not None:
         model = prepare_model_for_kbit_training(model)
 
     tokenizer = AutoTokenizer.from_pretrained(base_model)
 
     tokenizer.pad_token_id = 0  # unk. we want this to be different from the eos token
-    tokenizer.padding_side = "left"  # Allow batched inference
+    tokenizer.padding_side = "right"
 
     def tokenize(prompt, add_eos_token=True):
         # there's probably a way to do this with the tokenizer settings

@@ -15,6 +15,7 @@ sys.path.append(os.path.dirname(__file__) + "/..")
 from common import (
     get_args,
     get_torch_dtype,
+    get_awq_config,
     get_bitsandbytes_config,
     wrap_forward_for_benchmark,
     synchronize_device,
@@ -111,18 +112,26 @@ if __name__ == "__main__":
     if enable:
         inference_context.append(torch.autocast(device, dtype, enable))
     
-    model_kwargs = {}
-    quantization_config = get_bitsandbytes_config(args.quant_type)
+    device_map = {"": 0} if device != "cpu" else "cpu"
+    model_kwargs = dict(torch_dtype=torch_dtype, device_map=device_map)
+
+    quantization_config = None
+    if args.quant_algo == "bitsandbytes":
+        logging.info(f"Use {args.quant_dtype} bitsandbytes quantization")
+        quantization_config = get_bitsandbytes_config(args.quant_dtype)
+    elif args.quant_algo == "autoawq":
+        logging.info(f"Use {args.quant_dtype} AutoAWQ quantization, please pass a quantized model like 'TheBloke/firefly-llama2-7B-chat-AWQ'")
+        quantization_config = get_awq_config(args.quant_dtype)
+
     if quantization_config is not None:
         model_kwargs["quantization_config"] = quantization_config
 
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     tokenizer.padding_side = 'left'
+    tokenizer.pad_token_id = tokenizer.eos_token_id
     generator = pipeline(
         "text-generation",
         model=model_id,
-        torch_dtype=torch_dtype,
-        device=device if quantization_config is None else None,
         tokenizer=tokenizer,
         model_kwargs=model_kwargs,
     )
@@ -136,7 +145,6 @@ if __name__ == "__main__":
     generation_config.top_p = 1.0
     generation_config.cache_implementation="static"
 
-    generator.tokenizer.pad_token_id = generator.tokenizer.eos_token_id
     if "falcon" in model_id:
         # For the correct shape of static cache
         if not getattr(generator.model.config, "new_decoder_architecture", False):
@@ -152,7 +160,7 @@ if __name__ == "__main__":
 
     if args.optimum_intel:
         from optimum.intel import IPEXModelForCausalLM
-        generator.model = IPEXModelForCausalLM.from_pretrained(model_id, export=True, torch_dtype=torch_dtype)
+        generator.model = IPEXModelForCausalLM(generator.model, export=True, torch_dtype=torch_dtype)
     elif args.ipex_optimize_transformers:
         import intel_extension_for_pytorch as ipex
         generator.model = ipex.optimize_transformers(
