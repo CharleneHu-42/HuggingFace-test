@@ -20,8 +20,8 @@ num_processes=4
 warm_up_steps=10
 run_steps=10
 optimum_intel="False"
-bitsandbytes="None"
-autoawq="None"
+quant_algo="None"
+quant_dtype="None"
 
 # Function to display script usage
 usage() {
@@ -47,8 +47,8 @@ usage() {
  echo " --warm_up_steps       The benchmark warm up steps for all tasks"
  echo " --run_steps           The benchmark run steps for all tasks"
  echo " --optimum_intel       Use optimum-intel optimization"
- echo " --bitsandbytes        Use bitsandbytes quantization and indicate the bitsandbytes quantization type[int8, nf4, fp4]"
- echo " --autoawq             Use AutoAWQ quantization and indicate the AutoAWQ quantization type[int4]"
+ echo " --quant_algo          Use quant_algo to decide quantization method, chose from ["bitsandbytes", "autoawq"]"
+ echo " --quant_dtype         Use quant_dtype to decide quantization data type, like ["int8", "nf4", "fp4"] in bitsandbytes, ["int4"] in autoawq"
 }
 
 has_argument() {
@@ -157,12 +157,12 @@ handle_options() {
         optimum_intel=$(extract_argument $@)
         shift
         ;;
-      --bitsandbytes)
-        bitsandbytes=$(extract_argument $@)
+      --quant_algo)
+        quant_algo=$(extract_argument $@)
         shift
         ;;
-      --autoawq)
-        autoawq=$(extract_argument $@)
+      --quant_dtype)
+        quant_dtype=$(extract_argument $@)
         shift
         ;;
       *)
@@ -196,10 +196,10 @@ if [[ "$task_name" == "fine-tune" ]]; then
   if [[ "$device" == "cpu" ]]; then
     export CCL_WORKER_COUNT=1
     source /opt/intel/oneapi/setvars.sh
-    accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --base_model $model_id --use_ipex $ipex_optimize --bitsandbytes $bitsandbytes --autoawq $autoawq --device $device
+    accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --base_model $model_id --use_ipex $ipex_optimize --quant_algo $quant_algo --quant_dtype $quant_dtype --device $device
   else
-    accelerate launch --config_file $task_name/"$device"_config_ddp.yaml $task_name/run_$task_name.py --base_model $model_id --bitsandbytes $bitsandbytes --autoawq $autoawq --device $device
+    accelerate launch --config_file $task_name/"$device"_config_ddp.yaml $task_name/run_$task_name.py --base_model $model_id --quant_algo $quant_algo --quant_dtype $quant_dtype --device $device
   fi
 else
-  numactl -C '0-'${CORES} --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --bitsandbytes $bitsandbytes --autoawq $autoawq --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel
+  numactl -C '0-'${CORES} --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_algo $quant_algo --quant_dtype $quant_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel
 fi

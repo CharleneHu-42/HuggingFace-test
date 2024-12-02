@@ -19,7 +19,7 @@ The following commands defaultly use CPU, please add flag: `--device xpu --model
 ```
 #### int4
 ```
-./run.sh -t text-generation -m TheBloke/firefly-llama2-7B-chat-AWQ --autoawq int4
+./run.sh -t text-generation -m TheBloke/firefly-llama2-7B-chat-AWQ --model_dtype bfloat16 --quant_algo autoawq --quant_dtype int4
 ```
 
 ### Finetune
@@ -30,5 +30,5 @@ The following commands defaultly use CPU, please add flag: `--device xpu` if you
 ```
 #### int4 LoRA
 ```
-./run.sh -t fine-tune -m TheBloke/firefly-llama2-7B-chat-AWQ --autoawq int4
+./run.sh -t fine-tune -m TheBloke/firefly-llama2-7B-chat-AWQ --quant_algo autoawq --quant_dtype int4
 ```

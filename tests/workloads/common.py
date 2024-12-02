@@ -38,15 +38,11 @@ def get_args():
     parser.add_argument("--warm_up_steps", default=10, type=int)
     parser.add_argument("--run_steps", default=10, type=int)
     parser.add_argument("--optimum_intel", default="False", type=str2bool)
-    parser.add_argument("--bitsandbytes", default=None, type=str,
-        help="Apply bitsandbytes quantization and input the quant type choose from [int8, nf4, fp4]")
-    parser.add_argument("--autoawq", default=None, type=str,
-        help="Apply AutoAWQ quantization and input the quant type choose from [int4]")
+    parser.add_argument("--quant_algo", default=None, type=str,
+        help="choose from [bitsandbytes, autoawq]")
+    parser.add_argument("--quant_dtype", default=None, type=str,
+        help="choose from [int, nf4, fp4, int4]")
     args = parser.parse_args()
-
-    quant_count = sum(1 for x in (args.bitsandbytes, args.autoawq) if x is not None)
-    if quant_count > 1:
-        raise ValueError("Please apply at most 1 quantization method in your command")
 
     return args
 

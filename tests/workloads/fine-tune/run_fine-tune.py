@@ -68,9 +68,9 @@ def train(
     wandb_log_model: str = "",  # options: false | true
     resume_from_checkpoint: str = None,  # either training checkpoint or final adapter
     prompt_template_name: str = "alpaca",  # The prompt template to use, will default to alpaca.
-    bitsandbytes: str = None,
-    autoawq: str = None,
-    device: str = None,
+    device: str = "cpu",
+    quant_algo: str = None,
+    quant_dtype: str = None,
     **kwargs,
 ):
     local_rank = int(os.environ.get("LOCAL_RANK", 0)) or int(os.environ.get("PMI_RANK", 0))
@@ -112,7 +112,6 @@ def train(
 
     prompter = Prompter(template_path)
 
-    # device_map = "auto"
     world_size = int(os.environ.get("WORLD_SIZE", 0)) or int(os.environ.get("PMI_SIZE", 0))
     ddp = world_size > 1
 
@@ -129,12 +128,12 @@ def train(
         os.environ["WANDB_LOG_MODEL"] = wandb_log_model
 
     quantization_config = None
-    if bitsandbytes:
-        logging.info(f"Use {bitsandbytes} bitsandbytes quantization")
-        quantization_config = get_bitsandbytes_config(bitsandbytes)
-    elif autoawq:
-        logging.info(f"Use {autoawq} AutoAWQ quantization, please pass a quantized model like 'TheBloke/firefly-llama2-7B-chat-AWQ'")
-        quantization_config = get_awq_config(autoawq)
+    if quant_algo == "bitsandbytes":
+        logging.info(f"Use {quant_dtype} bitsandbytes quantization")
+        quantization_config = get_bitsandbytes_config(quant_dtype)
+    elif quant_algo == "autoawq":
+        logging.info(f"Use {quant_dtype} AutoAWQ quantization, please pass a quantized model like 'TheBloke/firefly-llama2-7B-chat-AWQ'")
+        quantization_config = get_awq_config(quant_dtype)
 
     if device == "cpu":
         device_map = None
@@ -148,7 +147,7 @@ def train(
         device_map=device_map,
     )
 
-    if bitsandbytes is not None:
+    if quant_algo == "bitsandbytes" is not None:
         model = prepare_model_for_kbit_training(model)
 
     tokenizer = AutoTokenizer.from_pretrained(base_model)

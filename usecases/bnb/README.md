@@ -28,15 +28,15 @@ The following commands defaultly use CPU, please add flag: `--device xpu --model
 ```
 #### int8
 ```
-./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --bitsandbytes int8
+./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --quant_algo bitsandbytes --quant_dtype int8
 ```
 #### nf4
 ```
-./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --bitsandbytes nf4
+./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --quant_algo bitsandbytes --quant_dtype nf4
 ```
 #### fp4
 ```
-./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --bitsandbytes fp4
+./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --quant_algo bitsandbytes --quant_dtype fpt
 ```
 
 ### Finetune
@@ -47,13 +47,13 @@ The following commands defaultly use CPU, please add flag: `--device xpu` if you
 ```
 #### int8 LoRA
 ```
-./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf --bitsandbytes int8
+./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf --quant_algo bitsandbytes --quant_dtype int8
 ```
 #### nf4 QLoRA
 ```
-./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf --bitsandbytes nf4
+./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf --quant_algo bitsandbytes --quant_dtype nf4
 ```
 #### fp4 QLoRA
 ```
-./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf --bitsandbytes fp4
+./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf --quant_algo bitsandbytes --quant_dtype fp4
 ```

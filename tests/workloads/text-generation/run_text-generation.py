@@ -114,13 +114,14 @@ if __name__ == "__main__":
     
     device_map = {"": 0} if device != "cpu" else "cpu"
     model_kwargs = dict(torch_dtype=torch_dtype, device_map=device_map)
+
     quantization_config = None
-    if args.bitsandbytes in ("int8", "nf4", "fp4"):
-        logging.info(f"Use {args.bitsandbytes} bitsandbytes quantization")
-        quantization_config = get_bitsandbytes_config(args.bitsandbytes)
-    elif args.autoawq in ("int4"):
-        logging.info(f"Use {args.autoawq} AutoAWQ quantization, please use it in a AWQ int4 model like TheBloke/Mistral-7B-v0.1-AWQ")
-        quantization_config = get_awq_config(args.autoawq)
+    if args.quant_algo == "bitsandbytes":
+        logging.info(f"Use {args.quant_dtype} bitsandbytes quantization")
+        quantization_config = get_bitsandbytes_config(args.quant_dtype)
+    elif args.quant_algo == "autoawq":
+        logging.info(f"Use {args.quant_dtype} AutoAWQ quantization, please pass a quantized model like 'TheBloke/firefly-llama2-7B-chat-AWQ'")
+        quantization_config = get_awq_config(args.quant_dtype)
 
     if quantization_config is not None:
         model_kwargs["quantization_config"] = quantization_config
