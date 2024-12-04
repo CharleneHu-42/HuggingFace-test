@@ -52,19 +52,19 @@ python analyse_logs.py --file_names xpu_benchmark_raw.log --out_name xpu_benchma
 ### CPU
 We defaultly use amp bf16 to train [meta-llama/Llama-2-7b-hf](https://huggingface.co/meta-llama/Llama-2-7b-hf) in [yahma/alpaca-cleaned](https://huggingface.co/datasets/yahma/alpaca-cleaned) dataset with 4 DDP across 4 instances. Please change the [fine-tune/hostfile](https://github.com/intel-sandbox/HuggingFace/blob/main/tests/workloads/fine-tune/hostfile) to your instances ip and run the following command:
 ```bash
-./run.sh --task fine-tune --device cpu
+./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf --device cpu
 ```
 
 **___Note: if you get trouble with oneccl or mpi in bare mental env, please try docker by docker/ipex_oneapi/Dockerfile.cpu.___**
 
 ### XPU 
 ```bash
-./run.sh --task fine-tune --device xpu
+./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf --device xpu
 ```
 
 ### CUDA 
 ```bash
-./run.sh --task fine-tune --device cuda
+./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf --device cuda
 ```
 
 ## Notes

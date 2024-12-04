@@ -36,7 +36,7 @@ The following commands defaultly use CPU, please add flag: `--device xpu --model
 ```
 #### fp4
 ```
-./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --quant_algo bitsandbytes --quant_dtype fpt
+./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --quant_algo bitsandbytes --quant_dtype fp4
 ```
 
 ### Finetune
