@@ -42,10 +42,28 @@ def save_list_to_txt(list, output_file):
         for case in list:
             file.write(case + "\n")
 
-def reorder_txt_cases(file):            
+
+def reorder_txt_cases(file):
     cases = read_txt_to_list(file)
     save_list_to_txt(cases, file)
-    
+
+
+def extract_short_cases(in_txt_file, out_txt_file):
+    case_list = []
+    with open(in_txt_file, "r") as f:
+        case_list.append(
+            [line.strip() for line in f.readlines() if line.startswith("tests/")]
+        )
+    cases = [case for cases in case_list for case in cases]
+
+    final_cases = sorted(
+        [f"{case.split('::')[1]}::{case.split('::')[2]}" for case in cases]
+    )
+    save_list_to_txt(final_cases, out_txt_file)
+
+    return final_cases
+
+
 def save_cases_to_bash(df, output_file):
     df = df.sort_values(by=["suite_name", "test_name"])
 
@@ -62,7 +80,6 @@ def save_cases_to_bash(df, output_file):
 
 
 def save_cases_to_txt(df, output_file):
-
     df = df.sort_values(by=["suite_name", "test_name"])
 
     cases = []
@@ -84,7 +101,6 @@ def save_cases_with_empty_messages(file_name):
 
 
 def merge_excel_files_to_one(input_path, output_file):
-
     all_test_files = glob.glob(os.path.join(input_path, "*.xlsx"))
 
     df_merged = pd.concat(
@@ -96,7 +112,6 @@ def merge_excel_files_to_one(input_path, output_file):
 
 
 def save_skipped_cases_to_txt(input_file, output_file):
-
     df = pd.read_excel(input_file)
     df_skipped = df[df["result"] == "SKIPPED"]
 
@@ -104,7 +119,6 @@ def save_skipped_cases_to_txt(input_file, output_file):
 
 
 def save_failed_cases_to_txt(input_file, output_file):
-
     df = pd.read_excel(input_file)
     df_skipped = df[df["result"] == "FAILED"]
 
@@ -141,7 +155,6 @@ def mark_cuda_failed_skipped_cases(xpu_file, cuda_file, output_file):
     cuda_skipped = cuda_df[cuda_df["result"] == "SKIPPED"]
 
     def mark_same_with_cuda(cuda_df, xpu_df, xpu_df_all):
-
         for _, row in cuda_df.iterrows():
             suite_name = row["suite_name"]
             test_name = row["test_name"]
@@ -218,8 +231,8 @@ def update_ut_result_after_rerun(rerun_excel_path, ori_excel_file, output_file):
         ori_df.loc[sample.index, "message"] = message
 
     ori_df.to_excel(output_file, index=False)
-    
-    
+
+
 def add_column_and_mark_with_case_list(df, new_column, case_list):
     df[new_column] = [0] * df.shape[0]
 
