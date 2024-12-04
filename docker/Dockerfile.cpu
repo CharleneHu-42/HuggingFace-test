@@ -1,5 +1,5 @@
 # the base image contains ipex-2.5.0+cpu and torch-2.5.0+cpu
-FROM intel/intel-extension-for-pytorch:2.5.0-pip-base as base
+FROM intel/intel-extension-for-pytorch:2.5.0-pip-base AS base
 
 ARG DEBIAN_FRONTEND=noninteractive
 

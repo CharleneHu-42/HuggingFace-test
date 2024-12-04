@@ -1,23 +1,27 @@
 ## HuggingFace UT
-This repository provides utilities to help you quickly and easily run unit tests of various HuggingFace libraries.  
 
-### 1. Build docker image
+This folder provides utilities to run unit tests of various HuggingFace libraries easily.
+
+Assume you are running command in the directory of where this README is.
+
+### 1. build docker image
 
 ```bash
-./build_image.sh -d <device> 
+$ cd ../../HuggingFace/docker
+$ bash ./build_image.sh -d <device> -t ut
 ```
 
 `-d` options: "xpu" and "cuda"
 
-### 2. Launch docker container
+### 2. launch docker container
 
 ```bash 
-./run_docker.sh -d xpu -t <test_case>
+$ cd -
+$ bash ./run_docker.sh -d xpu -l <target_test_library>
 ```
+You can run `./run_docker.sh -h` for more options. By default, current directory will be mounted to `/mnt` directory of the container. You can specify your own mount directory.
 
-Run `./run_docker.sh -h` for more options. By default, current directory will be mounted to `/mnt` directory of the container. You can specify your own mount directory.
-
-test_case options:
+target test library options:
   - optimum-quanto
   - transformers
   - accelerate
@@ -25,27 +29,25 @@ test_case options:
   - diffusers
   - trl
 
-### 3. Run test in container
+### 3. run test in container
+
 #### 3.1 optimum-quanto UT
+
 ```bash
-cd optimum-quanto
-pytest -rA test --excelreport $report | tee $log
+$ pytest -rA test --excelreport $report | tee $log
 ```
 
 #### 3.2 transformers UT
 ```bash
-cd transformers
-# copy test
-cp <folder where you put HuggingFace/tests/ut>/xpu/* .
-./run-ut.sh xpu /mnt/test_results
+# make sure you already copy or mount this repository into docker container
+$ cp <folder where you put HuggingFace/tests/ut>/xpu/* .
+$ ./run-ut.sh xpu /mnt/test_results
 ```
 This script will create a folder `test_results` in `/mnt`, where test results are stored in excel files for later analysis. 
 
 #### 3.3 accelerate/peft/diffusers/trl UT
 ```bash
-cd <taget_case_folder>  # e.g. accelerate, peft, diffusers, trl
-
-RUN_SLOW=1 python -m pytest tests -sv --excelreport $report --timeout 600 2>&1 | tee $log
+$ RUN_SLOW=1 python -m pytest tests -sv --excelreport $report --timeout 600 2>&1 | tee $log
 ```
 For `trl`, you need to set `export CUDA_VISIBLE_DEVICES=0,1` for multi-card tests. 
 

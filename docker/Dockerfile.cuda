@@ -1,18 +1,11 @@
 # modified from https://github.com/huggingface/transformers/blob/main/docker/transformers-pytorch-deepspeed-latest-gpu/Dockerfile
-FROM nvidia/cuda:12.1.0-devel-ubuntu22.04
+FROM nvidia/cuda:12.1.0-devel-ubuntu22.04 AS base
 
 ARG DEBIAN_FRONTEND=noninteractive
 
 ARG CUDA_VER='cu121'
 ARG PYTHON_VER='3.10'
 ARG PYTORCH_VER='2.5.1'
-
-ARG QUANTO_COMMIT=450870266df82a0c2ecf0d86c9fa738172763a5c
-ARG TRANSFORMERS_COMMIT=405b56269812056d9593869e22b7b264d806cb1e
-ARG ACCELERATE_COMMIT=ba7ab93f5e688466ea56908ea3b056fae2f9a023
-ARG PEFT_COMMIT=8eeae0a63f28a80ef42b6bfc977c34ffc0b650ff
-ARG DIFFUSERS_COMMIT=9a92b8177cb3f8bf4b095fff55da3b45a3607960
-ARG TRL_COMMIT=b2696578ce6db1749a250661b507bf8b90e14dd5
 
 RUN apt-get update && \
     apt-get -y install \
@@ -38,14 +31,6 @@ RUN apt-get update && \
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -U torch==$PYTORCH_VER torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/$CUDA_VER
 
-WORKDIR /.tests
-RUN git clone https://github.com/huggingface/optimum-quanto.git && cd optimum-quanto && git checkout $QUANTO_COMMIT && pip install .[dev]
-RUN git clone https://github.com/huggingface/transformers && cd transformers && git checkout $TRANSFORMERS_COMMIT && pip install .[deepspeed-testing]
-RUN git clone https://github.com/huggingface/accelerate.git && cd accelerate && git checkout $ACCELERATE_COMMIT && pip install .[testing,test_trackers]
-RUN git clone https://github.com/huggingface/peft.git && cd peft && git checkout $PEFT_COMMIT && pip install .[test]
-RUN git clone https://github.com/huggingface/diffusers.git && cd diffusers && git checkout $DIFFUSERS_COMMIT && pip install .[test]
-RUN git clone https://github.com/huggingface/trl.git && cd trl && git checkout $TRL_COMMIT && pip install .[test]
-
 RUN pip install pyctcdecode timm pytesseract optimum decord galore-torch fire scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en auto-gptq
 RUN pip install pretty_midi essentia resampy Levenshtein onnx scipy av pypi-kenlm sacrebleu phonemizer pytest-env pytest-timeout pytest-excel openpyxl tensorboard
 RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets invisible_watermark schedulefree clearml
@@ -53,3 +38,22 @@ RUN python3 -m pip install --no-cache-dir bitsandbytes
 RUN pip install onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/
 
 ENTRYPOINT ["/bin/bash", "-c"]
+
+FROM base AS ut
+
+WORKDIR /.tests
+ARG QUANTO_COMMIT=450870266df82a0c2ecf0d86c9fa738172763a5c
+ARG TRANSFORMERS_COMMIT=405b56269812056d9593869e22b7b264d806cb1e
+ARG ACCELERATE_COMMIT=ba7ab93f5e688466ea56908ea3b056fae2f9a023
+ARG PEFT_COMMIT=8eeae0a63f28a80ef42b6bfc977c34ffc0b650ff
+ARG DIFFUSERS_COMMIT=9a92b8177cb3f8bf4b095fff55da3b45a3607960
+ARG TRL_COMMIT=b2696578ce6db1749a250661b507bf8b90e14dd5
+
+RUN git clone https://github.com/huggingface/optimum-quanto.git && cd optimum-quanto && git checkout $QUANTO_COMMIT && pip install .[dev]
+RUN git clone https://github.com/huggingface/transformers && cd transformers && git checkout $TRANSFORMERS_COMMIT && pip install .[deepspeed-testing]
+RUN git clone https://github.com/huggingface/accelerate.git && cd accelerate && git checkout $ACCELERATE_COMMIT && pip install .[testing,test_trackers]
+RUN git clone https://github.com/huggingface/peft.git && cd peft && git checkout $PEFT_COMMIT && pip install .[test]
+RUN git clone https://github.com/huggingface/diffusers.git && cd diffusers && git checkout $DIFFUSERS_COMMIT && pip install .[test]
+RUN git clone https://github.com/huggingface/trl.git && cd trl && git checkout $TRL_COMMIT && pip install .[test]
+
+
