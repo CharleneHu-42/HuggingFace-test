@@ -1,4 +1,6 @@
 transformers
+datasets
+accelerate
 torch
 intel_extension_for_pytorch
 Pillow

@@ -178,13 +178,6 @@ handle_options() {
 # Main script execution
 handle_options "$@"
 
-
-if [[ "$device" = "cpu" ]]; then
-  # Setup environment variables for performance on Xeon
-  export LD_PRELOAD=${LD_PRELOAD}:/opt/conda/envs/idp/lib/libiomp5.so # Intel OpenMP
-  # Tcmalloc is a recommended malloc implementation that emphasizes fragmentation avoidance and scalable concurrency support.
-  export LD_PRELOAD=${LD_PRELOAD}:/usr/lib/x86_64-linux-gnu/libtcmalloc.so.4
-fi
 CORES=`lscpu | grep 'Core(s) per socket' | awk '{print $4}'`
 export TORCHINDUCTOR_FREEZING=1
 export TRITON_CODEGEN_INTEL_XPU_BACKEND=1
@@ -195,7 +188,6 @@ export TORCHINDUCTOR_CPP_MIN_CHUNK_SIZE=${CORES}
 if [[ "$task_name" == "fine-tune" ]]; then
   if [[ "$device" == "cpu" ]]; then
     export CCL_WORKER_COUNT=1
-    source /opt/intel/oneapi/setvars.sh
     accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --base_model $model_id --use_ipex $ipex_optimize --quant_algo $quant_algo --quant_dtype $quant_dtype --device $device
   else
     accelerate launch --config_file $task_name/"$device"_config_ddp.yaml $task_name/run_$task_name.py --base_model $model_id --quant_algo $quant_algo --quant_dtype $quant_dtype --device $device

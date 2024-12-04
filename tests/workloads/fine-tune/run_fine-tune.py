@@ -138,7 +138,7 @@ def train(
     if device == "cpu":
         device_map = None
     else:
-        device_map={'': Accelerator().process_index}
+        device_map = {'': Accelerator().process_index}
     model = AutoModelForCausalLM.from_pretrained(
         base_model,
         low_cpu_mem_usage=True,
@@ -147,7 +147,7 @@ def train(
         device_map=device_map,
     )
 
-    if quant_algo == "bitsandbytes" is not None:
+    if quant_algo == "bitsandbytes":
         model = prepare_model_for_kbit_training(model)
 
     tokenizer = AutoTokenizer.from_pretrained(base_model)
