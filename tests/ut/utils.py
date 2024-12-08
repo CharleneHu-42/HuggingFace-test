@@ -67,6 +67,8 @@ def extract_short_cases(in_txt_file, out_txt_file):
 def save_cases_to_bash(df, output_file):
     df = df.sort_values(by=["suite_name", "test_name"])
 
+    os.makedirs("RERUN", exist_ok=False)
+    
     cases = []
 
     for _, row in df.iterrows():
