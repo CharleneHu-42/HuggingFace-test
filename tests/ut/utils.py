@@ -68,7 +68,7 @@ def save_cases_to_bash(df, output_file):
     df = df.sort_values(by=["suite_name", "test_name"])
 
     os.makedirs("RERUN", exist_ok=False)
-    
+
     cases = []
 
     for _, row in df.iterrows():
@@ -249,3 +249,16 @@ def add_column_and_mark_with_case_list(df, new_column, case_list):
         ):
             df.iloc[index, -1] = 1
     return df
+
+
+def merge_excels_and_get_stats(excel_dir, out_file_name):
+    # read xpu ut excel files
+    tests_df = merge_excel_files_to_df(excel_dir)
+    tests_df = tests_df[RELEVANT_COLS]
+
+    tests_df.to_excel(out_file_name, index=False)
+
+    save_skipped_stats_to_excel(tests_df, f"{out_file_name.split('.')[0]}_skipped.xlsx")
+    save_failed_stats_to_excel(tests_df, f"{out_file_name.split('.')[0]}_failed.xlsx")
+
+    print_ut_stats(tests_df)
