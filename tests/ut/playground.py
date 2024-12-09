@@ -6,17 +6,16 @@ from utils import *
 # merge_excels_and_get_stats("RERUN", "trans_ut_merged.xlsx")
 
 # -----------CASE 2: need to rerun test subset after shallow analysis--------------
-# excel_file = "xpu_trans_ut.xlsx"
+# excel_file = "cuda_trans_ut3.xlsx"
 
 # df = pd.read_excel(excel_file)
 # message_list = [
-#     "ModuleNotFoundError: No module named 'mpi4py'",
-#     "test requires gguf version >= 0.10.0"
+#     "ModuleNotFoundError: No module named 'mpi4py'"
 # ]
 
-# rerun = df[df["message"] in message_list]
+# rerun = df[df["message"].isin(message_list)]
 
-# save_cases_to_bash(rerun, "xpu_rerun.sh")
+# save_cases_to_bash(rerun, "cuda_rerun2.sh")
 
 # -----------CASE 3: need to rerun test subset after deep analysis--------------
 
@@ -36,5 +35,5 @@ from utils import *
 
 # -----------CASE 5: merge files after rerun--------------
 
-# update_ut_result_after_rerun("RERUN", "xpu_trans_ut.xlsx", "xpu_trans_ut2.xlsx")
+# update_ut_result_after_rerun("RERUN", "cuda_trans_ut2.xlsx", "cuda_trans_ut3.xlsx")
 

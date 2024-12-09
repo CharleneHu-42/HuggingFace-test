@@ -75,7 +75,7 @@ def save_cases_to_bash(df, output_file):
         suite_name = row["suite_name"]
         test_name = row["test_name"]
         cases.append(
-            f"pytest -rA tests -k '{suite_name} and {test_name}' --excelreport RERUN/{suite_name+test_name}.xlsx"
+            f"pytest -rA tests -k '{suite_name} and {test_name}' --excelreport /mnt/RERUN/{suite_name+test_name}.xlsx"
         )
 
     save_list_to_txt(cases, output_file)
