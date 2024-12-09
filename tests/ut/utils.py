@@ -232,6 +232,10 @@ def update_ut_result_after_rerun(rerun_excel_path, ori_excel_file, output_file):
         ori_df.loc[sample.index, "result"] = result
         ori_df.loc[sample.index, "message"] = message
 
+    save_skipped_stats_to_excel(ori_df, f"{output_file.split('.')[0]}_skipped.xlsx")
+    save_failed_stats_to_excel(ori_df, f"{output_file.split('.')[0]}_failed.xlsx")
+    print_ut_stats(ori_df)
+    
     ori_df.to_excel(output_file, index=False)
 
 

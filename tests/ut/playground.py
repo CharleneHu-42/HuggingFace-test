@@ -26,7 +26,6 @@ from utils import *
 # rerun = df[df["need rerun"] == 1.0] # manually marked as need rerun
 # save_cases_to_bash(rerun, "xpu_rerun.sh")
 
-
 # -----------CASE 4: need to rerun test subset after deep analysis--------------
 
 # excel_file = "xpu_ut.xlsx"
@@ -34,3 +33,8 @@ from utils import *
 
 # rerun = df[df["need rerun"] == 1.0] # manually marked as need rerun
 # save_cases_to_bash(rerun, "xpu_rerun.sh")
+
+# -----------CASE 5: merge files after rerun--------------
+
+# update_ut_result_after_rerun("RERUN", "xpu_trans_ut.xlsx", "xpu_trans_ut2.xlsx")
+
