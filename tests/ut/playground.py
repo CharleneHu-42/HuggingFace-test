@@ -1,8 +1,11 @@
 import pandas as pd
 from utils import *
 
-# Below is a typical workflow after the initial transformers' UT is gathered with `run_ut.sh`    
+# Below is a typical workflow for transformers' UT.
 
+# -----------STEP 0: run transformer's UT--------------
+# ./run-ut.sh xpu transformers 1
+# ./run-ut.sh xpu transformers 
 
 # -----------STEP 1: validate transformers' UT Results--------------
 # validate_ut_run("transformers")
@@ -10,11 +13,11 @@ from utils import *
 
 # -----------STEP 2: manually check and rerun subsets if needed--------------
 # manually check the validation result.
-# if test numbers in some files are incomplete, you need to manually adapt the `run_ut.sh` and rerun. 
+# if the real test numbers don't match with the actual test numbers, you need to manually adapt the `run_ut.sh` and rerun. 
 # Sometimes, you will need to iterate on this step for several times in order to get all results completed
 
  
-# -----------STEP 3: merge transformers' UT Results and get initial test results--------------
+# -----------STEP 3: merge transformers' UT results and get initial merged test results--------------
 # merge_excels_and_get_stats("transformers/test_results", "xpu_trans_ut_merged.xlsx")
 
 
@@ -47,11 +50,11 @@ from utils import *
 # update_ut_result_after_rerun("RERUN", "xpu_trans_ut_merged2.xlsx", "xpu_trans_ut_merged3.xlsx")
 
 
-# -----------STEP 8: repeat step 1-7 on CUDA device--------------
-# you should now have 2 excel files: XPU and CUDA.
+# -----------STEP 8: repeat step 0-7 on CUDA device--------------
+# once finished, you should have 2 excel files for XPU and CUDA respectively.
 
 
-# -----------STEP 9: double-check xpu results with cuda--------------
+# -----------STEP 9: validate xpu ut results with cuda ut results--------------
 # cuda_excel = "cuda_trans_ut_merged3.xlsx"
 # xpu_excel = "xpu_trans_ut_merged3.xlsx"
 #
@@ -62,8 +65,8 @@ from utils import *
 
 
 # -----------STEP 10: manually check the ut diff, add a column `ignore` and mark if needed--------------
-# if the xpu total ut number differs from cuda, you will need to manually compare them using vscode's compare selected function
-# mark the duplicated cases with 1 in `ignore` column.
+# if the xpu total ut number differs from cuda, you will need to manually compare them using vscode's compare selected function.
+# mark the duplicated cases with 1 in `ignore` column to make test cases on XPU align with that on CUDA 
 
 
 # -----------STEP 11: gather final UT results and statistics--------------
@@ -94,14 +97,14 @@ from utils import *
 # save_failed_cases_to_txt(cuda_df, os.path.join(result_dir, "cuda_failed.txt"))
 
 
-# -----------STEP 13: mark cases with existing knowledge--------------
+# -----------STEP 13: mark cases with existing knowledge for later analysis--------------
 # first copy the `cuda_also_skipped.txt` and `cuda_also_failed.txt` to the `cases_to_ignore` folder
 # xpu_file = os.path.join(result_dir, "updated_xpu_trans_ut.xlsx")
 # ignore_path = "transformers/cases_to_ignore"
 # update_ut_results_with_ignore_cases(xpu_file, ignore_path, result_dir)
 
 
-# -----------STEP 14: gather final statistics--------------
+# -----------STEP 14: gather final statistics for both CUDA and XPU--------------
 # use `summarize.py` to print the results for report 
 
 

@@ -39,7 +39,7 @@ $ pytest -rA test --excelreport $report | tee $log
 
 #### 3.2 transformers UT
 ```bash
-# first dry run to detect anomalies in advanced
+# first dry run to detect anomalies in advance
 ./run-ut.sh xpu transformers 1
 # run all UTs
 ./run-ut.sh xpu transformers
