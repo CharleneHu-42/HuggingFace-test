@@ -1,72 +1,108 @@
 import pandas as pd
 from utils import *
 
-# -----------CASE 1: merge transformers' UT Results--------------
+# Below is a typical workflow after the initial transformers' UT is gathered with `run_ut.sh`    
 
-# merge_excels_and_get_stats("RERUN", "trans_ut_merged.xlsx")
 
-# -----------CASE 2: need to rerun test subset after shallow analysis--------------
+# -----------STEP 1: validate transformers' UT Results--------------
+# validate_ut_run("transformers")
+   
 
-# excel_file = "cuda_trans_ut3.xlsx"
+# -----------STEP 2: manually check and rerun subsets if needed--------------
+# manually check the validation result.
+# if test numbers in some files are incomplete, you need to manually adapt the `run_ut.sh` and rerun. 
+# Sometimes, you will need to iterate on this step for several times in order to get all results completed
 
+ 
+# -----------STEP 3: merge transformers' UT Results and get initial test results--------------
+# merge_excels_and_get_stats("transformers/test_results", "xpu_trans_ut_merged.xlsx")
+
+
+# -----------STEP 4: manually check the skip and fail statistics and rerun test subsets if needed--------------
+# excel_file = "xpu_trans_ut_merged.xlsx"
+#
 # df = pd.read_excel(excel_file)
+#
 # message_list = [
 #     "ModuleNotFoundError: No module named 'mpi4py'"
 # ]
-
 # rerun = df[df["message"].isin(message_list)]
-
-# save_cases_to_bash(rerun, "cuda_rerun2.sh")
-
-# -----------CASE 3: need to rerun test subset after deep analysis--------------
-
-# excel_file = "xpu_ut.xlsx"
-# df = pd.read_excel(excel_file)
-
-# rerun = df[df["need rerun"] == 1.0] # manually marked as need rerun
+#
 # save_cases_to_bash(rerun, "xpu_rerun.sh")
 
-# -----------CASE 4: need to rerun test subset after deep analysis--------------
 
-# excel_file = "xpu_ut.xlsx"
+# -----------STEP 5: merge results to the original excel file after rerun--------------
+# update_ut_result_after_rerun("RERUN", "xpu_trans_ut_merged.xlsx", "xpu_trans_ut_merged2.xlsx")
+ 
+
+# -----------STEP 6: manually check the statistic results, add a column `need rerun`, mark 1 if need to rerun--------------
+# excel_file = "xpu_trans_ut_merged2.xlsx"
 # df = pd.read_excel(excel_file)
+#
+# rerun = df[df["need rerun"] == 1.0] # manually marked as `need rerun`
+# save_cases_to_bash(rerun, "xpu_rerun2.sh")
 
-# rerun = df[df["need rerun"] == 1.0] # manually marked as need rerun
-# save_cases_to_bash(rerun, "xpu_rerun.sh")
 
-# -----------CASE 5: merge files after rerun--------------
+# -----------STEP 7: merge results to the original excel file after rerun--------------
+# update_ut_result_after_rerun("RERUN", "xpu_trans_ut_merged2.xlsx", "xpu_trans_ut_merged3.xlsx")
 
-# update_ut_result_after_rerun("RERUN", "cuda_trans_ut2.xlsx", "cuda_trans_ut3.xlsx")
 
-# -----------CASE 6: align cuda with xpu tests--------------
-# cuda_excel = "cuda_trans_ut5.xlsx"
-# xpu_excel = "FINAL2/updated_test_results.xlsx"
+# -----------STEP 8: repeat step 1-7 on CUDA device--------------
+# you should now have 2 excel files: XPU and CUDA.
 
+
+# -----------STEP 9: double-check xpu results with cuda--------------
+# cuda_excel = "cuda_trans_ut_merged3.xlsx"
+# xpu_excel = "xpu_trans_ut_merged3.xlsx"
+#
 # cuda_df = pd.read_excel(cuda_excel)
+# xpu_df = pd.read_excel(xpu_excel)
+#
+# compare_xpu_with_cuda_ut(cuda, xpu, "xpu_trans_ut_merged_aligned.xlsx")
+
+
+# -----------STEP 10: manually check the ut diff, add a column `ignore` and mark if needed--------------
+# if the xpu total ut number differs from cuda, you will need to manually compare them using vscode's compare selected function
+# mark the duplicated cases with 1 in `ignore` column.
+
+
+# -----------STEP 11: gather final UT results and statistics--------------
+# xpu_excel = "xpu_trans_ut_merged_aligned.xlsx"
+# cuda_excel = "cuda_trans_ut_merged3.xlsx"
+# xpu_df = pd.read_excel(xpu_excel)
+# cuda_df = pd.read_excel(cuda_excel)
+# xpu = xpu_df[xpu_df["ignore"] != 1]
 # cuda = cuda_df[cuda_df["ignore"] != 1]
-# xpu_df = pd.read_excel(xpu_excel)
-# xpu = xpu_df[xpu_df["ignore"] != 1]
-
-# compare_xpu_with_cuda_ut(cuda, xpu, "xpu_align_ut.xlsx")
-
-# -----------CASE 7: print stats--------------
-
-# xpu_excel = "FINAL2/updated_test_results.xlsx"
-# xpu_df = pd.read_excel(xpu_excel)
-# xpu = xpu_df[xpu_df["ignore"] != 1]
-
-# save_skipped_stats_to_excel(xpu, f"xpu_trans_skipped_final.xlsx")
-# save_failed_stats_to_excel(xpu, f"xpu_trans_failed_final.xlsx")
-
+# 
+# result_dir = "transformers/FINAL"
+# os.makedirs(result_dir, exist_ok=False)
+# 
+# xpu.to_excel(os.path.join(result_dir, "updated_xpu_trans_ut.xlsx"), index=False)
+# cuda.to_excel(os.path.join(result_dir, "updated_cuda_trans_ut.xlsx"), index=False)
+# save_skipped_stats_to_excel(xpu, os.path.join(result_dir, "updated_xpu_trans_skipped.xlsx"))
+# save_failed_stats_to_excel(xpu, os.path.join(result_dir, "updated_xpu_trans_failed.xlsx"))
+# save_skipped_stats_to_excel(cuda, os.path.join(result_dir,"updated_cuda_trans_skipped.xlsx"))
+# save_failed_stats_to_excel(cuda, os.path.join(result_dir, "updated_cuda_trans_failed.xlsx"))
+#
 # print_ut_stats(xpu)
+# print_ut_stats(cuda)
 
-# -----------CASE 8: save cuda also--------------
-# cuda_df = "cuda_trans_ut5.xlsx"
-# save_skipped_cases_to_txt(cuda_df, "cuda_also_skipped.txt")
-# save_failed_cases_to_txt(cuda_df, "cuda_also_failed.txt")
 
-# -----------CASE 9: update UT--------------
-# xpu_excel = "FINAL/updated_test_results.xlsx"
-# new_excel = "all_sdpa.xlsx"
+# -----------STEP 12: save cuda failed and skipped cases--------------
+# cuda_df = os.path.join(result_dir,"updated_cuda_trans_ut.xlsx")
+# save_skipped_cases_to_txt(cuda_df, os.path.join(result_dir, "cuda_skipped.txt"))
+# save_failed_cases_to_txt(cuda_df, os.path.join(result_dir, "cuda_failed.txt"))
 
-# update_ut_with_new_excel(xpu_excel, new_excel, "final_xpu_trans.xlsx")
+
+# -----------STEP 13: mark cases with existing knowledge--------------
+# first copy the `cuda_also_skipped.txt` and `cuda_also_failed.txt` to the `cases_to_ignore` folder
+# xpu_file = os.path.join(result_dir, "updated_xpu_trans_ut.xlsx")
+# ignore_path = "transformers/cases_to_ignore"
+# update_ut_results_with_ignore_cases(xpu_file, ignore_path, result_dir)
+
+
+# -----------STEP 14: gather final statistics--------------
+# use `summarize.py` to print the results for report 
+
+
+# -----------STEP 15: manually categorize, analyze and debug--------------

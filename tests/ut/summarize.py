@@ -1,29 +1,45 @@
 import fire
 import pandas as pd
-import glob
 import os
 
 from utils import *
 
 def main(
-    file_name: str = "",
+    lib_target: str = "",
+    cuda_file_name: str = "",
+    xpu_file_name: str = "",
     output_dir: str = "",
 ):
     os.makedirs(output_dir, exist_ok=True)
-    tests_df = pd.read_excel(file_name)
+    cuda_df = pd.read_excel(cuda_file_name)
+    xpu_df = pd.read_excel(xpu_file_name)
     
-    tests_df = tests_df[tests_df["ignore"] != 1]
-    print("========Overview========")
-    print(f"#TOTAL UT: {tests_df.shape[0]}")
+    if lib_target == "transformers":
+        cuda_df = cuda_df[(cuda_df["cuda/cpu/tpu only?"] != 1) & (cuda_df["xpu missing features?"] != 1)]
+        xpu_df = xpu_df[(xpu_df["cuda/cpu/tpu only?"] != 1) & (xpu_df["xpu missing features?"] != 1)]
     
-    passed_df = tests_df[tests_df["result"] == "PASSED"]
-    print(f"#PASSED UT: {passed_df.shape[0]}")
+    save_ut_results_to_txt(cuda_df, output_dir)
+    save_ut_results_to_txt(xpu_df, output_dir)
     
-    failed_df = tests_df[(tests_df["result"] == "FAILED")]
-    print(f"#FAILED UT: {failed_df.shape[0]}")
+    def print_ut_stats(tests_df):
+        print("========Overview========")
+        print(f"#TOTAL UT: {tests_df.shape[0]}")
+        
+        passed_df = tests_df[tests_df["result"] == "PASSED"]
+        print(f"#PASSED UT: {passed_df.shape[0]}")
+        
+        failed_df = tests_df[(tests_df["result"] == "FAILED")]
+        print(f"#FAILED UT: {failed_df.shape[0]}")
 
-    skipped_df = tests_df[(tests_df["result"] == "SKIPPED")]
-    print(f"#SKIPPED UT: {skipped_df.shape[0]}")
+        skipped_df = tests_df[(tests_df["result"] == "SKIPPED")]
+        print(f"#SKIPPED UT: {skipped_df.shape[0]}")
+        
+        return passed_df, failed_df, skipped_df 
+    
+    print(f"+++++++++++++++++CUDA+++++++++++++++++")
+    _, _, _ = print_ut_stats(cuda_df)
+    print(f"+++++++++++++++++XPU+++++++++++++++++")
+    _, failed_df, skipped_df = print_ut_stats(xpu_df)
     
     print("========FAILED========")
     cuda_also_fails = failed_df[failed_df["cuda also failed?"] == 1]
@@ -46,6 +62,7 @@ def main(
     to_investigate = other_skipped[other_skipped["xpu missing features?"] != 1]
     print(f"To investigate: {to_investigate.shape[0]}")
     to_investigate[RELEVANT_COLS].to_excel(os.path.join(output_dir, "skip_to_investigate.xlsx"), index=False)
+
 
 if __name__ == "__main__":
     fire.Fire(main)

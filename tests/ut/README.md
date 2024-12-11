@@ -34,12 +34,13 @@ pytest -rA test --excelreport $report | tee $log
 
 #### 3.2 transformers UT
 ```bash
-cd transformers
-# copy test
-cp <folder where you put HuggingFace/tests/ut>/xpu/* .
-./run-ut.sh xpu /mnt/test_results
+# first dry run to detect anomalies in advanced
+./run-ut.sh xpu transformers 1
+# run all UTs
+./run-ut.sh xpu transformers
 ```
-This script will create a folder `test_results` in `/mnt`, where test results are stored in excel files for later analysis. 
+This script will create a folder `test_results` in `/mnt/transformers`, where test results are stored in excel files for later analysis. 
+
 
 #### 3.3 accelerate/peft/diffusers/trl UT
 ```bash
@@ -50,6 +51,4 @@ RUN_SLOW=1 python -m pytest tests -sv --excelreport $report --timeout 600 2>&1 |
 For `trl`, you need to set `export CUDA_VISIBLE_DEVICES=0,1` for multi-card tests. 
 
 ### 4. Analyze test results 
-```bash 
-python analyze_test_results.py --excel_dir /mnt/test_results --output_dir /mnt/test_stats
-```
+Depending on the library, different steps might be needed for the analysis. You can take the `playgound.py` template as a guidance to conduct the analysis.
