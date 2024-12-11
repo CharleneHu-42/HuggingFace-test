@@ -1,51 +1,59 @@
 #!/bin/bash
 
 # Default variable values
-ipex_optimize=False
-jit=False
-torch_compile=False
+
+## test case configurations
 task_name=""
 model_id=""
 model_dtype="float32"
 autocast_dtype="float32"
-quant_type="None"
-backend="inductor"
-device="cpu"
 batch_size=1
 num_beams=4
 input_tokens=32
 output_tokens=32
-ipex_optimize_transformers="False"
-gradient_checkpointing="False"
+gradient_checkpointing=False
+quant_algo="None"
+quant_dtype="None"
+
+## runtime configurations
+backend="inductor"
+device="cpu"
 num_processes=4
 warm_up_steps=10
 run_steps=10
-optimum_intel="False"
 
-# Function to display script usage
+## optimization options
+ipex_optimize=False
+ipex_optimize_transformers=False
+jit=False
+torch_compile=False
+optimum_intel=False
+
+# arg parser
 usage() {
  echo "Usage: $0 [OPTIONS]"
  echo "Options:"
  echo " -h, --help            Display this help message"
  echo " -t, --task            Specify task name"
- echo " -m, --model_id        Specify model ID "
- echo " -i, --ipex            Use ipex optimize "
- echo " -j, --jit             Use jit "
- echo " -c, --torch_compile   Use torch compile"
+ echo " -m, --model_id        Specify model id"
  echo " --model_dtype         Indicate the model dtype[float32, bfloat16, float16]"
  echo " --autocast_dtype      Indicate the compute dtype[float32, bfloat16, float16]"
- echo " --quant_type          Indicate the bitsandbytes quantization type[int8, nf4, fp4]"
- echo " --backend             Indicate the torch compile backend[ipex, inductor]"
- echo " --device              Indicate the computation device[cpu, cuda, xpu]"
  echo " --batch_size          Input batch size for text-generation"
  echo " --num_beams           The num_beams for text-generation"
  echo " --input_tokens        The input token length for text-generation[32, 64, 128, 256, 512, 1024]"
  echo " --output_tokens       The output token length for text-generation"
- echo " --ipex_optimize_transformers              Ipex optimize_transformers for text-generation"
- echo " --gradient_checkpointing         Whether to run fine-tuning with gradient checkpoint to save memory, only used for fine-tune task"
+ echo " --gradient_checkpointing  Whether to run fine-tuning with gradient checkpoint to save memory, only used for fine-tune task"
+ echo " --quant_algo          Use quant_algo to decide quantization method, options are ["bitsandbytes", "autoawq"]"
+ echo " --quant_dtype         Use quant_dtype to decide quantization data type, like ["int8", "nf4", "fp4"] in bitsandbytes, ["int4"] in autoawq"
+ echo " --backend             Indicate the torch compile backend[ipex, inductor]"
+ echo " --device              Indicate the computation device[cpu, cuda, xpu]"
  echo " --num_processes       The number of data parallelism, only used for CPU fine-tune task"
  echo " --warm_up_steps       The benchmark warm up steps for all tasks"
  echo " --run_steps           The benchmark run steps for all tasks"
+ echo " -i, --ipex            Use ipex optimize"
+ echo " -j, --jit             Use jit"
+ echo " -c, --torch_compile   Use torch compile"
+ echo " --ipex_optimize_transformers              Ipex optimize_transformers for text-generation"
  echo " --optimum_intel       Use optimum-intel optimization"
 }
 
@@ -107,10 +115,6 @@ handle_options() {
         autocast_dtype=$(extract_argument $@)
         shift
         ;;
-      --quant_type)
-        quant_type=$(extract_argument $@)
-        shift
-        ;;
       --backend)
         backend=$(extract_argument $@)
         shift
@@ -159,6 +163,14 @@ handle_options() {
         optimum_intel=$(extract_argument $@)
         shift
         ;;
+      --quant_algo)
+        quant_algo=$(extract_argument $@)
+        shift
+        ;;
+      --quant_dtype)
+        quant_dtype=$(extract_argument $@)
+        shift
+        ;;
       *)
         echo "Invalid option: $1" >&2
         usage
@@ -172,20 +184,6 @@ handle_options() {
 # Main script execution
 handle_options "$@"
 
-
-if [[ "$device" = "cpu" ]]; then
-  # Setup environment variables for performance on Xeon
-  export KMP_BLOCKTIME=INF
-  export KMP_TPAUSE=0
-  export KMP_SETTINGS=0
-  export KMP_AFFINITY=granularity=fine,compact,1,0
-  export KMP_FORJOIN_BARRIER_PATTERN=dist,dist
-  export KMP_PLAIN_BARRIER_PATTERN=dist,dist
-  export KMP_REDUCTION_BARRIER_PATTERN=dist,dist
-  export LD_PRELOAD=${LD_PRELOAD}:/usr/local/lib/libiomp5.so # Intel OpenMP
-  # Tcmalloc is a recommended malloc implementation that emphasizes fragmentation avoidance and scalable concurrency support.
-  export LD_PRELOAD=${LD_PRELOAD}:/usr/lib/x86_64-linux-gnu/libtcmalloc.so.4
-fi
 CORES=`lscpu | grep 'Core(s) per socket' | awk '{print $4}'`
 export TORCHINDUCTOR_FREEZING=1
 export TRITON_CODEGEN_INTEL_XPU_BACKEND=1
@@ -196,11 +194,10 @@ export TORCHINDUCTOR_CPP_MIN_CHUNK_SIZE=${CORES}
 if [[ "$task_name" == "fine-tune" ]]; then
   if [[ "$device" == "cpu" ]]; then
     export CCL_WORKER_COUNT=1
-    source /opt/intel/oneapi/setvars.sh
-    accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --bf16 True --use_ipex $ipex_optimize --quant_type $quant_type
+    accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --base_model $model_id --use_ipex $ipex_optimize --quant_algo $quant_algo --quant_dtype $quant_dtype --device $device
   else
-    accelerate launch --config_file $task_name/"$device"_config_ddp.yaml $task_name/run_$task_name.py --quant_type $quant_type
+    accelerate launch --config_file $task_name/"$device"_config_ddp.yaml $task_name/run_$task_name.py --base_model $model_id --quant_algo $quant_algo --quant_dtype $quant_dtype --device $device
   fi
 else
-  numactl -C '0-'${CORES} --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_type $quant_type --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel
+  numactl -C '0-'${CORES} --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_algo $quant_algo --quant_dtype $quant_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel
 fi

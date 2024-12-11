@@ -2,7 +2,7 @@ import argparse
 import torch
 import time
 import random
-from transformers import BitsAndBytesConfig
+from transformers import AwqConfig, BitsAndBytesConfig
 
 random.seed(42)
 
@@ -23,7 +23,6 @@ def get_args():
     parser.add_argument("--jit", default="False", type=str2bool)
     parser.add_argument("--torch_compile", default="False", type=str2bool)
     parser.add_argument("--model_dtype", default="float32", type=str)
-    parser.add_argument("--quant_type", default=None, type=str)
     parser.add_argument("--backend", default="inductor", type=str)
     parser.add_argument("--device", default="cpu", type=str)
     parser.add_argument("--batch_size", default=1, type=int)
@@ -39,7 +38,12 @@ def get_args():
     parser.add_argument("--warm_up_steps", default=10, type=int)
     parser.add_argument("--run_steps", default=10, type=int)
     parser.add_argument("--optimum_intel", default="False", type=str2bool)
+    parser.add_argument("--quant_algo", default=None, type=str,
+        help="choose from [bitsandbytes, autoawq]")
+    parser.add_argument("--quant_dtype", default=None, type=str,
+        help="choose from [int, nf4, fp4, int4]")
     args = parser.parse_args()
+
     return args
 
 
@@ -57,8 +61,18 @@ def get_bitsandbytes_config(quant_type):
         quantization_config = BitsAndBytesConfig(load_in_8bit=True)
     elif quant_type in ("nf4", "fp4"):
         quantization_config = BitsAndBytesConfig(load_in_4bit=True,
+                                                 bnb_4bit_compute_dtype=torch.bfloat16,
                                                  bnb_4bit_quant_type=quant_type,
                                                  bnb_4bit_use_double_quant=False)
+    else:
+        quantization_config = None
+
+    return quantization_config
+
+
+def get_awq_config(quant_type):
+    if quant_type == "int4":
+        quantization_config = AwqConfig(version="ipex")
     else:
         quantization_config = None
 

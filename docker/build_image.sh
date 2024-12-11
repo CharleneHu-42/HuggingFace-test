@@ -1,14 +1,16 @@
 #!/bin/bash
 
 # Default variable values
-device="xpu"
+device=xpu
+target=base
 
 # Function to display script usage
 usage() {
  echo "Usage: $0 [OPTIONS]"
  echo "Options:"
  echo " -h, --help            Display this help message"
- echo " -d, --device          Hardware Device[xpu, cuda]"
+ echo " -d, --device          Hardware Device[cpu, xpu, cuda]"
+ echo " -t, --target          Build stage[base, ut]"
 }
 
 has_argument() {
@@ -38,6 +40,12 @@ handle_options() {
 
         shift
         ;;
+      -t | --target*)
+         if has_argument $@; then
+           target=$(extract_argument $@)
+         fi
+         shift
+         ;;
     esac
     shift
   done
@@ -47,7 +55,8 @@ handle_options() {
 handle_options "$@"
 
 docker build \
-	-f Dockerfile.${device} . \
+	-f Dockerfile.${device} \
+	--target ${target} \
 	--build-arg http_proxy=${http_proxy} \
 	--build-arg https_proxy=${https_proxy} \
-	-t huggingface-ut/${device}
+	-t appliedml/huggingface:${device}-${target} .

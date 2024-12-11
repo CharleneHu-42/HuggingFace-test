@@ -2,60 +2,52 @@
 
 ## Envs Setup
 ### Install BNB
-#### CPU
-Install bitsandbytes with CPU backend in your working directory:
-```bash
-git clone --branch multi-backend-refactor https://github.com/TimDettmers/bitsandbytes.git && cd bitsandbytes/
-pip install -r requirements-dev.txt
-cmake -DCOMPUTE_BACKEND=cpu -S .
-make
-pip install .
-```
 
-#### XPU
-<TBF>
-
-### Install HF Transformers
-Please notice that the original transformers may not work, it depends on the [PR](https://github.com/huggingface/transformers/pull/31098).
-You can install the transformers in a proper folder by the following command:
+Install bitsandbytes in your working directory:
 ```bash
-git clone --branch bnb_cpu https://github.com/jiqing-feng/transformers.git && cd transformers/ && pip install .
+$ git clone --branch multi-backend-refactor https://github.com/bitsandbytes-foundation/bitsandbytes.git
+$ cd bitsandbytes/
+$ pip install -r requirements-dev.txt
+$ pip install .
 ```
+Please make sure `transformers >= 4.45.0`
 
 ## use case
-Go to tests/workloads directory.
+Go to `tests/workloads` directory.
 ### Inference
+The following commands defaultly use CPU, please add flag: `--device xpu --model_dtype float16` if you use XPU.
 #### bf16(baseline)
-```
-sh run.sh -t text-generation --model_dtype bfloat16
+```bash
+$ bash ./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16
 ```
 #### int8
-```
-sh run.sh -t text-generation --model_dtype bfloat16 --quant_type int8
+```bash
+$ bash ./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --quant_algo bitsandbytes --quant_dtype int8
 ```
 #### nf4
-```
-sh run.sh -t text-generation --model_dtype bfloat16 --quant_type nf4
+```bash
+$ bash ./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --quant_algo bitsandbytes --quant_dtype nf4
 ```
 #### fp4
-```
-sh run.sh -t text-generation --model_dtype bfloat16 --quant_type fp4
+```bash
+$ bash ./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --quant_algo bitsandbytes --quant_dtype fp4
 ```
 
 ### Finetune
+The following commands defaultly use CPU, please add flag: `--device xpu` if you use XPU.
 #### bf16 LoRA(baseline)
-```
-sh run.sh -t fine-tune
+```bash
+$ bash ./run.sh -t fine-tune
 ```
 #### int8 LoRA
-```
-sh run.sh -t fine-tune --quant_type int8
+```bash
+$ bash ./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf --quant_algo bitsandbytes --quant_dtype int8
 ```
 #### nf4 QLoRA
-```
-sh run.sh -t fine-tune --quant_type nf4
+```bash
+$ bash ./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf --quant_algo bitsandbytes --quant_dtype nf4
 ```
 #### fp4 QLoRA
-```
-sh run.sh -t fine-tune --quant_type fp4
+```bash
+$ bash ./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf --quant_algo bitsandbytes --quant_dtype fp4
 ```

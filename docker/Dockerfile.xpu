@@ -1,14 +1,8 @@
-FROM intel/intel-extension-for-pytorch:2.3.110-xpu
+FROM intel/intel-extension-for-pytorch:2.3.110-xpu AS base
 
 SHELL ["/bin/bash", "-c"]
 
 ARG PYTHON_VER='3.10'
-ARG QUANTO_COMMIT=450870266df82a0c2ecf0d86c9fa738172763a5c
-ARG TRANSFORMERS_COMMIT=1f6b423f0ce0c6e7afd300b59e5fd1a816e4896c
-ARG ACCELERATE_COMMIT=ba7ab93f5e688466ea56908ea3b056fae2f9a023
-ARG PEFT_COMMIT=8eeae0a63f28a80ef42b6bfc977c34ffc0b650ff
-ARG DIFFUSERS_COMMIT=9a92b8177cb3f8bf4b095fff55da3b45a3607960
-ARG TRL_COMMIT=b2696578ce6db1749a250661b507bf8b90e14dd5
 
 RUN apt-get update && \
     apt-get -y install \
@@ -47,24 +41,17 @@ RUN python -m pip install https://intel-extension-for-pytorch.s3.us-east-1.amazo
 RUN python -m pip install https://intel-extension-for-pytorch.s3.us-east-1.amazonaws.com/ipex_dev/xpu/intel_extension_for_pytorch-2.5.10%2Bgit9d489a8-cp310-cp310-linux_x86_64.whl
 RUN python -m pip install https://intel-extension-for-pytorch.s3.us-east-1.amazonaws.com/ipex_dev/xpu/oneccl_bind_pt-2.5.0%2Bxpu-cp310-cp310-linux_x86_64.whl
 
-WORKDIR /.tests
-RUN git clone https://github.com/huggingface/optimum-quanto.git && cd optimum-quanto && git checkout $QUANTO_COMMIT && pip install .[dev]
-RUN git clone https://github.com/huggingface/transformers && cd transformers && git checkout $TRANSFORMERS_COMMIT && pip install .[deepspeed-testing]
-RUN git clone https://github.com/huggingface/accelerate.git && cd accelerate && git checkout $ACCELERATE_COMMIT && pip install .[testing,test_trackers]
-RUN git clone https://github.com/huggingface/peft.git && cd peft && git checkout $PEFT_COMMIT && pip install .[test]
-RUN git clone https://github.com/huggingface/diffusers.git && cd diffusers && git checkout $DIFFUSERS_COMMIT && pip install .[test]
-RUN git clone https://github.com/huggingface/trl.git && cd trl && git checkout $TRL_COMMIT && pip install .[test]
-
-RUN pip install accelerate pyctcdecode timm pytesseract peft optimum decord galore-torch fire scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en 
+RUN pip install pyctcdecode timm pytesseract peft optimum decord galore-torch fire scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en 
 RUN pip install pretty_midi essentia resampy Levenshtein onnx scipy av sacrebleu phonemizer pytest-env pytest-timeout pytest-excel openpyxl
 RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets invisible_watermark schedulefree clearml gguf hqq quanto compressed_tensors liger-kernel kenlm mpi4py
 
-ENV CCL_ROOT="/usr/local"
-ENV I_MPI_ROOT="/usr/local"
-ENV CLASSPATH="${I_MPI_ROOT}/lib/mpi.jar"
-ENV PATH="${I_MPI_ROOT}/bin/libfabric:${PATH}"
-ENV LD_LIBRARY_PATH="${I_MPI_ROOT}/lib/libfabric:${LD_LIBRARY_PATH}"
-ENV FI_PROVIDER_PATH="${I_MPI_ROOT}/lib/libfabric/prov:/usr/lib/x86_64-linux-gnu/libfabric"
+ENV OCL_ICD_VENDORS=/etc/OpenCL/vendors
+ENV CCL_ROOT=/usr/local
+ENV I_MPI_ROOT=/usr/local
+ENV CLASSPATH=${I_MPI_ROOT}/lib/mpi.jar
+ENV PATH=${I_MPI_ROOT}/bin/libfabric:${PATH}
+ENV LD_LIBRARY_PATH=${I_MPI_ROOT}/lib/libfabric:${LD_LIBRARY_PATH}
+ENV FI_PROVIDER_PATH=${I_MPI_ROOT}/lib/libfabric/prov:/usr/lib/x86_64-linux-gnu/libfabric
 ENV CCL_ATL_TRANSPORT=ofi
 
 RUN touch /entrypoint.sh
@@ -72,5 +59,22 @@ RUN chmod +x /entrypoint.sh
 RUN echo "#!/bin/bash" >> /entrypoint.sh
 RUN echo "source /opt/intel/oneapi/pti/latest/env/vars.sh && /bin/bash" >> /entrypoint.sh
 
-COPY run_ut.sh spec_cuda.py spec_xpu.py /.tests
 ENTRYPOINT ["/entrypoint.sh"]
+
+
+FROM base AS ut
+
+WORKDIR /.tests
+ARG QUANTO_COMMIT=450870266df82a0c2ecf0d86c9fa738172763a5c
+ARG TRANSFORMERS_COMMIT=1f6b423f0ce0c6e7afd300b59e5fd1a816e4896c
+ARG ACCELERATE_COMMIT=ba7ab93f5e688466ea56908ea3b056fae2f9a023
+ARG PEFT_COMMIT=8eeae0a63f28a80ef42b6bfc977c34ffc0b650ff
+ARG DIFFUSERS_COMMIT=9a92b8177cb3f8bf4b095fff55da3b45a3607960
+ARG TRL_COMMIT=b2696578ce6db1749a250661b507bf8b90e14dd5
+RUN git clone https://github.com/huggingface/optimum-quanto.git && cd optimum-quanto && git checkout $QUANTO_COMMIT && pip install .[dev]
+RUN git clone https://github.com/huggingface/transformers && cd transformers && git checkout $TRANSFORMERS_COMMIT && pip install .[deepspeed-testing]
+RUN git clone https://github.com/huggingface/accelerate.git && cd accelerate && git checkout $ACCELERATE_COMMIT && pip install .[testing,test_trackers]
+RUN git clone https://github.com/huggingface/peft.git && cd peft && git checkout $PEFT_COMMIT && pip install .[test]
+RUN git clone https://github.com/huggingface/diffusers.git && cd diffusers && git checkout $DIFFUSERS_COMMIT && pip install .[test]
+RUN git clone https://github.com/huggingface/trl.git && cd trl && git checkout $TRL_COMMIT && pip install .[test]
+COPY run_ut.sh spec_cuda.py spec_xpu.py /.tests
