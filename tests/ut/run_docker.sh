@@ -88,12 +88,12 @@ if [[ $device == "cuda" ]]; then
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
 		-e no_proxy=${no_proxy} \
-		-e report=/mnt/${library}/ut.xlsx \
     -e ut_device=${device} \
     -e ut_library=${library} \
     -e RUN_SLOW=1 \
     -e TRANSFORMERS_TEST_DEVICE=${device} \
     -e TRANSFORMERS_TEST_DEVICE_SPEC=spec_${device}.py \
+		-e report=/mnt/${library}/ut.xlsx \
 		-e log=/mnt/${library}/ut.log \
 		-v ${HF_HOME}:/root/.cache/huggingface \
 		-v ${mount_dir}:/mnt \
