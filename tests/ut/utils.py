@@ -209,10 +209,8 @@ def merge_excel_files_to_df(excel_path):
 
 def update_ut_result_after_rerun(rerun_excel_path, ori_excel_file, output_file):
     rerun_df = merge_excel_files_to_df(rerun_excel_path)
-    rerun_df = rerun_df[RELEVANT_COLS]
-
+    
     ori_df = pd.read_excel(ori_excel_file)
-    ori_df = ori_df[RELEVANT_COLS]
 
     ori_df = ori_df.sort_values(by=["file_name", "suite_name", "test_name"])
     rerun_df = rerun_df.sort_values(by=["file_name", "suite_name", "test_name"])

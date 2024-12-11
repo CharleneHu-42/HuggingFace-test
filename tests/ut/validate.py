@@ -14,6 +14,7 @@ txt_files_glob = sorted(
 pattern = r"(.*) tests"
 
 rerun_cases = []
+total_num = 0
 for txt_file in txt_files_glob:
     txt_file_name = os.path.basename(txt_file).split(".")[0]
     excel_file_path = txt_file.replace("txt", "xlsx")
@@ -31,6 +32,8 @@ for txt_file in txt_files_glob:
     if "/" in true_case_num:
         true_case_num = true_case_num.split("/")[0]
 
+    total_num = total_num + int(true_case_num)
+    
     df = pd.read_excel(excel_file_path)
 
     real_case_num = df.shape[0]
@@ -44,4 +47,6 @@ for txt_file in txt_files_glob:
         )
 
     print("+", end="", flush=True)  # Print + in the same line
+    
+print(f"\nThere are {total_num} test cases in total")
 print(f"\n{rerun_cases} need double-check.")
