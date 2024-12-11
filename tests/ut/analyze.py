@@ -5,96 +5,47 @@ import os
 
 from utils import *
 
-XPU_MISSING_FEATURES = [
-    "test requires natten",
-    "test requires apex",
-    "test requires aqlm",
-    "test requires bitsandbytes and torch",
-    "test requires auto-gptq",
-    "test requires autoawq",
-    "test requires quanto",
-    "test requires gguf",
-    "test requires LOMO",
-    "test requires `detectron2`",
-    "test requires Flash Attention",
-]
-
-GPU_ONLY = [
-    "test requires Torch-TensorRT FX",
-    "test requires PyTorch Quantization Toolkit",
-    "test requires TorchXLA",
-    "test requires JAX & Flax",
-    "test requires torch>=1.10, using Ampere GPU or newer arch with cuda>=11.0",
-    "test requires Ampere or a newer GPU arch, cuda>=11 and torch>=1.7",
-    "test requires GaLore",
-]
-
-
 def main(
-    excel_dir: str = "",
-    ignore_path: str = "",
+    file_name: str = "",
     output_dir: str = "",
 ):
     os.makedirs(output_dir, exist_ok=True)
+    tests_df = pd.read_excel(file_name)
+    
+    tests_df = tests_df[tests_df["ignore"] != 1]
+    print("========Overview========")
+    print(f"#TOTAL UT: {tests_df.shape[0]}")
+    
+    passed_df = tests_df[tests_df["result"] == "PASSED"]
+    print(f"#PASSED UT: {passed_df.shape[0]}")
+    
+    failed_df = tests_df[(tests_df["result"] == "FAILED")]
+    print(f"#FAILED UT: {failed_df.shape[0]}")
 
-    # read xpu ut excel files
-    tests_df = merge_excel_files_to_df(excel_dir)
-    tests_df = tests_df[RELEVANT_COLS]
-
-    # if the file name contains `unittest`, we will need to manually replace it with the actual file name
-    tests_df = replace_unittests(tests_df)
-
-    only_files = glob.glob(os.path.join(ignore_path, "*.txt"))
-
-    for file in only_files:
-        if "cuda_also_failed" in file:
-            cuda_also_failed = read_txt_to_list(file)
-            tests_df = add_column_and_mark_with_case_list(
-                tests_df, "cuda also failed?", cuda_also_failed
-            )
-        elif "cuda_also_skipped" in file:
-            cuda_also_skipped = read_txt_to_list(file)
-            tests_df = add_column_and_mark_with_case_list(
-                tests_df, "cuda also skipped?", cuda_also_skipped
-            )
-        elif "available_memory_api" in file:
-            memory_api_cases = read_txt_to_list(file)
-            tests_df = add_column_and_mark_with_case_list(
-                tests_df, "available memory api?", memory_api_cases
-            )
-
-    only_files = glob.glob(os.path.join(ignore_path, "*_only.txt"))
-    xpu_missing_files = glob.glob(os.path.join(ignore_path, "xpu_missing_*.txt"))
-
-    if len(only_files) >= 1:
-        all_only_files = [read_txt_to_list(file) for file in only_files]
-        only_cases = [case for file in all_only_files for case in file]
-        tests_df = add_column_and_mark_with_case_list(
-            tests_df, "cuda/cpu/tpu only?", only_cases
-        )
-
-    if len(xpu_missing_files) >= 1:
-        all_missing_files = [read_txt_to_list(file) for file in xpu_missing_files]
-        xpu_missing_cases = [case for file in all_missing_files for case in file]
-        tests_df = add_column_and_mark_with_case_list(
-            tests_df, "xpu missing features?", xpu_missing_cases
-        )
-
-    SKIP_MESSAGES = XPU_MISSING_FEATURES + GPU_ONLY
-    tests_df["other skips?"] = [0] * tests_df.shape[0]
-
-    for index, row in tests_df.iterrows():
-        if row["message"] in SKIP_MESSAGES:
-            tests_df.iloc[index, -1] = 1
-
-    tests_df.to_excel(
-        os.path.join(output_dir, "updated_test_results.xlsx"), index=False
-    )
-    save_skipped_stats_to_excel(tests_df, "skipped_tests_stats.xlsx")
-    save_failed_stats_to_excel(tests_df, "failed_tests_stats.xlsx")
-
-    print_ut_stats(tests_df)
-
+    skipped_df = tests_df[(tests_df["result"] == "SKIPPED")]
+    print(f"#SKIPPED UT: {skipped_df.shape[0]}")
+    
+    print("========FAILED========")
+    cuda_also_fails = failed_df[failed_df["cuda also failed?"] == 1]
+    print(f"Cuda also fails: {cuda_also_fails.shape[0]}")
+    save_cases_to_txt(cuda_also_fails, os.path.join(output_dir, "cuda_also_fails.txt") )
+    
+    to_debug = failed_df[failed_df["cuda also failed?"] != 1]
+    print(f"To debug: {to_debug.shape[0]}")
+    to_debug[RELEVANT_COLS].to_excel(os.path.join(output_dir, "fail_to_debug.xlsx"), index=False)
+    
+    print("========SKIPPED========")
+    cuda_also_skipped = skipped_df[skipped_df["cuda also skipped?"] == 1]
+    print(f"Cuda also skips: {cuda_also_fails.shape[0]}")
+    save_cases_to_txt(cuda_also_skipped, os.path.join(output_dir, "cuda_also_skips.txt") )
+    
+    other_skipped = skipped_df[skipped_df["cuda also skipped?"] != 1]
+    xpu_missing_features = other_skipped[other_skipped["xpu missing features?"] == 1]
+    print(f"XPU missing features: {xpu_missing_features.shape[0]}")
+    
+    to_investigate = other_skipped[other_skipped["xpu missing features?"] != 1]
+    print(f"To investigate: {to_investigate.shape[0]}")
+    to_investigate[RELEVANT_COLS].to_excel(os.path.join(output_dir, "skip_to_investigate.xlsx"), index=False)
 
 if __name__ == "__main__":
     fire.Fire(main)

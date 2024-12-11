@@ -206,7 +206,33 @@ def merge_excel_files_to_df(excel_path):
 
     return df
 
+def update_ut_with_new_excel(ori_excel, new_excel, output_file):
+    ori_df = pd.read_excel(ori_excel)
+    new_df = pd.read_excel(new_excel)
 
+    ori_df = ori_df.sort_values(by=["file_name", "suite_name", "test_name"])
+    new_df = new_df.sort_values(by=["file_name", "suite_name", "test_name"])
+    
+    for _, row in new_df.iterrows():
+        suite_name = row["suite_name"]
+        test_name = row["test_name"]
+        result = row["result"]
+        message = row["message"]
+
+        sample = ori_df[
+            (ori_df["suite_name"] == suite_name)
+            & (ori_df["test_name"] == test_name)
+        ]
+        ori_df.loc[sample.index, "result"] = result
+        ori_df.loc[sample.index, "message"] = message
+
+    save_skipped_stats_to_excel(ori_df, f"{output_file.split('.')[0]}_skipped.xlsx")
+    save_failed_stats_to_excel(ori_df, f"{output_file.split('.')[0]}_failed.xlsx")
+    print_ut_stats(ori_df)
+    
+    ori_df.to_excel(output_file, index=False)
+    
+    
 def update_ut_result_after_rerun(rerun_excel_path, ori_excel_file, output_file):
     rerun_df = merge_excel_files_to_df(rerun_excel_path)
     rerun_df = rerun_df[RELEVANT_COLS]
@@ -260,9 +286,34 @@ def merge_excels_and_get_stats(excel_dir, out_file_name):
     tests_df = merge_excel_files_to_df(excel_dir)
     tests_df = tests_df[RELEVANT_COLS]
 
+    tests_df = replace_unittests(tests_df)
     tests_df.to_excel(out_file_name, index=False)
 
     save_skipped_stats_to_excel(tests_df, f"{out_file_name.split('.')[0]}_skipped.xlsx")
     save_failed_stats_to_excel(tests_df, f"{out_file_name.split('.')[0]}_failed.xlsx")
 
     print_ut_stats(tests_df)
+
+
+def compare_xpu_with_cuda_ut(cuda_df, xpu_df, xpu_output_file):
+    xpu_df["align with cuda"] = [0] * xpu_df.shape[0]
+    xpu_df = xpu_df.sort_values(by=["suite_name", "test_name"])
+    cuda_df = cuda_df.sort_values(by=["suite_name", "test_name"])
+
+    for index, row in xpu_df.iterrows():
+        suite_name = row["suite_name"]
+        test_name = row["test_name"]
+        
+        target = cuda_df[
+                (cuda_df["suite_name"] == suite_name)
+                & (cuda_df["test_name"] == test_name)
+            ]
+        if target.shape[0] > 0:
+            xpu_df.loc[index, "align with cuda"] = 1
+            
+    if cuda_df.shape[0] != xpu_df[xpu_df["align with cuda"] == 1].shape[0]:
+        print(f"----------total ut numbers are different------------")
+        save_cases_to_txt(cuda_df, "all_cases_cuda.txt")
+        save_cases_to_txt(xpu_df[xpu_df["align with cuda"] == 1], "all_cases_xpu.txt")
+    
+    xpu_df.to_excel(xpu_output_file, index=False)
