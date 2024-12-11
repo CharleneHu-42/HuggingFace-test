@@ -98,7 +98,7 @@ if [[ $device == "cuda" ]]; then
 		-v ${HF_HOME}:/root/.cache/huggingface \
 		-v ${mount_dir}:/mnt \
 		-v /dev/shm:/dev/shm \
-		-w /.tests/ \
+		-w /.tests/${library} \
 		--runtime=nvidia \
 		--gpus all \
 		--name ${name} \
@@ -120,7 +120,7 @@ elif [[ $device == "xpu" ]]; then
 		-v /dev/dri/by-path:/dev/dri/by-path \
 		-v ${HF_HOME}:/root/.cache/huggingface \
 		-v ${mount_dir}:/mnt \
-		-w /.tests/ \
+		-w /.tests/${library} \
 		--device=/dev/dri \
 		--ipc=host \
 		--name ${name} \

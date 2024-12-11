@@ -39,6 +39,8 @@ $ pytest -rA test --excelreport $report | tee $log
 
 #### 3.2 transformers UT
 ```bash
+# first copy over helper scripts
+cp /mnt/spec_*.py /mnt/run_ut.sh .
 # first dry run to detect anomalies in advance
 ./run-ut.sh xpu transformers 1
 # run all UTs
