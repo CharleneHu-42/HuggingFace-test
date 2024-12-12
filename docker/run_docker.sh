@@ -10,7 +10,7 @@ usage() {
  echo "Usage: $0 [OPTIONS]"
  echo "Options:"
  echo " -h, --help            Display this help message"
- echo " -d, --device          Hardware Device[xpu, cuda]"
+ echo " -d, --device          Hardware Device[cpu, xpu, cuda]"
  echo " -t, --target          Target Name[base, ut]"
  echo " -v, --mount_dir       Local directory to be mounted inside the container; default value is the current directory"
  echo " -n, --name            Container name"
