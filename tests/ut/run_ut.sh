@@ -28,7 +28,7 @@ if [[ $target == "transformers" ]]; then
 	fi
 	echo "+++++++++++++++++++++++done for single_files+++++++++++++"
 
-	test_folders=("benchmark" "extended" "fsdp" "generation" "peft_integration" "quantization" "trainer" "pipelines" "deepspeed")
+	test_folders=("benchmark" "extended" "fsdp" "generation" "peft_integration" "trainer" "pipelines" "deepspeed")
 	for folder in "${test_folders[@]}"
 	do 
 		echo "+++++++++run test folder $folder++++++++++++++++"
@@ -39,6 +39,18 @@ if [[ $target == "transformers" ]]; then
 		fi
 		echo "+++++++++++++++++++++++done for $folder+++++++++++++"
 	done 
+
+	echo "+++++++++run quantization test folder++++++++++++++++"
+	folder="quantization"
+	quant_targets=("autoawq" "bnb" "quanto_integration")
+	for quant_target in "${quant_targets[@]}"
+	do 
+		if [[ $dry_run == "1" ]]; then 
+			pytest tests/$folder/$quant_target -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --collectonly -q 2>&1 | tee "${result_dir}/${folder}_${quant_target}.txt"
+		else
+			pytest tests/$folder/$quant_target -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --excelreport="${result_dir}/${folder}_${quant_target}.xlsx" --make-reports="${result_dir}/${folder}_${quant_target}" --timeout=600
+		fi
+	done
 
 	for x in {a..z}
 	do 

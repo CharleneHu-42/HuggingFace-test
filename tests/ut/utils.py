@@ -10,7 +10,6 @@ RELEVANT_COLS = [
     "test_name",
     "result",
     "message",
-    "duration",
 ]
 
 
@@ -259,26 +258,26 @@ def update_ut_result_after_rerun(rerun_excel_path, ori_excel_file, output_file):
         ]
         ori_df.loc[sample.index, "result"] = result
         ori_df.loc[sample.index, "message"] = message
-
-    save_skipped_stats_to_excel(ori_df, f"{output_file.split('.')[0]}_skipped.xlsx")
-    save_failed_stats_to_excel(ori_df, f"{output_file.split('.')[0]}_failed.xlsx")
     
     ori_df.to_excel(output_file, index=False)
 
 
-def add_column_and_mark_with_case_list(df, new_column, case_list):
-    df[new_column] = [0] * df.shape[0]
-
+def add_column_and_mark_with_case_list(df, new_column, case_list, value=None):
+    if not value: 
+        df[new_column] = [0] * df.shape[0]
+        value = 1
+    else:
+        df[new_column] = ["none"] * df.shape[0] 
+        
     for index, row in df.iterrows():
         file_name = row["file_name"]
         suite_name = row["suite_name"]
         test_name = row["test_name"]
+
         if (
             f"{suite_name}::{test_name}" in case_list
-            or f"{file_name}::{suite_name}::{test_name}" in case_list
-            or f"{file_name}::{test_name}" in case_list
         ):
-            df.iloc[index, -1] = 1
+            df.iloc[index, -1] = value
     return df
 
 
@@ -294,10 +293,10 @@ def merge_excels_and_get_stats(excel_dir, out_file_name):
 
 
 def save_ut_results_to_txt(xpu_df, output_dir, name_prefix):            
-    
-    passed = xpu_df[xpu_df["results"] == "PASSED"]
-    failed = xpu_df[xpu_df["results"] == "FAILED"]
-    skipped = xpu_df[xpu_df["results"] == "SKIPPED"]
+
+    passed = xpu_df[xpu_df["result"] == "PASSED"]
+    failed = xpu_df[xpu_df["result"] == "FAILED"]
+    skipped = xpu_df[xpu_df["result"] == "SKIPPED"]
     
     save_cases_to_txt(xpu_df, os.path.join(output_dir, f"{name_prefix}_all_cases.txt"))
     save_cases_to_txt(passed, os.path.join(output_dir, f"{name_prefix}_all_passed_cases.txt"))
@@ -376,13 +375,13 @@ def validate_ut_run(lib_target):
 
 
 
-def update_ut_results_with_ignore_cases(file_name, ignore_path, output_dir):
+def update_ut_results_with_ignore_cases(file_name, ignore_path, output_dir, output_file_name):
     os.makedirs(output_dir, exist_ok=True)
     tests_df = pd.read_excel(file_name)
 
-    only_files = glob.glob(os.path.join(ignore_path, "*.txt"))
+    ignore_files = glob.glob(os.path.join(ignore_path, "*.txt"))
 
-    for file in only_files:
+    for file in ignore_files:
         if "cuda_failed" in file:
             cuda_failed = read_txt_to_list(file)
             tests_df = add_column_and_mark_with_case_list(
@@ -393,16 +392,18 @@ def update_ut_results_with_ignore_cases(file_name, ignore_path, output_dir):
             tests_df = add_column_and_mark_with_case_list(
                 tests_df, "cuda also skipped?", cuda_skipped
             )
-
-    only_files = glob.glob(os.path.join(ignore_path, "*_only.txt"))
+        elif "cuda_should_only" in file:
+            cuda_should = read_txt_to_list(file)
+            tests_df = add_column_and_mark_with_case_list(
+                tests_df, "cuda should only?", cuda_should
+            )
+        elif "cuda_shouldnot_only" in file:
+            cuda_shouldnot = read_txt_to_list(file)
+            tests_df = add_column_and_mark_with_case_list(
+                tests_df, "cuda shouldnot only?", cuda_shouldnot
+            )
+            
     xpu_missing_files = glob.glob(os.path.join(ignore_path, "xpu_missing_*.txt"))
-
-    if len(only_files) >= 1:
-        all_only_files = [read_txt_to_list(file) for file in only_files]
-        only_cases = [case for file in all_only_files for case in file]
-        tests_df = add_column_and_mark_with_case_list(
-            tests_df, "cuda/cpu/tpu only?", only_cases
-        )
 
     if len(xpu_missing_files) >= 1:
         all_missing_files = [read_txt_to_list(file) for file in xpu_missing_files]
@@ -410,11 +411,19 @@ def update_ut_results_with_ignore_cases(file_name, ignore_path, output_dir):
         tests_df = add_column_and_mark_with_case_list(
             tests_df, "xpu missing features?", xpu_missing_cases
         )
+        
+        for file in xpu_missing_files:
+            value = file.split("/")[-1].split(".")[0].split("_")[-1]            
+            case_list = read_txt_to_list(file)
+            
+            tests_df = add_column_and_mark_with_case_list(
+                tests_df, f"xpu missing {value}", case_list, value
+            )
     
     tests_df.to_excel(
-        os.path.join(output_dir, "final_test_results.xlsx"), index=False
+        os.path.join(output_dir, output_file_name), index=False
     )
-    save_skipped_stats_to_excel(tests_df, os.path.join(output_dir, "final_skipped_tests_stats.xlsx"))
-    save_failed_stats_to_excel(tests_df, os.path.join(output_dir, "final_failed_tests_stats.xlsx"))
-
     
+    base_file_name = output_file_name.split(".")[0]
+    save_skipped_stats_to_excel(tests_df, os.path.join(output_dir, f"{base_file_name}_skipped.xlsx"))
+    save_failed_stats_to_excel(tests_df, os.path.join(output_dir, f"{base_file_name}_failed.xlsx"))

@@ -1,2 +1,0 @@
-MambaIntegrationTests::test_simple_generate
-ImageClassificationPipelineTests::test_torch_float16_pipeline

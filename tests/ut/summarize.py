@@ -6,33 +6,37 @@ from utils import *
 
 def main(
     lib_target: str = "",
-    cuda_file_name: str = "",
-    xpu_file_name: str = "",
+    cuda_path: str = "",
+    xpu_path: str = "",
     output_dir: str = "",
 ):
     os.makedirs(output_dir, exist_ok=True)
-    cuda_df = pd.read_excel(cuda_file_name)
-    xpu_df = pd.read_excel(xpu_file_name)
-    
+    cuda_df = pd.read_excel(cuda_path)
+    xpu_df = pd.read_excel(xpu_path)
+
     if lib_target == "transformers":
-        cuda_df = cuda_df[(cuda_df["cuda/cpu/tpu only?"] != 1) & (cuda_df["xpu missing features?"] != 1)]
-        xpu_df = xpu_df[(xpu_df["cuda/cpu/tpu only?"] != 1) & (xpu_df["xpu missing features?"] != 1)]
+        cuda_df = cuda_df[cuda_df["cuda should only?"] != 1]
+        xpu_df = xpu_df[xpu_df["cuda should only?"] != 1]
+        cuda_df = cuda_df[cuda_df["cuda shouldnot only?"] != 1]
+        xpu_df = xpu_df[xpu_df["cuda shouldnot only?"] != 1]
+        cuda_df = cuda_df[cuda_df["xpu missing features?"] != 1]
+        xpu_df = xpu_df[xpu_df["xpu missing features?"] != 1]
     
-    save_ut_results_to_txt(cuda_df, output_dir)
-    save_ut_results_to_txt(xpu_df, output_dir)
+    save_ut_results_to_txt(cuda_df, output_dir, "cuda")
+    save_ut_results_to_txt(xpu_df, output_dir, "xpu")
     
     def print_ut_stats(tests_df):
         print("========Overview========")
-        print(f"#TOTAL UT: {tests_df.shape[0]}")
+        print(f"TOTAL: {tests_df.shape[0]}")
         
         passed_df = tests_df[tests_df["result"] == "PASSED"]
-        print(f"#PASSED UT: {passed_df.shape[0]}")
+        print(f"PASSED: {passed_df.shape[0]}")
         
         failed_df = tests_df[(tests_df["result"] == "FAILED")]
-        print(f"#FAILED UT: {failed_df.shape[0]}")
+        print(f"FAILED: {failed_df.shape[0]}")
 
         skipped_df = tests_df[(tests_df["result"] == "SKIPPED")]
-        print(f"#SKIPPED UT: {skipped_df.shape[0]}")
+        print(f"SKIPPED: {skipped_df.shape[0]}")
         
         return passed_df, failed_df, skipped_df 
     
@@ -52,7 +56,7 @@ def main(
     
     print("========SKIPPED========")
     cuda_also_skipped = skipped_df[skipped_df["cuda also skipped?"] == 1]
-    print(f"Cuda also skips: {cuda_also_fails.shape[0]}")
+    print(f"Cuda also skips: {cuda_also_skipped.shape[0]}")
     save_cases_to_txt(cuda_also_skipped, os.path.join(output_dir, "cuda_also_skips.txt") )
     
     other_skipped = skipped_df[skipped_df["cuda also skipped?"] != 1]
