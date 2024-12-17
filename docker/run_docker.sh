@@ -100,7 +100,6 @@ elif [[ $device == "xpu" ]]; then
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
 		-e no_proxy=${no_proxy} \
-		-e OCL_ICD_VENDORS=/etc/OpenCL/vendors \
 		-v /dev/dri/by-path:/dev/dri/by-path \
 		-v ${HF_HOME}:/root/.cache/huggingface \
 		-v ${mount_dir}:/workspace \
