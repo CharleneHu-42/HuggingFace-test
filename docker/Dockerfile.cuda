@@ -1,5 +1,5 @@
 # modified from https://github.com/huggingface/transformers/blob/main/docker/transformers-pytorch-deepspeed-latest-gpu/Dockerfile
-FROM nvidia/cuda:12.6.2-devel-ubuntu22.04 as base
+FROM nvidia/cuda:12.6.2-devel-ubuntu22.04 AS base
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -32,7 +32,7 @@ RUN apt-get update && \
 RUN pip install --no-cache-dir -U torch==$PYTORCH_VER torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/$CUDA_VER
 
 RUN pip install pyctcdecode timm pytesseract optimum decord galore-torch fire scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en auto-gptq
-RUN pip install pretty_midi essentia resampy Levenshtein onnx scipy av pypi-kenlm sacrebleu phonemizer pytest-env pytest-timeout pytest-excel openpyxl tensorboard
+RUN pip install pretty_midi essentia resampy Levenshtein onnx scipy av sacrebleu phonemizer pytest-env pytest-timeout pytest-excel openpyxl tensorboard
 RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets invisible_watermark schedulefree clearml gguf hqq quanto compressed_tensors liger-kernel kenlm mpi4py
 RUN python3 -m pip install --no-cache-dir bitsandbytes
 RUN pip install onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/
