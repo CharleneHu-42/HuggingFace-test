@@ -88,8 +88,6 @@ if [[ $device == "cuda" ]]; then
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
 		-e no_proxy=${no_proxy} \
-    -e ut_device=${device} \
-    -e ut_library=${library} \
 		-e report=/mnt/${library}/ut.xlsx \
 		-e log=/mnt/${library}/ut.log \
 		-v ${HF_HOME}:/root/.cache/huggingface \
@@ -106,8 +104,6 @@ elif [[ $device == "xpu" ]]; then
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
 		-e no_proxy=${no_proxy} \
-    -e ut_device=${device} \
-    -e ut_library=${library} \
 		-e report=/mnt/${library}/ut.xlsx \
 		-e log=/mnt/${library}/ut.log \
 		-e OCL_ICD_VENDORS=/etc/OpenCL/vendors \
