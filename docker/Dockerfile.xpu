@@ -53,6 +53,7 @@ ENV PATH=${I_MPI_ROOT}/bin/libfabric:${PATH}
 ENV LD_LIBRARY_PATH=${I_MPI_ROOT}/lib/libfabric:${LD_LIBRARY_PATH}
 ENV FI_PROVIDER_PATH=${I_MPI_ROOT}/lib/libfabric/prov:/usr/lib/x86_64-linux-gnu/libfabric
 ENV CCL_ATL_TRANSPORT=ofi
+ENV OCL_ICD_VENDORS=/etc/OpenCL/vendors
 ENV RUN_SLOW=1
 
 RUN touch /entrypoint.sh
