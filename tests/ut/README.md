@@ -34,7 +34,7 @@ target test library options:
 #### 3.1 optimum-quanto UT
 
 ```bash
-$ pytest -rA test --excelreport $report | tee $log
+$ pytest -rA test --excelreport $report 2>&1 | tee $log
 ```
 
 #### 3.2 transformers UT
