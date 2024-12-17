@@ -270,7 +270,6 @@ def add_column_and_mark_with_case_list(df, new_column, case_list, value=None):
         df[new_column] = ["none"] * df.shape[0]
 
     for index, row in df.iterrows():
-        file_name = row["file_name"]
         suite_name = row["suite_name"]
         test_name = row["test_name"]
 
@@ -291,7 +290,6 @@ def merge_excels_and_get_stats(excel_dir, out_file_name):
 
 
 def save_ut_results_to_txt(xpu_df, output_dir, name_prefix):
-
     passed = xpu_df[xpu_df["result"] == "PASSED"]
     failed = xpu_df[xpu_df["result"] == "FAILED"]
     skipped = xpu_df[xpu_df["result"] == "SKIPPED"]
@@ -332,7 +330,6 @@ def compare_xpu_with_cuda_ut(cuda_df, xpu_df, xpu_output_file):
 
 
 def validate_ut_run(lib_target):
-
     txt_files_glob = sorted(
         glob.glob(os.path.join(os.path.dirname(__file__), lib_target, "*.txt"))
     )
