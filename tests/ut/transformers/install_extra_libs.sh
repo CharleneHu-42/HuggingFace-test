@@ -1,6 +1,6 @@
 pip install autoawq auto-gptq aqlm flash-attn lomo-optim torchao
 pip install 'git+https://github.com/facebookresearch/detectron2.git'
-#pip install natten==0.17.1+torch230cu121 -f https://shi-labs.com/natten/wheels/
+# pip install natten==0.17.1+torch230cu121 -f https://shi-labs.com/natten/wheels/
 # git clone https://github.com/NetEase-FuXi/EETQ.git && cd EETQ/
 # git submodule update --init --recursive
 # pip install .

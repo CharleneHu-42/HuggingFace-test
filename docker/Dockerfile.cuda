@@ -40,6 +40,7 @@ RUN pip install onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstu
 ENTRYPOINT ["/bin/bash", "-c"]
 
 FROM base AS ut
+ENV RUN_SLOW=1
 
 WORKDIR /.tests
 ARG QUANTO_COMMIT=450870266df82a0c2ecf0d86c9fa738172763a5c

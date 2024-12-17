@@ -11,6 +11,8 @@ if [[ $target == "transformers" ]]; then
 
 	mkdir -p $result_dir
 
+	export TRANSFORMERS_TEST_DEVICE="${device}"
+    export TRANSFORMERS_TEST_DEVICE_SPEC="spec_${device}.py"
 	export RUN_PT_TF_CROSS_TESTS="False"
 	export RUN_PT_FLAX_CROSS_TESTS="False"
 	export WANDB_DISABLED="true"

@@ -90,9 +90,6 @@ if [[ $device == "cuda" ]]; then
 		-e no_proxy=${no_proxy} \
     -e ut_device=${device} \
     -e ut_library=${library} \
-    -e RUN_SLOW=1 \
-    -e TRANSFORMERS_TEST_DEVICE=${device} \
-    -e TRANSFORMERS_TEST_DEVICE_SPEC=spec_${device}.py \
 		-e report=/mnt/${library}/ut.xlsx \
 		-e log=/mnt/${library}/ut.log \
 		-v ${HF_HOME}:/root/.cache/huggingface \
@@ -111,9 +108,6 @@ elif [[ $device == "xpu" ]]; then
 		-e no_proxy=${no_proxy} \
     -e ut_device=${device} \
     -e ut_library=${library} \
-    -e RUN_SLOW=1 \
-    -e TRANSFORMERS_TEST_DEVICE=${device} \
-    -e TRANSFORMERS_TEST_DEVICE_SPEC=spec_${device}.py \
 		-e report=/mnt/${library}/ut.xlsx \
 		-e log=/mnt/${library}/ut.log \
 		-e OCL_ICD_VENDORS=/etc/OpenCL/vendors \
