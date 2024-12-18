@@ -270,7 +270,6 @@ def add_column_and_mark_with_case_list(df, new_column, case_list, value=None):
         df[new_column] = ["none"] * df.shape[0]
 
     for index, row in df.iterrows():
-        file_name = row["file_name"]
         suite_name = row["suite_name"]
         test_name = row["test_name"]
 
@@ -279,19 +278,22 @@ def add_column_and_mark_with_case_list(df, new_column, case_list, value=None):
     return df
 
 
-def merge_excels_and_get_stats(excel_dir, out_file_name):
+def consolidate_and_get_stats(excel_dir, out_file_name):
     # read xpu ut excel files
     tests_df = merge_excel_files_to_df(excel_dir)
     tests_df = tests_df[RELEVANT_COLS]
 
-    tests_df.to_excel(out_file_name, index=False)
+    tests_df.to_excel(os.path.join(excel_dir, out_file_name), index=False)
 
-    save_skipped_stats_to_excel(tests_df, f"{out_file_name.split('.')[0]}_skipped.xlsx")
-    save_failed_stats_to_excel(tests_df, f"{out_file_name.split('.')[0]}_failed.xlsx")
+    save_skipped_stats_to_excel(
+        tests_df, os.path.join(excel_dir, f"{out_file_name.split('.')[0]}_skipped.xlsx")
+    )
+    save_failed_stats_to_excel(
+        tests_df, os.path.join(excel_dir, f"{out_file_name.split('.')[0]}_failed.xlsx")
+    )
 
 
 def save_ut_results_to_txt(xpu_df, output_dir, name_prefix):
-
     passed = xpu_df[xpu_df["result"] == "PASSED"]
     failed = xpu_df[xpu_df["result"] == "FAILED"]
     skipped = xpu_df[xpu_df["result"] == "SKIPPED"]
@@ -331,22 +333,58 @@ def compare_xpu_with_cuda_ut(cuda_df, xpu_df, xpu_output_file):
     xpu_df.to_excel(xpu_output_file, index=False)
 
 
-def validate_ut_run(lib_target):
-
-    txt_files_glob = sorted(
-        glob.glob(os.path.join(os.path.dirname(__file__), lib_target, "*.txt"))
-    )
+def validate_ut_run(target_lib):
     pattern = r"(.*) tests"
+    save_dir = os.path.join(os.path.dirname(__file__), target_lib)
 
-    rerun_cases = []
-    total_num = 0
-    for txt_file in txt_files_glob:
+    if target_lib == "transformers":
+        txt_files_glob = sorted(
+            glob.glob(os.path.join(os.path.dirname(__file__), target_lib, "*.txt"))
+        )
+
+        rerun_cases = []
+        total_num = 0
+        for txt_file in txt_files_glob:
+            txt_file_name = os.path.basename(txt_file).split(".")[0]
+            excel_file_path = txt_file.replace("txt", "xlsx")
+
+            if not os.path.exists(excel_file_path):
+                rerun_cases.append(txt_file_name)
+                continue
+
+            with open(txt_file, "r") as file:
+                lines = file.readlines()
+                last_line = lines[-1] if lines else None
+                match = re.match(pattern, last_line)
+                true_case_num = match.group(1)
+
+            if "/" in true_case_num:
+                true_case_num = true_case_num.split("/")[0]
+
+            total_num = total_num + int(true_case_num)
+
+            df = pd.read_excel(excel_file_path)
+
+            real_case_num = df.shape[0]
+
+            if int(true_case_num) != real_case_num:
+                rerun_cases.append(txt_file_name)
+                save_cases_to_txt(
+                    df, os.path.join(save_dir, f"{txt_file_name}_real.txt")
+                )
+                extract_short_cases(
+                    txt_file, os.path.join(save_dir, f"{txt_file_name}_true.txt")
+                )
+
+            print("+", end="", flush=True)  # Print + in the same line
+
+        print(f"\nThere are {total_num} test cases in total.")
+        print(f"\n{rerun_cases} need double-check.")
+    else:
+        txt_file = os.path.join(os.path.dirname(__file__), target_lib, "all_cases.txt")
+        excel_file_path = os.path.join(os.path.dirname(__file__), target_lib, "ut.xlsx")
+
         txt_file_name = os.path.basename(txt_file).split(".")[0]
-        excel_file_path = txt_file.replace("txt", "xlsx")
-
-        if not os.path.exists(excel_file_path):
-            rerun_cases.append(txt_file_name)
-            continue
 
         with open(txt_file, "r") as file:
             lines = file.readlines()
@@ -357,27 +395,20 @@ def validate_ut_run(lib_target):
         if "/" in true_case_num:
             true_case_num = true_case_num.split("/")[0]
 
-        total_num = total_num + int(true_case_num)
-
         df = pd.read_excel(excel_file_path)
-
         real_case_num = df.shape[0]
 
         if int(true_case_num) != real_case_num:
-            rerun_cases.append(txt_file_name)
-            save_dir = os.path.join(os.path.dirname(__file__), lib_target)
             save_cases_to_txt(df, os.path.join(save_dir, f"{txt_file_name}_real.txt"))
             extract_short_cases(
                 txt_file, os.path.join(save_dir, f"{txt_file_name}_true.txt")
             )
-
-        print("+", end="", flush=True)  # Print + in the same line
-
-    print(f"\nThere are {total_num} test cases in total.")
-    print(f"\n{rerun_cases} need double-check.")
+            print(f"\nNeed double-check.")
+        else:
+            print(f"\nPASSED.")
 
 
-def update_ut_results_with_ignore_cases(
+def mark_ut_results_with_ignore_cases(
     file_name, ignore_path, output_dir, output_file_name
 ):
     os.makedirs(output_dir, exist_ok=True)
@@ -432,4 +463,70 @@ def update_ut_results_with_ignore_cases(
     )
     save_failed_stats_to_excel(
         tests_df, os.path.join(output_dir, f"{base_file_name}_failed.xlsx")
+    )
+
+
+def create_final_report(output_dir, cuda_path, xpu_path):
+    os.makedirs(output_dir, exist_ok=True)
+    cuda_df = pd.read_excel(cuda_path)
+    xpu_df = pd.read_excel(xpu_path)
+
+    for col in cuda_df.columns:
+        if col in [
+            "cuda should only?",
+            "cuda shouldnot only?",
+            "xpu missing features?",
+        ]:
+            cuda_df = cuda_df[cuda_df[col] != 1]
+            xpu_df = xpu_df[xpu_df[col] != 1]
+
+    save_ut_results_to_txt(cuda_df, output_dir, "cuda")
+    save_ut_results_to_txt(xpu_df, output_dir, "xpu")
+
+    def print_ut_stats(tests_df):
+        print("========Overview========")
+        print(f"TOTAL: {tests_df.shape[0]}")
+
+        passed_df = tests_df[tests_df["result"] == "PASSED"]
+        print(f"PASSED: {passed_df.shape[0]}")
+
+        failed_df = tests_df[(tests_df["result"] == "FAILED")]
+        print(f"FAILED: {failed_df.shape[0]}")
+
+        skipped_df = tests_df[(tests_df["result"] == "SKIPPED")]
+        print(f"SKIPPED: {skipped_df.shape[0]}")
+
+        return passed_df, failed_df, skipped_df
+
+    print(f"+++++++++++++++++CUDA+++++++++++++++++")
+    _, _, _ = print_ut_stats(cuda_df)
+    print(f"+++++++++++++++++XPU+++++++++++++++++")
+    _, failed_df, skipped_df = print_ut_stats(xpu_df)
+
+    print("========FAILED========")
+    cuda_also_fails = failed_df[failed_df["cuda also failed?"] == 1]
+    print(f"Cuda also fails: {cuda_also_fails.shape[0]}")
+    save_cases_to_txt(cuda_also_fails, os.path.join(output_dir, "cuda_also_fails.txt"))
+
+    to_debug = failed_df[failed_df["cuda also failed?"] != 1]
+    print(f"To debug: {to_debug.shape[0]}")
+    to_debug[RELEVANT_COLS].to_excel(
+        os.path.join(output_dir, "to_debug.xlsx"), index=False
+    )
+
+    print("========SKIPPED========")
+    cuda_also_skipped = skipped_df[skipped_df["cuda also skipped?"] == 1]
+    print(f"Cuda also skips: {cuda_also_skipped.shape[0]}")
+    save_cases_to_txt(
+        cuda_also_skipped, os.path.join(output_dir, "cuda_also_skips.txt")
+    )
+
+    other_skipped = skipped_df[skipped_df["cuda also skipped?"] != 1]
+    xpu_missing_features = other_skipped[other_skipped["xpu missing features?"] == 1]
+    print(f"XPU missing features: {xpu_missing_features.shape[0]}")
+
+    to_investigate = other_skipped[other_skipped["xpu missing features?"] != 1]
+    print(f"To investigate: {to_investigate.shape[0]}")
+    to_investigate[RELEVANT_COLS].to_excel(
+        os.path.join(output_dir, "to_investigate.xlsx"), index=False
     )

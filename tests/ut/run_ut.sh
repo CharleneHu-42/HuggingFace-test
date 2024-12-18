@@ -91,7 +91,12 @@ if [[ $target == "transformers" ]]; then
 
 		echo "Total number of tests collected: $total"
 	fi 
-
+elif [[ $target == "accelerate" ]]; then
+	if [[ $dry_run == "1" ]]; then 
+		pytest tests --collectonly -q 2>&1 | tee "${excel_dir}/all_cases.txt"
+	else
+		RUN_SLOW=1 pytest tests -sv --excelreport $report --timeout 600 2>&1 | tee $log
+	fi
 elif [[ $device == "optimum-quanto" ]]; then
 	if [[ $dry_run == "1" ]]; then 
 		pytest -rA test --collectonly -q 2>&1 | tee "${excel_dir}/all_cases.txt"
