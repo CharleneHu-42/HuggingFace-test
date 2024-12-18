@@ -95,7 +95,6 @@ if [[ $device == "cuda" ]]; then
 		-v /dev/shm:/dev/shm \
 		-w /.tests/${library} \
 		--runtime=nvidia \
-    --entrypoint=/bin/bash \
 		--gpus all \
 		--name ${name} \
 		appliedml/huggingface:${device}-ut
@@ -112,7 +111,6 @@ elif [[ $device == "xpu" ]]; then
 		-v ${mount_dir}:/mnt \
 		-w /.tests/${library} \
 		--device=/dev/dri \
-    --entrypoint=/bin/bash \
 		--ipc=host \
 		--name ${name} \
 		appliedml/huggingface:${device}-ut

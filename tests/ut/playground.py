@@ -1,7 +1,7 @@
 import pandas as pd
 from utils import *
 
-# +++++++++++++++++++++++++++++++++++++++++Typical workflow for transformers' UT+++++++++++++++++++++++++++++++++++++++++
+# +++++++++++++++++++++++++++++++++++++++++Typical workflow for transformers UT+++++++++++++++++++++++++++++++++++++++++
 
 # =======================================================================================================
 #                             PHASE 1: Run UT on XPU and gather all UT results
@@ -150,7 +150,7 @@ from utils import *
 # you need to update the test result and then iterate STEP 13 to STEP 14.
 
 
-# +++++++++++++++++++++++++++++++++++++++++Typical workflow for accelerates' UT+++++++++++++++++++++++++++++++++++++++++
+# +++++++++++++++++++++++++++++++++++++++++Typical workflow for accelerates UT+++++++++++++++++++++++++++++++++++++++++
 
 
 # =======================================================================================================
@@ -264,7 +264,7 @@ from utils import *
 #                             PHASE 5: In-depth analyze, debug and update statistics
 # =======================================================================================================
 
-# -----------STEP 11: manually analyze to_*.xlxs files, categorize and update statistics--------------
+# -----------STEP 11: manually analyze to_*.xlsx files, categorize and update statistics--------------
 # you need to go through the tests one by one and categorize them. Then update the report statistics.
 # 
 

@@ -333,13 +333,13 @@ def compare_xpu_with_cuda_ut(cuda_df, xpu_df, xpu_output_file):
     xpu_df.to_excel(xpu_output_file, index=False)
 
 
-def validate_ut_run(lib_target):
+def validate_ut_run(target_lib):
     pattern = r"(.*) tests"
-    save_dir = os.path.join(os.path.dirname(__file__), lib_target)
+    save_dir = os.path.join(os.path.dirname(__file__), target_lib)
 
-    if lib_target == "transformers":
+    if target_lib == "transformers":
         txt_files_glob = sorted(
-            glob.glob(os.path.join(os.path.dirname(__file__), lib_target, "*.txt"))
+            glob.glob(os.path.join(os.path.dirname(__file__), target_lib, "*.txt"))
         )
 
         rerun_cases = []
@@ -381,8 +381,8 @@ def validate_ut_run(lib_target):
         print(f"\nThere are {total_num} test cases in total.")
         print(f"\n{rerun_cases} need double-check.")
     else:
-        txt_file = os.path.join(os.path.dirname(__file__), lib_target, "all_cases.txt")
-        excel_file_path = os.path.join(os.path.dirname(__file__), lib_target, "ut.xlsx")
+        txt_file = os.path.join(os.path.dirname(__file__), target_lib, "all_cases.txt")
+        excel_file_path = os.path.join(os.path.dirname(__file__), target_lib, "ut.xlsx")
 
         txt_file_name = os.path.basename(txt_file).split(".")[0]
 
