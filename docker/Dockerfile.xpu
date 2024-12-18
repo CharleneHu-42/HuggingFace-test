@@ -35,19 +35,19 @@ RUN apt-get update && \
 
 RUN pip install torch==2.5.1+cxx11.abi torchvision==0.20.1+cxx11.abi torchaudio==2.5.1+cxx11.abi intel-extension-for-pytorch==2.5.10+xpu oneccl_bind_pt==2.5.0+xpu --extra-index-url https://pytorch-extension.intel.com/release-whl/stable/xpu/cn/ --no-cache-dir
 
-RUN pip install pyctcdecode timm pytesseract peft optimum decord galore-torch fire scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en 
-RUN pip install pretty_midi essentia resampy Levenshtein onnx scipy av sacrebleu phonemizer pytest-env pytest-timeout pytest-excel openpyxl
-RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets invisible_watermark schedulefree clearml gguf hqq quanto compressed_tensors liger-kernel kenlm mpi4py
+RUN pip install pyctcdecode pytesseract decord galore-torch fire scipy scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en kenlm mpi4py
+RUN pip install pretty_midi essentia resampy Levenshtein av sacrebleu phonemizer invisible_watermark schedulefree clearml
+RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets timm transformers accelerate peft onnx optimum
+RUN pip install gguf hqq quanto compressed_tensors liger-kernel
 
 ENV OCL_ICD_VENDORS=/etc/OpenCL/vendors
+ENV FI_PROVIDER_PATH=${I_MPI_ROOT}/lib/libfabric/prov:/usr/lib/x86_64-linux-gnu/libfabric
 ENV CCL_ROOT=/usr/local
+ENV CCL_ATL_TRANSPORT=ofi
 ENV I_MPI_ROOT=/usr/local
 ENV CLASSPATH=${I_MPI_ROOT}/lib/mpi.jar
 ENV PATH=${I_MPI_ROOT}/bin/libfabric:/opt/intel/oneapi/vtune/2025.0/bin64/gma/GTPin/Profilers/ocloc/Bin/intel64:${PATH}
 ENV LD_LIBRARY_PATH=${I_MPI_ROOT}/lib/libfabric:/opt/intel/oneapi/vtune/2025.0/bin64/gma/GTPin/Profilers/ocloc/Bin/intel64:${LD_LIBRARY_PATH}
-ENV FI_PROVIDER_PATH=${I_MPI_ROOT}/lib/libfabric/prov:/usr/lib/x86_64-linux-gnu/libfabric
-ENV CCL_ATL_TRANSPORT=ofi
-ENV OCL_ICD_VENDORS=/etc/OpenCL/vendors
 
 RUN touch /entrypoint.sh
 RUN chmod +x /entrypoint.sh
@@ -60,6 +60,8 @@ ENTRYPOINT ["/entrypoint.sh"]
 FROM base AS ut
 
 ENV RUN_SLOW=1
+
+RUN pip install pytest-env pytest-timeout pytest-excel openpyxl
 
 WORKDIR /.tests
 ARG QUANTO_COMMIT=450870266df82a0c2ecf0d86c9fa738172763a5c

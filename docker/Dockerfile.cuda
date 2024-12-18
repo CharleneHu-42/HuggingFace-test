@@ -3,9 +3,9 @@ FROM nvidia/cuda:12.6.2-devel-ubuntu22.04 AS base
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-ARG CUDA_VER='cu121'
-ARG PYTHON_VER='3.10'
-ARG PYTORCH_VER='2.5.1'
+ARG CUDA_VER=cu121
+ARG PYTHON_VER=3.10
+ARG PYTORCH_VER=2.5.1
 
 RUN apt-get update && \
     apt-get -y install \
@@ -31,16 +31,21 @@ RUN apt-get update && \
 
 RUN pip install --no-cache-dir -U torch==$PYTORCH_VER torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/$CUDA_VER
 
-RUN pip install pyctcdecode timm pytesseract optimum decord galore-torch fire scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en auto-gptq
-RUN pip install pretty_midi essentia resampy Levenshtein onnx scipy av sacrebleu phonemizer pytest-env pytest-timeout pytest-excel openpyxl tensorboard
-RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets invisible_watermark schedulefree clearml gguf hqq quanto compressed_tensors liger-kernel kenlm mpi4py
-RUN python3 -m pip install --no-cache-dir bitsandbytes
+RUN pip install pyctcdecode pytesseract decord galore-torch fire scipy scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en kenlm mpi4py
+RUN pip install pretty_midi essentia resampy Levenshtein av sacrebleu phonemizer tensorboard invisible_watermark schedulefree clearml
+RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets timm transformers accelerate peft onnx optimum
+RUN pip install gguf hqq quanto compressed_tensors liger-kernel auto-gptq
+
+RUN pip install --no-cache-dir bitsandbytes
 RUN pip install onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/
 
 ENTRYPOINT ["/bin/bash", "-c"]
 
 FROM base AS ut
+
 ENV RUN_SLOW=1
+
+RUN pip install pytest-env pytest-timeout pytest-excel openpyxl
 
 WORKDIR /.tests
 ARG QUANTO_COMMIT=450870266df82a0c2ecf0d86c9fa738172763a5c
