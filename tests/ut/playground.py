@@ -150,7 +150,7 @@ from utils import *
 # you need to update the test result and then iterate STEP 13 to STEP 14.
 
 
-# +++++++++++++++++++++++++++++++++++++++++Typical workflow for accelerates UT+++++++++++++++++++++++++++++++++++++++++
+# +++++++++++++++++++++++++++++++++++++++++Typical workflow for accelerate UT+++++++++++++++++++++++++++++++++++++++++
 
 
 # =======================================================================================================
@@ -269,5 +269,5 @@ from utils import *
 # 
 
 # -----------STEP 12: reorder txt test case files for upstreaming--------------
-# file1 = "accelerate/cases_to_ignore/xpu_missing_pippy.txt"
-# reorder_txt_cases(file1)
+file1 = "accelerate/cases_to_ignore/cuda_shouldnot_only.txt"
+reorder_txt_cases(file1)
