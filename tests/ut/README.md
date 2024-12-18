@@ -48,8 +48,13 @@ cp /mnt/spec_*.py /mnt/run_ut.sh .
 ```
 This script will create a folder `test_results` in `/mnt/transformers`, where test results are stored in excel files for later analysis. 
 
+#### 3.3 accelerate UT
+```bash
+./run-ut.sh xpu accelerate 1
+./run-ut.sh xpu accelerate
+```
 
-#### 3.3 accelerate/peft/diffusers/trl UT
+#### 3.4 peft/diffusers/trl UT
 ```bash
 $ RUN_SLOW=1 python -m pytest tests -sv --excelreport $report --timeout 600 2>&1 | tee $log
 ```
