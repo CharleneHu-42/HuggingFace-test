@@ -83,7 +83,7 @@ from utils import *
 # mark the duplicated cases with 1 in `ignore` column to make test cases on XPU align with that on CUDA 
 
 
-# -----------STEP 11: gather final UT results and statistics--------------
+# -----------STEP 11: gather final UT results--------------
 # xpu_excel = "XPU_final_rest_results2.xlsx"
 # cuda_excel = "CUDA_trans_ut_merged3.xlsx"
 # xpu_df = pd.read_excel(xpu_excel)
@@ -202,7 +202,7 @@ from utils import *
 # mark the duplicated cases with 1 in `ignore` column to make test cases on XPU align with that on CUDA 
 
 
-# -----------STEP 7: gather final UT results and statistics--------------
+# -----------STEP 7: gather final UT results--------------
 # xpu_excel = "aligned_xpu_accelerate_ut.xlsx"
 # cuda_excel = "cuda_accelerate_ut.xlsx"
 # xpu_df = pd.read_excel(xpu_excel)
@@ -215,12 +215,12 @@ from utils import *
 # result_dir = "accelerate/test_results"
 # os.makedirs(result_dir, exist_ok=False)
 
-# xpu.to_excel(os.path.join(result_dir, "clean_xpu_trans_ut.xlsx"), index=False)
-# cuda.to_excel(os.path.join(result_dir, "clean_cuda_trans_ut.xlsx"), index=False)
-# save_skipped_stats_to_excel(xpu, os.path.join(result_dir, "clean_xpu_trans_skipped.xlsx"))
-# save_failed_stats_to_excel(xpu, os.path.join(result_dir, "clean_xpu_trans_failed.xlsx"))
-# save_skipped_stats_to_excel(cuda, os.path.join(result_dir,"clean_cuda_trans_skipped.xlsx"))
-# save_failed_stats_to_excel(cuda, os.path.join(result_dir, "clean_cuda_trans_failed.xlsx"))
+# xpu.to_excel(os.path.join(result_dir, "clean_xpu_accel_ut.xlsx"), index=False)
+# cuda.to_excel(os.path.join(result_dir, "clean_cuda_accel_ut.xlsx"), index=False)
+# save_skipped_stats_to_excel(xpu, os.path.join(result_dir, "clean_xpu_accel_skipped.xlsx"))
+# save_failed_stats_to_excel(xpu, os.path.join(result_dir, "clean_xpu_accel_failed.xlsx"))
+# save_skipped_stats_to_excel(cuda, os.path.join(result_dir,"clean_cuda_accel_skipped.xlsx"))
+# save_failed_stats_to_excel(cuda, os.path.join(result_dir, "clean_cuda_accel_failed.xlsx"))
 
 # save_cases_to_txt(xpu, os.path.join(result_dir, "all_cases_xpu.txt"))
 # save_cases_to_txt(cuda, os.path.join(result_dir, "all_cases_cuda.txt"))
@@ -232,7 +232,7 @@ from utils import *
 
 # -----------STEP 8: save cuda failed and skipped cases--------------
 # result_dir = "accelerate/test_results"
-# cuda_df = os.path.join(result_dir,"clean_cuda_trans_ut.xlsx")
+# cuda_df = os.path.join(result_dir,"clean_cuda_accel_ut.xlsx")
 # save_skipped_cases_to_txt(cuda_df, os.path.join(result_dir, "cuda_skipped.txt"))
 # save_failed_cases_to_txt(cuda_df, os.path.join(result_dir, "cuda_failed.txt"))
 
@@ -241,21 +241,21 @@ from utils import *
 # # first copy the `cuda_skipped.txt` and `cuda_failed.txt` to the `cases_to_ignore` folder
 
 # result_dir = "accelerate/test_results"
-# xpu_file = os.path.join(result_dir, "clean_xpu_trans_ut.xlsx")
-# cuda_file = os.path.join(result_dir, "clean_cuda_trans_ut.xlsx")
+# xpu_file = os.path.join(result_dir, "clean_xpu_accel_ut.xlsx")
+# cuda_file = os.path.join(result_dir, "clean_cuda_accel_ut.xlsx")
 
 # xpu = pd.read_excel(xpu_file)
 # cuda = pd.read_excel(cuda_file)
 
 # ignore_path = "accelerate/cases_to_ignore"
-# update_ut_results_with_ignore_cases(xpu_file, ignore_path, result_dir, "final_xpu_trans_ut.xlsx")
-# update_ut_results_with_ignore_cases(cuda_file, ignore_path, result_dir, "final_cuda_trans_ut.xlsx")
+# update_ut_results_with_ignore_cases(xpu_file, ignore_path, result_dir, "final_xpu_accel_ut.xlsx")
+# update_ut_results_with_ignore_cases(cuda_file, ignore_path, result_dir, "final_cuda_accel_ut.xlsx")
 
 
 # -----------STEP 10: gather final statistics for both CUDA and XPU--------------
 # result_dir = "accelerate/test_results"
-# xpu_file = os.path.join(result_dir, "final_xpu_trans_ut.xlsx")
-# cuda_file = os.path.join(result_dir, "final_cuda_trans_ut.xlsx")
+# xpu_file = os.path.join(result_dir, "final_xpu_accel_ut.xlsx")
+# cuda_file = os.path.join(result_dir, "final_cuda_accel_ut.xlsx")
 
 # create_final_report(result_dir, cuda_file, xpu_file)
 
