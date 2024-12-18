@@ -40,6 +40,9 @@ RUN pip install pretty_midi essentia resampy Levenshtein av sacrebleu phonemizer
 RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets timm transformers accelerate peft onnx optimum
 RUN pip install gguf hqq quanto compressed_tensors liger-kernel
 
+# install bitsandbytes
+RUN pip install git+https://github.com/bitsandbytes-foundation/bitsandbytes.git@multi-backend-refactor
+
 ENV OCL_ICD_VENDORS=/etc/OpenCL/vendors
 ENV FI_PROVIDER_PATH=${I_MPI_ROOT}/lib/libfabric/prov:/usr/lib/x86_64-linux-gnu/libfabric
 ENV CCL_ROOT=/usr/local
