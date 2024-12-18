@@ -39,7 +39,12 @@ RUN pip install gguf hqq quanto compressed_tensors liger-kernel auto-gptq
 RUN pip install --no-cache-dir bitsandbytes
 RUN pip install onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/
 
-ENTRYPOINT ["/bin/bash", "-c"]
+RUN touch /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+RUN echo "#!/bin/bash" >> /entrypoint.sh
+RUN echo "/bin/bash" >> /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
 
 FROM base AS ut
 
