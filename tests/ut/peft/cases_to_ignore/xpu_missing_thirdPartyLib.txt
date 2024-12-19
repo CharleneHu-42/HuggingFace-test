@@ -11,3 +11,7 @@ PeftTorchaoGPUTests::test_torchao_merge_layers_int8_weight_only
 PeftEetqGPUTests::test_causal_lm_training_eetq
 PeftEetqGPUTests::test_causal_lm_training_multi_gpu_eetq
 PeftAqlmGPUTests::test_causal_lm_training_aqlm
+PeftHqqGPUTests::test_causal_lm_training_hqq
+PeftHqqGPUTests::test_causal_lm_training_hqq_0
+PeftHqqGPUTests::test_causal_lm_training_hqq_1
+PeftHqqGPUTests::test_hqq_lora_model_outputs
