@@ -155,17 +155,18 @@ from pathlib import Path
 # +++++++++++++++++++++++++++++++++++++++++Typical workflow for other libraries+++++++++++++++++++++++++++++++++++++++++
 
 # target_lib = "peft"
-# target_lib_path = Path(target_lib)
-# result_path = target_lib_path / "test_result"
-# ignore_path = target_lib_path / "cases_to_ignore"
+# result_path = os.path.join(target_lib, "test_result")
+# ignore_path = os.path.join(target_lib, "cases_to_ignore")
+
 # =======================================================================================================
 #                             PHASE 1: Run UT on XPU and gather all UT results
 # =======================================================================================================
 
 # -----------STEP 0: run UT--------------
 # fist, dry run to detect any anomaly
-# ./run-ut.sh xpu peft 1
-# ./run-ut.sh xpu peft 
+# ./run-ut.sh xpu <target_lib> 1
+# then run the whole test suite
+# ./run-ut.sh xpu <target_lib> 
 
 
 # -----------STEP 1: validate UT Results--------------
@@ -193,8 +194,8 @@ from pathlib import Path
 
 
 # -----------STEP 5: validate xpu ut results with cuda ut results--------------
-# cuda_excel = target_lib_path / f"cuda_{target_lib}_ut.xlsx"
-# xpu_excel = target_lib_path / f"xpu_{target_lib}_ut.xlsx"
+# cuda_excel = os.path.join(target_lib, f"cuda_{target_lib}_ut.xlsx")
+# xpu_excel = os.path.join(target_lib, f"xpu_{target_lib}_ut.xlsx")
 
 # cuda_df = pd.read_excel(cuda_excel)
 # xpu_df = pd.read_excel(xpu_excel)
@@ -209,8 +210,8 @@ from pathlib import Path
 
 # -----------STEP 7: gather final UT results--------------
 
-# xpu_excel = target_lib_path / f"xpu_{target_lib}_ut.xlsx"
-# cuda_excel = target_lib_path / f"cuda_{target_lib}_ut.xlsx"
+# xpu_excel = os.path.join(target_lib, f"xpu_{target_lib}_ut.xlsx")
+# cuda_excel = os.path.join(target_lib, f"cuda_{target_lib}_ut.xlsx")
 # xpu_df = pd.read_excel(xpu_excel)
 # cuda_df = pd.read_excel(cuda_excel)
 # # xpu_df = xpu_df[xpu_df["ignore"] != 1]
@@ -218,13 +219,13 @@ from pathlib import Path
 
 # xpu = xpu_df[RELEVANT_COLS]
 # cuda = cuda_df[RELEVANT_COLS]
-# result_path.mkdir(parents=True, exist_ok=False)
+# os.makedirs(result_dir, exist_ok=False)
 
-# xpu.to_excel(result_path / f"clean_xpu_{target_lib}_ut.xlsx", index=False)
-# cuda.to_excel(result_path / f"clean_cuda_{target_lib}_ut.xlsx", index=False)
+# xpu.to_excel(os.path.join(result_path, f"clean_xpu_{target_lib}_ut.xlsx"), index=False)
+# cuda.to_excel(os.path.join(result_path, f"clean_cuda_{target_lib}_ut.xlsx"), index=False)
 
-# save_cases_to_txt(xpu, result_path / "all_cases_xpu.txt")
-# save_cases_to_txt(cuda, result_path / "all_cases_cuda.txt")
+# save_cases_to_txt(xpu, os.path.join(result_path, "all_cases_xpu.txt"))
+# save_cases_to_txt(cuda, os.path.join(result_path, "all_cases_cuda.txt"))
 
 
 # =======================================================================================================
@@ -233,9 +234,9 @@ from pathlib import Path
 
 # -----------STEP 8: save cuda failed and skipped cases--------------
 
-# cuda_path = result_path / f"clean_cuda_{target_lib}_ut.xlsx"
-# save_skipped_cases_to_txt(cuda_path, result_path / "cuda_skipped.txt")
-# save_failed_cases_to_txt(cuda_path, result_path /"cuda_failed.txt")
+# cuda_path = os.path.join(result_path, f"clean_cuda_{target_lib}_ut.xlsx")
+# save_skipped_cases_to_txt(cuda_path, os.path.join(result_path, "cuda_skipped.txt"))
+# save_failed_cases_to_txt(cuda_path, os.path.join(result_path, "cuda_failed.txt"))
 
 # # move these 2 files to `cases_to_ignore` folder
 # cuda_skipped_ignore = f"{target_lib}/cases_to_ignore/cuda_skipped.txt"
@@ -246,14 +247,14 @@ from pathlib import Path
 # if os.path.exists(cuda_failed_ignore):
 #     os.remove(cuda_failed_ignore)
     
-# shutil.move(result_path / "cuda_skipped.txt", f"{target_lib}/cases_to_ignore")
-# shutil.move(result_path /"cuda_failed.txt", f"{target_lib}/cases_to_ignore")
+# shutil.move(os.path.join(result_path, "cuda_skipped.txt"), f"{target_lib}/cases_to_ignore")
+# shutil.move(os.path.join(result_path, "cuda_failed.txt"), f"{target_lib}/cases_to_ignore")
 
 
 # # -----------STEP 9: mark cases with existing knowledge for statistics--------------
 
-# xpu_file = result_path / f"clean_xpu_{target_lib}_ut.xlsx"
-# cuda_file = result_path / f"clean_cuda_{target_lib}_ut.xlsx"
+# xpu_file = os.path.join(result_path, f"clean_xpu_{target_lib}_ut.xlsx")
+# cuda_file = os.path.join(result_path, f"clean_cuda_{target_lib}_ut.xlsx")
 
 # xpu = pd.read_excel(xpu_file)
 # cuda = pd.read_excel(cuda_file)
@@ -265,8 +266,8 @@ from pathlib import Path
 
 # -----------STEP 10: gather final statistics for both CUDA and XPU--------------
 
-# xpu_file = result_path / f"final_xpu_{target_lib}_ut.xlsx"
-# cuda_file = result_path / f"final_cuda_{target_lib}_ut.xlsx"
+# xpu_file = os.path.join(result_path, f"final_xpu_{target_lib}_ut.xlsx")
+# cuda_file = os.path.join(result_path, f"final_cuda_{target_lib}_ut.xlsx")
 
 # create_final_report(result_path, cuda_file, xpu_file)
 
