@@ -2,3 +2,4 @@ PeftGPTQGPUTests::test_adalora_causalLM
 PeftGPTQGPUTests::test_causal_lm_training
 PeftGPTQGPUTests::test_causal_lm_training_multi_gpu
 PeftGPTQGPUTests::test_non_default_adapter_name
+PeftGPUCommonTests::test_lora_gptq_quantization_from_pretrained_safetensors

@@ -310,7 +310,7 @@ def save_ut_results_to_txt(xpu_df, output_dir, name_prefix):
     )
 
 
-def compare_xpu_with_cuda_ut(cuda_df, xpu_df, xpu_output_file):
+def compare_xpu_with_cuda_ut(cuda_df, xpu_df, save_dir):
     xpu_df["align with cuda"] = [0] * xpu_df.shape[0]
     xpu_df = xpu_df.sort_values(by=["suite_name", "test_name"])
     cuda_df = cuda_df.sort_values(by=["suite_name", "test_name"])
@@ -326,11 +326,12 @@ def compare_xpu_with_cuda_ut(cuda_df, xpu_df, xpu_output_file):
             xpu_df.loc[index, "align with cuda"] = 1
 
     if cuda_df.shape[0] != xpu_df.shape[0]:
-        print(f"----------total ut numbers are different------------")
-        save_cases_to_txt(cuda_df, "all_cases_cuda.txt")
-        save_cases_to_txt(xpu_df, "all_cases_xpu.txt")
-
-    xpu_df.to_excel(xpu_output_file, index=False)
+        print(f"----------FAILED: total ut numbers are different------------")
+        save_cases_to_txt(cuda_df, os.path.join(save_dir, "all_cases_cuda.txt"))
+        save_cases_to_txt(xpu_df, os.path.join(save_dir, "all_cases_xpu.txt"))
+        xpu_df.to_excel(os.path.join(save_dir, "aligned_xpu_ut.xlsx"), index=False)
+    else:
+        print(f"----------PASSED------------")
 
 
 def validate_ut_run(target_lib):
