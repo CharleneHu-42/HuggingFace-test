@@ -219,7 +219,7 @@ from pathlib import Path
 
 # xpu = xpu_df[RELEVANT_COLS]
 # cuda = cuda_df[RELEVANT_COLS]
-# os.makedirs(result_dir, exist_ok=False)
+# os.makedirs(result_path, exist_ok=False)
 
 # xpu.to_excel(os.path.join(result_path, f"clean_xpu_{target_lib}_ut.xlsx"), index=False)
 # cuda.to_excel(os.path.join(result_path, f"clean_cuda_{target_lib}_ut.xlsx"), index=False)
