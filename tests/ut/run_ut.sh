@@ -93,13 +93,19 @@ if [[ $target == "transformers" ]]; then
 	fi 
 elif [[ $target == "accelerate" ]]; then
 	if [[ $dry_run == "1" ]]; then 
-		pytest tests --collectonly -q 2>&1 | tee "${excel_dir}/all_cases.txt"
+		pytest tests --collectonly -q 2>&1 | tee "${excel_dir}/all_cases_collected.txt"
+	else
+		RUN_SLOW=1 pytest tests -sv --excelreport $report --timeout 600 2>&1 | tee $log
+	fi
+elif [[ $target == "peft" ]]; then
+	if [[ $dry_run == "1" ]]; then 
+		pytest tests --collectonly -q 2>&1 | tee "${excel_dir}/all_cases_collected.txt"
 	else
 		RUN_SLOW=1 pytest tests -sv --excelreport $report --timeout 600 2>&1 | tee $log
 	fi
 elif [[ $device == "optimum-quanto" ]]; then
 	if [[ $dry_run == "1" ]]; then 
-		pytest -rA test --collectonly -q 2>&1 | tee "${excel_dir}/all_cases.txt"
+		pytest -rA test --collectonly -q 2>&1 | tee "${excel_dir}/all_cases_collected.txt"
 	else
 		pytest -rA test --excelreport $report | tee $log
 	fi
