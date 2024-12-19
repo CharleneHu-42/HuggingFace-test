@@ -48,8 +48,6 @@ ENTRYPOINT ["/entrypoint.sh"]
 
 FROM base AS ut
 
-ENV RUN_SLOW=1
-
 RUN pip install pytest-env pytest-timeout pytest-excel openpyxl
 
 WORKDIR /.tests

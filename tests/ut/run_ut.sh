@@ -103,10 +103,19 @@ elif [[ $target == "peft" ]]; then
 	else
 		RUN_SLOW=1 pytest tests -sv --excelreport $report --timeout 600 2>&1 | tee $log
 	fi
+elif [[ $target == "diffusers" ]]; then
+	export DIFFUSERS_TEST_DEVICE="${device}"
+	export DIFFUSERS_TEST_DEVICE_SPEC="spec_${device}.py"
+	
+	if [[ $dry_run == "1" ]]; then 
+		pytest tests --collectonly -q 2>&1 | tee "${excel_dir}/all_cases_collected.txt"
+	else
+		RUN_SLOW=1 pytest tests -sv --excelreport $report --timeout 600 2>&1 | tee $log
+	fi
 elif [[ $device == "optimum-quanto" ]]; then
 	if [[ $dry_run == "1" ]]; then 
 		pytest -rA test --collectonly -q 2>&1 | tee "${excel_dir}/all_cases_collected.txt"
 	else
-		pytest -rA test --excelreport $report | tee $log
+		RUN_SLOW=1 pytest -rA test --excelreport $report | tee $log
 	fi
 fi
