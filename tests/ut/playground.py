@@ -239,8 +239,8 @@ from pathlib import Path
 # save_failed_cases_to_txt(cuda_path, os.path.join(result_path, "cuda_failed.txt"))
 
 # # move these 2 files to `cases_to_ignore` folder
-# cuda_skipped_ignore = f"{target_lib}/cases_to_ignore/cuda_skipped.txt"
-# cuda_failed_ignore = f"{target_lib}/cases_to_ignore/cuda_failed.txt"
+# cuda_skipped_ignore = os.path.join(ignore_path, "cuda_skipped.txt") 
+# cuda_failed_ignore = os.path.join(ignore_path, "cuda_failed.txt") 
 # if os.path.exists(cuda_skipped_ignore):
 #     os.remove(cuda_skipped_ignore)
     
@@ -259,7 +259,6 @@ from pathlib import Path
 # xpu = pd.read_excel(xpu_file)
 # cuda = pd.read_excel(cuda_file)
 
-# ignore_path = f"{target_lib}/cases_to_ignore"
 # mark_ut_results_with_ignore_cases(xpu_file, ignore_path, result_path, f"final_xpu_{target_lib}_ut.xlsx")
 # mark_ut_results_with_ignore_cases(cuda_file, ignore_path, result_path, f"final_cuda_{target_lib}_ut.xlsx")
 
@@ -281,9 +280,9 @@ from pathlib import Path
 # 
 
 # -----------STEP 12: reorder txt test case files for upstreaming--------------
-# file1 = f"{target_lib}/cases_to_ignore/cuda_shouldnot_only.txt"
-# file2 = f"{target_lib}/cases_to_ignore/xpu_missing_thirdPartyLib.txt"
-# file2 = f"{target_lib}/cases_to_ignore/xpu_missing_quantization.txt"
+# file1 = os.path.join(ignore_path, "cuda_shouldnot_only.txt")
+# file2 = os.path.join(ignore_path, "xpu_missing_thirdPartyLib.txt")
+# file2 = os.path.join(ignore_path, "xpu_missing_quantization.txt")
 # reorder_txt_cases(file1)
 # reorder_txt_cases(file2)
 # reorder_txt_cases(file3)
