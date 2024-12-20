@@ -119,13 +119,21 @@ elif [ "$target" = "diffusers" ]; then
     export DIFFUSERS_TEST_DEVICE="${device}"
     export DIFFUSERS_TEST_DEVICE_SPEC="spec_${device}.py"
     
-    for folder in lora models others quantization schedulers single_file
+    for folder in lora models others quantization schedulers
     do
+		echo "+++++++++run test folder $folder ++++++++++++++++"
 		run_test_folder "$folder" "$folder"
     done 
-	
+
+	for file in $(find tests/single_file -type f -name "*.py")
+	do
+		echo "+++++++++run test folder single_file/$folder ++++++++++++++++"
+		run_test_folder "$file" "$(basename "$file" .py)"
+	done
+
     for folder in $(find tests/pipelines -mindepth 1 -maxdepth 1 -type d)
 	do 
+		echo "+++++++++run test folder pipelines/$folder ++++++++++++++++"
 		run_test_folder "$folder" "$(basename "$folder")"
 	done 
 
