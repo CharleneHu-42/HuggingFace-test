@@ -338,7 +338,7 @@ def validate_ut_run(target_lib):
     pattern = r"(.*) tests"
     save_dir = os.path.join(os.path.dirname(__file__), target_lib)
 
-    if target_lib == "transformers":
+    if target_lib in ["transformers", "diffusers"]:
         txt_files_glob = sorted(
             glob.glob(os.path.join(os.path.dirname(__file__), target_lib, "*.txt"))
         )
