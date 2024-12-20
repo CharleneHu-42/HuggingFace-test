@@ -1,7 +1,7 @@
 import pandas as pd
 from utils import *
 import shutil
-from pathlib import Path
+import os
 
 # +++++++++++++++++++++++++++++++++++++++++Typical workflow for transformers UT+++++++++++++++++++++++++++++++++++++++++
 
@@ -154,7 +154,8 @@ from pathlib import Path
 
 # +++++++++++++++++++++++++++++++++++++++++Typical workflow for other libraries+++++++++++++++++++++++++++++++++++++++++
 
-# target_lib = "peft"
+# target_lib = "diffusers"
+# device = "xpu"
 # result_path = os.path.join(target_lib, "test_result")
 # ignore_path = os.path.join(target_lib, "cases_to_ignore")
 

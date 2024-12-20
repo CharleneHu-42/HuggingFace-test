@@ -382,7 +382,7 @@ def validate_ut_run(target_lib):
         print(f"\nThere are {total_num} test cases in total.")
         print(f"\n{rerun_cases} need double-check.")
     else:
-        txt_file = os.path.join(os.path.dirname(__file__), target_lib, "all_cases.txt")
+        txt_file = os.path.join(os.path.dirname(__file__), target_lib, "all_cases_collected.txt")
         excel_file_path = os.path.join(os.path.dirname(__file__), target_lib, "ut.xlsx")
 
         txt_file_name = os.path.basename(txt_file).split(".")[0]
