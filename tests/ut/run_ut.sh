@@ -28,83 +28,65 @@ collect_test_count() {
 run_test_folder() {
     local folder=$1
     local save_name=$2
+	local is_transformers=$3
+
+	if [ "$is_transformers" = "1" ]; then
+		NOT_RUN_MARKERS="not (not_device_test)"
+		NOT_RUN_KEYWORDS="not (tpu or npu or tf or ModelOnTheFlyConversionTester or SigOpt or TrainerHyperParameterRayIntegrationTest or TrainerHyperParameterWandbIntegrationTest or TestTrainerDistributedNeuronCore or TestTrainerDistributedNPU)"
+		IGNORE1="tests/sagemaker"
+		IGNORE2="tests/bettertransformer"
+	else
+		NOT_RUN_MARKERS=""
+		NOT_RUN_KEYWORDS=""
+		IGNORE1=""
+		IGNORE2=""
+	fi 
 
     if [ "$dry_run" = "1" ]; then
-        pytest $folder --collectonly -q 2>&1 | tee "${result_dir}/${save_name}_collected.txt"
+        pytest $folder -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore "${IGNORE1}" --ignore "${IGNORE2}" --collectonly -q 2>&1 | tee "${result_dir}/${save_name}_collected.txt"
     else
-        pytest $folder -sv --excelreport="${result_dir}/${save_name}.xlsx" --timeout=600
+        pytest $folder -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore "${IGNORE1}" --ignore "${IGNORE2}" -sv --excelreport="${result_dir}/${save_name}.xlsx" --timeout=600 2>&1 | tee "${result_dir}/${save_name}.log"
     fi
-
-}
-
-
-run_transformers_ut() {
-    local folder=$1
-    local save_name=$2
-
-	# only skip tests that are cpu-only, tpu-only, npu-only, sagemaker-only and tf-only.
-	# tests that are not xpu-relevant, e.g. apex, torch.fx, will be filtered during analysis
-	NOT_RUN_MARKERS="not (not_device_test)"
-	NOT_RUN_KEYWORDS="not (tpu or npu or tf or ModelOnTheFlyConversionTester or SigOpt or TrainerHyperParameterRayIntegrationTest or TrainerHyperParameterWandbIntegrationTest or TestTrainerDistributedNeuronCore or TestTrainerDistributedNPU)"
-
-
-    if [ "$dry_run" = "1" ]; then
-        pytest $folder -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --collectonly -q 2>&1 | tee "${result_dir}/${save_name}_collected.txt"
-    else
-        pytest $folder -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --excelreport="${result_dir}/${save_name}.xlsx" --timeout=600
-    fi
-
 }
 
 
 if [ "$target" = "transformers" ]; then
+
+	cp /mnt/spec_${device}.py .
 
 	export TRANSFORMERS_TEST_DEVICE="${device}"
 	export TRANSFORMERS_TEST_DEVICE_SPEC="spec_${device}.py"
 	export RUN_PT_TF_CROSS_TESTS="False"
 	export RUN_PT_FLAX_CROSS_TESTS="False"
 	export WANDB_DISABLED="true"
-
-	cp /mnt/spec_${device}.py .
-
+	
 	echo "+++++++++run single files++++++++++++++++"
-	run_transformers_ut "tests/*.py" "single_files"
+	run_test_folder "tests" "single_files" 1
 
 	for folder in benchmark extended fsdp generation peft_integration trainer pipelines deepspeed
 	do
 		echo "+++++++++run test folder $folder ++++++++++++++++"
-		run_transformers_ut "tests/$folder" "$folder"
+		run_test_folder "tests/$folder" "$folder" 1
 	done 
 
 	for folder in autoawq bnb quanto_integration
 	do 
 		echo "+++++++++run test folder quantization/$folder ++++++++++++++++"
-		run_transformers_ut "tests/quantization/$folder" "$folder"
+		run_test_folder "tests/quantization/$folder" "$folder" 1
 	done
 
 	for x in a b c d e f g h i j k l m n o p q r s t u v w x y z
 	do
 		echo "+++++++++run test folder models/$x* ++++++++++++++++"
-		run_transformers_ut "tests/models/$x*" "models_$x"
+		run_test_folder "tests/models/$x*" "models_$x" 1
 	done
 
 	if [ "$dry_run" = "1" ]; then 
 		collect_test_count
 	fi
-
-elif [ "$target" = "accelerate" ] || [ "$target" = "peft" ] || [ "$target" = "optimum-quanto" ] || [ "$target" = "trl" ]; then
-
-	if [ "$target" = "trl" ]; then
-		if [ "$device" = "cuda" ]; then 
-			export CUDA_VISIBLE_DEVICES=2,3
-		elif [ "$device" = "xpu" ]; then 
-			export ZE_AFFINITY_MASK=2,3
-		fi
-	fi 
-
-	run_test_folder "tests" "all_ut"
-	
 elif [ "$target" = "diffusers" ]; then
+	
+	cp /mnt/spec_${device}.py .
 
     export DIFFUSERS_TEST_DEVICE="${device}"
     export DIFFUSERS_TEST_DEVICE_SPEC="spec_${device}.py"
@@ -131,5 +113,16 @@ elif [ "$target" = "diffusers" ]; then
 
     if [ "$dry_run" = "1" ]; then 
       collect_test_count
-    fi 
+    fi
+elif [ "$target" = "accelerate" ] || [ "$target" = "peft" ] || [ "$target" = "optimum-quanto" ] || [ "$target" = "trl" ]; then
+
+	if [ "$target" = "trl" ]; then
+		if [ "$device" = "cuda" ]; then 
+			export CUDA_VISIBLE_DEVICES=2,3
+		elif [ "$device" = "xpu" ]; then 
+			export ZE_AFFINITY_MASK=2,3
+		fi
+	fi 
+
+	run_test_folder "tests" "all_cases" 
 fi
