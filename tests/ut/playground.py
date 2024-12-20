@@ -179,7 +179,7 @@ import os
 # =======================================================================================================
 
 # -----------STEP 2: consolidate and get initial test results--------------
-# consolidate_and_get_stats(target_lib, f"xpu_{target_lib}_ut.xlsx")
+# consolidate_and_get_stats(target_lib, f"{device}_{target_lib}_ut.xlsx")
 
 
 # -----------STEP 3: manually check the skip and fail statistics and rerun test subsets if needed--------------
