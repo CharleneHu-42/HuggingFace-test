@@ -8,6 +8,7 @@ result_dir="/mnt/${target}/raw_ut_result"
 mkdir -p $result_dir
 report="${result_dir}/ut.xlsx"
 
+export RUN_SLOW=1
 
 collect_test_count() {
     total=0
@@ -28,18 +29,10 @@ run_test_folder() {
     local folder=$1
     local save_name=$2
 
-    echo "+++++++++run test folder $folder++++++++++++++++"
-
-	if [ "$folder" = "tests" ]; then 
-		run_target=$folder 
-	else
-		run_target=tests/"$folder"
-	fi 
-
     if [ "$dry_run" = "1" ]; then
-        pytest $run_target --collectonly -q 2>&1 | tee "${result_dir}/${save_name}_collected.txt"
+        pytest $folder --collectonly -q 2>&1 | tee "${result_dir}/${save_name}_collected.txt"
     else
-        pytest $run_target -sv --excelreport="${result_dir}/${save_name}.xlsx" --timeout=600
+        pytest $folder -sv --excelreport="${result_dir}/${save_name}.xlsx" --timeout=600
     fi
 
 }
@@ -54,12 +47,11 @@ run_transformers_ut() {
 	NOT_RUN_MARKERS="not (not_device_test)"
 	NOT_RUN_KEYWORDS="not (tpu or npu or tf or ModelOnTheFlyConversionTester or SigOpt or TrainerHyperParameterRayIntegrationTest or TrainerHyperParameterWandbIntegrationTest or TestTrainerDistributedNeuronCore or TestTrainerDistributedNPU)"
 
-	run_target=tests/"$folder"
 
     if [ "$dry_run" = "1" ]; then
-        pytest $run_target -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --collectonly -q 2>&1 | tee "${result_dir}/${save_name}_collected.txt"
+        pytest $folder -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --collectonly -q 2>&1 | tee "${result_dir}/${save_name}_collected.txt"
     else
-        pytest $run_target -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --excelreport="${result_dir}/${save_name}.xlsx" --timeout=600
+        pytest $folder -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --excelreport="${result_dir}/${save_name}.xlsx" --timeout=600
     fi
 
 }
@@ -67,7 +59,6 @@ run_transformers_ut() {
 
 if [ "$target" = "transformers" ]; then
 
-	export RUN_SLOW=1
 	export TRANSFORMERS_TEST_DEVICE="${device}"
 	export TRANSFORMERS_TEST_DEVICE_SPEC="spec_${device}.py"
 	export RUN_PT_TF_CROSS_TESTS="False"
@@ -77,30 +68,58 @@ if [ "$target" = "transformers" ]; then
 	cp /mnt/spec_${device}.py .
 
 	echo "+++++++++run single files++++++++++++++++"
-	run_transformers_ut "*.py" "single_files"
+	run_transformers_ut "tests/*.py" "single_files"
 
 	for folder in benchmark extended fsdp generation peft_integration trainer pipelines deepspeed
 	do
 		echo "+++++++++run test folder $folder ++++++++++++++++"
-		run_transformers_ut "$folder" "$folder"
+		run_transformers_ut "tests/$folder" "$folder"
 	done 
 
 	for folder in autoawq bnb quanto_integration
 	do 
 		echo "+++++++++run test folder quantization/$folder ++++++++++++++++"
-		run_transformers_ut "quantization/$folder" "$folder"
+		run_transformers_ut "tests/quantization/$folder" "$folder"
 	done
 
-	for folder in $(find tests/pipelines -mindepth 1 -maxdepth 1 -type d)
+	for x in a b c d e f g h i j k l m n o p q r s t u v w x y z
 	do
 		echo "+++++++++run test folder models/$x* ++++++++++++++++"
-		run_transformers_ut "models/${folder}" "models_${folder}"
+		run_transformers_ut "tests/models/$x*" "models_$x"
 	done
 
 	if [ "$dry_run" = "1" ]; then 
 		collect_test_count
 	fi
+	
+elif [ "$target" = "diffusers" ]; then
 
+    export DIFFUSERS_TEST_DEVICE="${device}"
+    export DIFFUSERS_TEST_DEVICE_SPEC="spec_${device}.py"
+    
+    for folder in lora models others quantization schedulers
+    do
+		echo "+++++++++run test folder $folder ++++++++++++++++"
+		run_test_folder "tests/$folder" "$folder"
+    done 
+
+	for file in $(find tests/single_file -type f -name "*.py")
+	do
+		if [ "$(basename "$file")" != "__init__.py" ]; then
+			echo "+++++++++run $file ++++++++++++++++"
+			run_test_folder "tests/single_file/$(basename "$file")" "$(basename "$file" .py)"
+		fi
+	done
+
+    for x in a b c d f h i k l m p s t u w
+	do
+		echo "+++++++++run test folder pipelines/$x* ++++++++++++++++"
+		run_test_folder "tests/pipelines/$x*" "${x}_pipeline"
+	done 
+
+    if [ "$dry_run" = "1" ]; then 
+      collect_test_count
+    fi
 elif [ "$target" = "accelerate" ] || [ "$target" = "peft" ] || [ "$target" = "optimum-quanto" ] || [ "$target" = "trl" ]; then
 
 	if [ "$target" = "trl" ]; then
@@ -111,33 +130,5 @@ elif [ "$target" = "accelerate" ] || [ "$target" = "peft" ] || [ "$target" = "op
 		fi
 	fi 
 
-	run_test_folder "tests" "all_ut"
-	
-elif [ "$target" = "diffusers" ]; then
-
-	export RUN_SLOW=1
-    export DIFFUSERS_TEST_DEVICE="${device}"
-    export DIFFUSERS_TEST_DEVICE_SPEC="spec_${device}.py"
-    
-    for folder in lora models others quantization schedulers
-    do
-		echo "+++++++++run test folder $folder ++++++++++++++++"
-		run_test_folder "$folder" "$folder"
-    done 
-
-	for file in $(find tests/single_file -type f -name "*.py")
-	do
-		echo "+++++++++run test folder single_file/$folder ++++++++++++++++"
-		run_test_folder "$file" "$(basename "$file" .py)"
-	done
-
-    for folder in $(find tests/pipelines -mindepth 1 -maxdepth 1 -type d)
-	do 
-		echo "+++++++++run test folder pipelines/$folder ++++++++++++++++"
-		run_test_folder "$folder" "$(basename "$folder")"
-	done 
-
-    if [ "$dry_run" = "1" ]; then 
-      collect_test_count
-    fi 
+	run_test_folder "tests" "all_cases" 
 fi
