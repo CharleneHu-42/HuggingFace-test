@@ -91,7 +91,6 @@ if [ "$target" = "transformers" ]; then
 	if [ "$dry_run" = "1" ]; then 
 		collect_test_count
 	fi
-	
 elif [ "$target" = "diffusers" ]; then
 
     export DIFFUSERS_TEST_DEVICE="${device}"
