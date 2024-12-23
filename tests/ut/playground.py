@@ -27,7 +27,7 @@ import os
 
 
 # ----STEP 2: manually check and rerun subsets if needed----
-# manually check the validation result. If one test run doesn't run through sucessfully,
+# manually check the validation result. If one test run doesn't run through successfully,
 # the real test numbers would not match with the actual test numbers. You need to manually adapt the `run_ut.sh` and rerun.
 # Sometimes, you will need to iterate on this step for several times in order to get all results completed
 
@@ -162,8 +162,8 @@ import os
 #                               Typical workflow for other libraries
 # =======================================================================================================
 
-# target_lib = "diffusers"
-# device = "xpu"
+# target_lib = "trl"
+# device = "cuda"
 # result_path = os.path.join(target_lib, "test_result")
 # ignore_path = os.path.join(target_lib, "cases_to_ignore")
 
