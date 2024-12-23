@@ -3,37 +3,40 @@ from utils import *
 import shutil
 import os
 
-# +++++++++++++++++++++++++++++++++++++++++Typical workflow for transformers UT+++++++++++++++++++++++++++++++++++++++++
-
 # =======================================================================================================
-#                             PHASE 1: Run UT on XPU and gather all UT results
+#                               Typical workflow for transformers UT
 # =======================================================================================================
 
-# -----------STEP 0: run transformer's UT--------------
+
+# ==============================================================
+#       PHASE 1: Run UT on XPU and gather all UT results
+# ==============================================================
+
+# ----STEP 0: run transformer's UT----
 # fist, dry run to detect any anomaly
 # ./run-ut.sh xpu transformers 1
-# ./run-ut.sh xpu transformers 
+# ./run-ut.sh xpu transformers
 
 
-# -----------STEP 1: validate transformers' UT Results--------------
+# ----STEP 1: validate transformers' UT Results----
 # validate_ut_run("transformers")
-   
 
-# -----------STEP 2: manually check and rerun subsets if needed--------------
+
+# ----STEP 2: manually check and rerun subsets if needed----
 # manually check the validation result. If one test run doesn't run through sucessfully,
-# the real test numbers would not match with the actual test numbers. You need to manually adapt the `run_ut.sh` and rerun. 
+# the real test numbers would not match with the actual test numbers. You need to manually adapt the `run_ut.sh` and rerun.
 # Sometimes, you will need to iterate on this step for several times in order to get all results completed
 
 
-# =======================================================================================================
-#                             PHASE 2: Rough analyze, rerun and update UT results
-# =======================================================================================================
+# ==============================================================
+#       PHASE 2: Rough analyze, rerun and update UT results
+# ==============================================================
 
-# -----------STEP 3: merge transformers' UT results and get initial merged test results--------------
+# ----STEP 3: merge transformers' UT results and get initial merged test results----
 # consolidate_and_get_stats("transformers/test_results", "xpu_trans_ut_merged.xlsx")
 
 
-# -----------STEP 4: manually check the skip and fail statistics and rerun test subsets if needed--------------
+# ----STEP 4: manually check the skip and fail statistics and rerun test subsets if needed----
 # excel_file = "xpu_trans_ut_merged.xlsx"
 #
 # df = pd.read_excel(excel_file)
@@ -46,11 +49,11 @@ import os
 # save_cases_to_bash(rerun, "xpu_rerun.sh")
 
 
-# -----------STEP 5: merge results to the original excel file after rerun--------------
+# ----STEP 5: merge results to the original excel file after rerun----
 # update_ut_result_after_rerun("RERUN", "xpu_trans_ut_merged.xlsx", "xpu_trans_ut_merged2.xlsx")
- 
 
-# -----------STEP 6: manually check the statistic results, add a column `need rerun`, mark 1 if need to rerun--------------
+
+# ----STEP 6: manually check the statistic results, add a column `need rerun`, mark 1 if need to rerun----
 # excel_file = "xpu_trans_ut_merged2.xlsx"
 # df = pd.read_excel(excel_file)
 #
@@ -58,19 +61,19 @@ import os
 # save_cases_to_bash(rerun, "xpu_rerun2.sh")
 
 
-# -----------STEP 7: merge results to the original excel file after rerun--------------
-#update_ut_result_after_rerun("RERUN10", "XPU_final_test_results.xlsx", "XPU_final_rest_results2.xlsx")
+# ----STEP 7: merge results to the original excel file after rerun----
+# update_ut_result_after_rerun("RERUN10", "XPU_final_test_results.xlsx", "XPU_final_rest_results2.xlsx")
 
 
-# =======================================================================================================
-#                             PHASE 3: Run UT on CUDA and calibrate with XPU results
-# =======================================================================================================
+# ==============================================================
+#       PHASE 3: Run UT on CUDA and calibrate with XPU results
+# ==============================================================
 
-# -----------STEP 8: repeat step 0-7 on CUDA device--------------
+# ----STEP 8: repeat step 0-7 on CUDA device----
 # once finished, you should have 2 excel files for XPU and CUDA respectively.
 
 
-# -----------STEP 9: validate xpu ut results with cuda ut results--------------
+# ----STEP 9: validate xpu ut results with cuda ut results----
 # cuda_excel = "cuda_trans_ut_merged3.xlsx"
 # xpu_excel = "xpu_trans_ut_merged3.xlsx"
 #
@@ -80,12 +83,12 @@ import os
 # compare_xpu_with_cuda_ut(cuda_df, xpu_df, "xpu_trans_ut_merged_aligned.xlsx")
 
 
-# -----------STEP 10: manually check the ut diff, add a column `ignore` and mark if needed--------------
+# ----STEP 10: manually check the ut diff, add a column `ignore` and mark if needed----
 # if the xpu total ut number differs from cuda, you will need to manually compare them using vscode's compare selected function.
-# mark the duplicated cases with 1 in `ignore` column to make test cases on XPU align with that on CUDA 
+# mark the duplicated cases with 1 in `ignore` column to make test cases on XPU align with that on CUDA
 
 
-# -----------STEP 11: gather final UT results--------------
+# ----STEP 11: gather final UT results----
 # xpu_excel = "XPU_final_rest_results2.xlsx"
 # cuda_excel = "CUDA_trans_ut_merged3.xlsx"
 # xpu_df = pd.read_excel(xpu_excel)
@@ -109,19 +112,18 @@ import os
 # save_cases_to_txt(cuda, os.path.join(result_dir, "all_cases_cuda.txt"))
 
 
-# =======================================================================================================
-#                             PHASE 4: Gather report statistics
-# =======================================================================================================
+# ==============================================================
+#       PHASE 4: Gather report statistics
+# ==============================================================
 
-# -----------STEP 12: save cuda failed and skipped cases--------------
+# ----STEP 12: save cuda failed and skipped cases----
 # result_dir = "transformers/LAST5"
 # cuda_df = os.path.join(result_dir,"clean_cuda_trans_ut.xlsx")
 # save_skipped_cases_to_txt(cuda_df, os.path.join(result_dir, "cuda_skipped.txt"))
 # save_failed_cases_to_txt(cuda_df, os.path.join(result_dir, "cuda_failed.txt"))
 
 
-# # -----------STEP 13: mark cases with existing knowledge for statistics--------------
-# # first copy the `cuda_skipped.txt` and `cuda_failed.txt` to the `cases_to_ignore` folder
+# # ----STEP 13: mark cases with existing knowledge for statistics----
 
 # result_dir = "transformers/LAST5"
 # xpu_file = os.path.join(result_dir, "clean_xpu_trans_ut.xlsx")
@@ -135,66 +137,68 @@ import os
 # mark_ut_results_with_ignore_cases(cuda_file, ignore_path, result_dir, "final_cuda_trans_ut.xlsx")
 
 
-# -----------STEP 14: gather final statistics for both CUDA and XPU--------------
+# ----STEP 14: gather final statistics for both CUDA and XPU----
 # result_dir = "transformers/LAST5"
 # xpu_file = os.path.join(result_dir, "final_xpu_trans_ut.xlsx")
 # cuda_file = os.path.join(result_dir, "final_cuda_trans_ut.xlsx")
 
 # create_final_report(result_dir, cuda_file, xpu_file)
 
-# =======================================================================================================
-#                             PHASE 5: In-depth analyze, debug and update statistics
-# =======================================================================================================
+# ==============================================================
+#       PHASE 5: In-depth analyze, debug and update statistics
+# ==============================================================
 
-# -----------STEP 15: manually categorize, analyze and debug--------------
-# you might need to rerun some cases depending on the statistics, e.g. 
+# ----STEP 15: manually categorize, analyze and debug----
+# you might need to rerun some cases depending on the statistics, e.g.
 # the skipped cases between cuda and xpu don't align with each other
 # you need to update the test result and then iterate STEP 13 to STEP 14.
 
 
-# +++++++++++++++++++++++++++++++++++++++++Typical workflow for other libraries+++++++++++++++++++++++++++++++++++++++++
+# =======================================================================================================
+#                               Typical workflow for other libraries
+# =======================================================================================================
 
 # target_lib = "diffusers"
 # device = "xpu"
 # result_path = os.path.join(target_lib, "test_result")
 # ignore_path = os.path.join(target_lib, "cases_to_ignore")
 
-# =======================================================================================================
-#                             PHASE 1: Run UT on XPU and gather all UT results
-# =======================================================================================================
+# ==============================================================
+#       PHASE 1: Run UT on XPU and gather all UT results
+# ==============================================================
 
-# -----------STEP 0: run UT--------------
+# ----STEP 0: run UT----
 # fist, dry run to detect any anomaly
 # ./run-ut.sh xpu <target_lib> 1
 # then run the whole test suite
-# ./run-ut.sh xpu <target_lib> 
+# ./run-ut.sh xpu <target_lib>
 
 
-# -----------STEP 1: validate UT Results--------------
+# ----STEP 1: validate UT Results----
 # validate_ut_run(target_lib)
-   
 
-# =======================================================================================================
-#                             PHASE 2: Rough analyze, rerun and update UT results
-# =======================================================================================================
 
-# -----------STEP 2: consolidate and get initial test results--------------
+# ==============================================================
+#       PHASE 2: Rough analyze, rerun and update UT results
+# ==============================================================
+
+# ----STEP 2: consolidate and get initial test results----
 # consolidate_and_get_stats(target_lib, f"{device}_{target_lib}_ut.xlsx")
 
 
-# -----------STEP 3: manually check the skip and fail statistics and rerun test subsets if needed--------------
+# ----STEP 3: manually check the skip and fail statistics and rerun test subsets if needed----
 # you can manually modify the rerun test result in excel sheet due to the small test number in accelerate library
 
 
-# =======================================================================================================
-#                             PHASE 3: Run UT on CUDA and calibrate with XPU results
-# =======================================================================================================
+# ==============================================================
+#       PHASE 3: Run UT on CUDA and calibrate with XPU results
+# ==============================================================
 
-# -----------STEP 4: repeat step 0-3 on CUDA device--------------
+# ----STEP 4: repeat step 0-3 on CUDA device----
 # once finished, you should have 2 excel files for XPU and CUDA respectively.
 
 
-# -----------STEP 5: validate xpu ut results with cuda ut results--------------
+# ----STEP 5: validate xpu ut results with cuda ut results----
 # cuda_excel = os.path.join(target_lib, f"cuda_{target_lib}_ut.xlsx")
 # xpu_excel = os.path.join(target_lib, f"xpu_{target_lib}_ut.xlsx")
 
@@ -204,12 +208,12 @@ import os
 # compare_xpu_with_cuda_ut(cuda_df, xpu_df, target_lib)
 
 
-# -----------STEP 6: manually check the ut diff, add a column `ignore` and mark if needed--------------
+# ----STEP 6: manually check the ut diff, add a column `ignore` and mark if needed----
 # if the xpu total ut number differs from cuda, you will need to manually compare them using vscode's compare selected function.
-# mark the duplicated cases with 1 in `ignore` column to make test cases on XPU align with that on CUDA 
+# mark the duplicated cases with 1 in `ignore` column to make test cases on XPU align with that on CUDA
 
 
-# -----------STEP 7: gather final UT results--------------
+# ----STEP 7: gather final UT results----
 
 # xpu_excel = os.path.join(target_lib, f"xpu_{target_lib}_ut.xlsx")
 # cuda_excel = os.path.join(target_lib, f"cuda_{target_lib}_ut.xlsx")
@@ -229,30 +233,30 @@ import os
 # save_cases_to_txt(cuda, os.path.join(result_path, "all_cases_cuda.txt"))
 
 
-# =======================================================================================================
-#                             PHASE 4: Gather report statistics
-# =======================================================================================================
+# ==============================================================
+#       PHASE 4: Gather report statistics
+# ==============================================================
 
-# -----------STEP 8: save cuda failed and skipped cases--------------
+# ----STEP 8: save cuda failed and skipped cases----
 
 # cuda_path = os.path.join(result_path, f"clean_cuda_{target_lib}_ut.xlsx")
 # save_skipped_cases_to_txt(cuda_path, os.path.join(result_path, "cuda_skipped.txt"))
 # save_failed_cases_to_txt(cuda_path, os.path.join(result_path, "cuda_failed.txt"))
 
 # # move these 2 files to `cases_to_ignore` folder
-# cuda_skipped_ignore = os.path.join(ignore_path, "cuda_skipped.txt") 
-# cuda_failed_ignore = os.path.join(ignore_path, "cuda_failed.txt") 
+# cuda_skipped_ignore = os.path.join(ignore_path, "cuda_skipped.txt")
+# cuda_failed_ignore = os.path.join(ignore_path, "cuda_failed.txt")
 # if os.path.exists(cuda_skipped_ignore):
 #     os.remove(cuda_skipped_ignore)
-    
+
 # if os.path.exists(cuda_failed_ignore):
 #     os.remove(cuda_failed_ignore)
-    
+
 # shutil.move(os.path.join(result_path, "cuda_skipped.txt"), f"{target_lib}/cases_to_ignore")
 # shutil.move(os.path.join(result_path, "cuda_failed.txt"), f"{target_lib}/cases_to_ignore")
 
 
-# # -----------STEP 9: mark cases with existing knowledge for statistics--------------
+## ----STEP 9: mark cases with existing knowledge for statistics----
 
 # xpu_file = os.path.join(result_path, f"clean_xpu_{target_lib}_ut.xlsx")
 # cuda_file = os.path.join(result_path, f"clean_cuda_{target_lib}_ut.xlsx")
@@ -264,7 +268,7 @@ import os
 # mark_ut_results_with_ignore_cases(cuda_file, ignore_path, result_path, f"final_cuda_{target_lib}_ut.xlsx")
 
 
-# -----------STEP 10: gather final statistics for both CUDA and XPU--------------
+# ----STEP 10: gather final statistics for both CUDA and XPU----
 
 # xpu_file = os.path.join(result_path, f"final_xpu_{target_lib}_ut.xlsx")
 # cuda_file = os.path.join(result_path, f"final_cuda_{target_lib}_ut.xlsx")
@@ -272,15 +276,15 @@ import os
 # create_final_report(result_path, cuda_file, xpu_file)
 
 
-# =======================================================================================================
-#                             PHASE 5: In-depth analyze, debug and update statistics
-# =======================================================================================================
+# ==============================================================
+#       PHASE 5: In-depth analyze, debug and update statistics
+# ==============================================================
 
-# -----------STEP 11: manually analyze to_*.xlsx files, categorize and update statistics--------------
+# ----STEP 11: manually analyze to_*.xlsx files, categorize and update statistics----
 # you need to go through the tests one by one and categorize them. Then update the report statistics.
-# 
+#
 
-# -----------STEP 12: reorder txt test case files for upstreaming--------------
+# ----STEP 12: reorder txt test case files for upstreaming----
 # file1 = os.path.join(ignore_path, "cuda_shouldnot_only.txt")
 # file2 = os.path.join(ignore_path, "xpu_missing_thirdPartyLib.txt")
 # file2 = os.path.join(ignore_path, "xpu_missing_quantization.txt")
