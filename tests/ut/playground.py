@@ -165,6 +165,7 @@ import os
 # target_lib = "trl"
 # device = "cuda"
 # result_path = os.path.join(target_lib, "test_result")
+# raw_result_path = os.path.join(target_lib, "raw_ut_result")
 # ignore_path = os.path.join(target_lib, "cases_to_ignore")
 
 # ==============================================================
@@ -187,11 +188,11 @@ import os
 # ==============================================================
 
 # ----STEP 2: consolidate and get initial test results----
-# consolidate_and_get_stats(target_lib, f"{device}_{target_lib}_ut.xlsx")
+# consolidate_and_get_stats(raw_result_path, f"{device}_{target_lib}_ut.xlsx")
 
 
 # ----STEP 3: manually check the skip and fail statistics and rerun test subsets if needed----
-# you can manually modify the rerun test result in excel sheet due to the small test number in accelerate library
+# you can manually modify the rerun test result in excel sheet for small libraries like accelerate, trl
 
 
 # ==============================================================
