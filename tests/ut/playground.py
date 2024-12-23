@@ -34,17 +34,15 @@ import os
 # sort the test cases in a seperate txt file, then run them one by one, e.g.  
 # save_txt_cases_to_bash(f"{target_lib}/need_rerun.txt", target_lib, f"{target_lib}/need_rerun.sh")
 
-
 # ==============================================================
 #       PHASE 2: Rough analyze, rerun and update UT results
 # ==============================================================
 
 # ----STEP 3: merge transformers' UT results and get initial merged test results----
-# consolidate_and_get_stats(raw_result_path, f"{device}_{target_lib}_ut.xlsx")
-
+# consolidate_and_get_stats(raw_result_path, f"{device}_{target_lib}_ut.xlsx", "RERUN")
 
 # ----STEP 4: manually check the skip and fail statistics and rerun test subsets if needed----
-# excel_file = "xpu_trans_ut_merged.xlsx"
+# excel_file = f"{device}_{target_lib}_ut.xlsx"
 #
 # df = pd.read_excel(excel_file)
 #
@@ -57,11 +55,11 @@ import os
 
 
 # ----STEP 5: merge results to the original excel file after rerun----
-# update_ut_result_after_rerun("RERUN", "xpu_trans_ut_merged.xlsx", "xpu_trans_ut_merged2.xlsx")
+# update_ut_result_after_rerun("RERUN", f"{raw_result_path}/{device}_{target_lib}_ut.xlsx", f"{raw_result_path}/{device}_{target_lib}_ut2.xlsx")
 
 
 # ----STEP 6: manually check the statistic results, add a column `need rerun`, mark 1 if need to rerun----
-# excel_file = "xpu_trans_ut_merged2.xlsx"
+# excel_file = f"{device}_{target_lib}_ut2.xlsx"
 # df = pd.read_excel(excel_file)
 #
 # rerun = df[df["need rerun"] == 1.0] # manually marked as `need rerun` for abnormal failed messages like OOM or ccl error etc.
@@ -69,7 +67,7 @@ import os
 
 
 # ----STEP 7: merge results to the original excel file after rerun----
-# update_ut_result_after_rerun("RERUN10", "XPU_final_test_results.xlsx", "XPU_final_rest_results2.xlsx")
+# update_ut_result_after_rerun("RERUN2", f"{raw_result_path}/{device}_{target_lib}_ut.xlsx", f"{raw_result_path}/{device}_{target_lib}_ut2.xlsx")
 
 
 # ==============================================================
@@ -81,13 +79,13 @@ import os
 
 
 # ----STEP 9: validate xpu ut results with cuda ut results----
-# cuda_excel = "cuda_trans_ut_merged3.xlsx"
-# xpu_excel = "xpu_trans_ut_merged3.xlsx"
-#
+# cuda_excel = f"{raw_result_path}/cuda_{target_lib}_ut.xlsx"
+# xpu_excel = f"{raw_result_path}/xpu_{target_lib}_ut.xlsx"
+
 # cuda_df = pd.read_excel(cuda_excel)
 # xpu_df = pd.read_excel(xpu_excel)
-#
-# compare_xpu_with_cuda_ut(cuda_df, xpu_df, "xpu_trans_ut_merged_aligned.xlsx")
+
+# compare_xpu_with_cuda_ut(cuda_df, xpu_df, target_lib)
 
 
 # ----STEP 10: manually check the ut diff, add a column `ignore` and mark if needed----
