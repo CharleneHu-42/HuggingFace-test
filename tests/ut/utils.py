@@ -355,13 +355,7 @@ def validate_ut_run(target_lib):
     save_dir = os.path.join(os.path.dirname(__file__), target_lib, "raw_ut_result")
 
     if target_lib in ["transformers", "diffusers"]:
-        txt_files_glob = sorted(
-            glob.glob(
-                os.path.join(
-                    os.path.dirname(__file__), target_lib, "raw_ut_result", "*.txt"
-                )
-            )
-        )
+        txt_files_glob = sorted(glob.glob(os.path.join(save_dir, "*.txt")))
 
         rerun_cases = []
         total_num = 0
@@ -408,14 +402,10 @@ def validate_ut_run(target_lib):
         print(f"\n{rerun_cases} need double-check.")
     else:
         txt_file = os.path.join(
-            os.path.dirname(__file__),
-            target_lib,
-            "raw_ut_result",
+            save_dir,
             "all_cases_collected.txt",
         )
-        excel_file_path = os.path.join(
-            os.path.dirname(__file__), target_lib, "raw_ut_result", "all_cases.xlsx"
-        )
+        excel_file_path = os.path.join(save_dir, "all_cases.xlsx")
 
         txt_file_name = os.path.basename(txt_file).split(".")[0]
 
