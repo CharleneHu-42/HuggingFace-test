@@ -4,9 +4,13 @@ import shutil
 import os
 
 # =======================================================================================================
-#                               Typical workflow for transformers UT
+#                               Typical workflow for transformers&diffusers UT
 # =======================================================================================================
 
+# target_lib = "diffusers"
+# device = "xpu"
+# result_path = os.path.join(target_lib, "test_result")
+# ignore_path = os.path.join(target_lib, "cases_to_ignore")
 
 # ==============================================================
 #       PHASE 1: Run UT on XPU and gather all UT results
@@ -19,7 +23,7 @@ import os
 
 
 # ----STEP 1: validate transformers' UT Results----
-# validate_ut_run("transformers")
+# validate_ut_run(target_lib)
 
 
 # ----STEP 2: manually check and rerun subsets if needed----
