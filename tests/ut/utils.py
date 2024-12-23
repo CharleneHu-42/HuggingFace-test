@@ -337,21 +337,25 @@ def compare_xpu_with_cuda_ut(cuda_df, xpu_df, save_dir):
 def validate_ut_run(target_lib):
     pattern1 = r"(.*) tests"
     pattern2 = r"(.*) test"
-    save_dir = os.path.join(os.path.dirname(__file__), target_lib)
+    save_dir = os.path.join(os.path.dirname(__file__), target_lib, "raw_ut_result")
 
     if target_lib in ["transformers", "diffusers"]:
         txt_files_glob = sorted(
-            glob.glob(os.path.join(os.path.dirname(__file__), target_lib, "raw_ut_result", "*.txt"))
+            glob.glob(
+                os.path.join(
+                    os.path.dirname(__file__), target_lib, "raw_ut_result", "*.txt"
+                )
+            )
         )
 
         rerun_cases = []
         total_num = 0
         for txt_file in txt_files_glob:
             txt_file_name = os.path.basename(txt_file).split(".")[0]
-            excel_file_path = txt_file.replace("_collected","").replace("txt", "xlsx")
+            excel_file_path = txt_file.replace("_collected", "").replace("txt", "xlsx")
 
             print(f"-------{txt_file_name}-------")
-            
+
             if not os.path.exists(excel_file_path):
                 rerun_cases.append(txt_file_name)
                 continue
@@ -384,12 +388,19 @@ def validate_ut_run(target_lib):
                 )
                 extract_short_cases(
                     txt_file, os.path.join(save_dir, f"{txt_file_name}_true.txt")
-                )     
+                )
         print(f"\nThere are {total_num} test cases in total.")
         print(f"\n{rerun_cases} need double-check.")
     else:
-        txt_file = os.path.join(os.path.dirname(__file__), target_lib, "all_cases_collected.txt")
-        excel_file_path = os.path.join(os.path.dirname(__file__), target_lib, "ut.xlsx")
+        txt_file = os.path.join(
+            os.path.dirname(__file__),
+            target_lib,
+            "raw_ut_result",
+            "all_cases_collected.txt",
+        )
+        excel_file_path = os.path.join(
+            os.path.dirname(__file__), target_lib, "raw_ut_result", "all_cases.xlsx"
+        )
 
         txt_file_name = os.path.basename(txt_file).split(".")[0]
 
