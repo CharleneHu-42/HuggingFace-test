@@ -335,20 +335,23 @@ def compare_xpu_with_cuda_ut(cuda_df, xpu_df, save_dir):
 
 
 def validate_ut_run(target_lib):
-    pattern = r"(.*) tests"
+    pattern1 = r"(.*) tests"
+    pattern2 = r"(.*) test"
     save_dir = os.path.join(os.path.dirname(__file__), target_lib)
 
     if target_lib in ["transformers", "diffusers"]:
         txt_files_glob = sorted(
-            glob.glob(os.path.join(os.path.dirname(__file__), target_lib, "*.txt"))
+            glob.glob(os.path.join(os.path.dirname(__file__), target_lib, "raw_ut_result", "*.txt"))
         )
 
         rerun_cases = []
         total_num = 0
         for txt_file in txt_files_glob:
             txt_file_name = os.path.basename(txt_file).split(".")[0]
-            excel_file_path = txt_file.replace("txt", "xlsx")
+            excel_file_path = txt_file.replace("_collected","").replace("txt", "xlsx")
 
+            print(f"-------{txt_file_name}-------")
+            
             if not os.path.exists(excel_file_path):
                 rerun_cases.append(txt_file_name)
                 continue
@@ -356,8 +359,14 @@ def validate_ut_run(target_lib):
             with open(txt_file, "r") as file:
                 lines = file.readlines()
                 last_line = lines[-1] if lines else None
-                match = re.match(pattern, last_line)
-                true_case_num = match.group(1)
+                match1 = re.match(pattern1, last_line)
+                match2 = re.match(pattern2, last_line)
+                if match1:
+                    true_case_num = match1.group(1)
+                elif match2:
+                    true_case_num = match2.group(1)
+                else:
+                    true_case_num = "0"
 
             if "/" in true_case_num:
                 true_case_num = true_case_num.split("/")[0]
@@ -375,10 +384,7 @@ def validate_ut_run(target_lib):
                 )
                 extract_short_cases(
                     txt_file, os.path.join(save_dir, f"{txt_file_name}_true.txt")
-                )
-
-            print("+", end="", flush=True)  # Print + in the same line
-
+                )     
         print(f"\nThere are {total_num} test cases in total.")
         print(f"\n{rerun_cases} need double-check.")
     else:
@@ -390,8 +396,14 @@ def validate_ut_run(target_lib):
         with open(txt_file, "r") as file:
             lines = file.readlines()
             last_line = lines[-1] if lines else None
-            match = re.match(pattern, last_line)
-            true_case_num = match.group(1)
+            match1 = re.match(pattern1, last_line)
+            match2 = re.match(pattern2, last_line)
+            if match1:
+                true_case_num = match1.group(1)
+            elif match2:
+                true_case_num = match2.group(1)
+            else:
+                true_case_num = "0"
 
         if "/" in true_case_num:
             true_case_num = true_case_num.split("/")[0]
