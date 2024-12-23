@@ -10,6 +10,7 @@ import os
 # target_lib = "diffusers"
 # device = "xpu"
 # result_path = os.path.join(target_lib, "test_result")
+# result_path = os.path.join(target_lib, "test_result")
 # ignore_path = os.path.join(target_lib, "cases_to_ignore")
 
 # ==============================================================
@@ -37,7 +38,7 @@ import os
 # ==============================================================
 
 # ----STEP 3: merge transformers' UT results and get initial merged test results----
-# consolidate_and_get_stats("transformers/test_results", "xpu_trans_ut_merged.xlsx")
+# consolidate_and_get_stats(target_lib, f"{device}_{target_lib}_ut.xlsx")
 
 
 # ----STEP 4: manually check the skip and fail statistics and rerun test subsets if needed----
