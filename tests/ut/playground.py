@@ -10,7 +10,7 @@ import os
 # target_lib = "diffusers"
 # device = "xpu"
 # result_path = os.path.join(target_lib, "test_result")
-# result_path = os.path.join(target_lib, "test_result")
+# raw_result_path = os.path.join(target_lib, "raw_ut_result")
 # ignore_path = os.path.join(target_lib, "cases_to_ignore")
 
 # ==============================================================
@@ -19,8 +19,8 @@ import os
 
 # ----STEP 0: run transformer's UT----
 # fist, dry run to detect any anomaly
-# ./run-ut.sh xpu transformers 1
-# ./run-ut.sh xpu transformers
+# ./run-ut.sh xpu <target_lib> 1
+# ./run-ut.sh xpu <target_lib>
 
 
 # ----STEP 1: validate transformers' UT Results----
@@ -28,9 +28,11 @@ import os
 
 
 # ----STEP 2: manually check and rerun subsets if needed----
-# manually check the validation result. If one test run doesn't run through successfully,
-# the real test numbers would not match with the actual test numbers. You need to manually adapt the `run_ut.sh` and rerun.
-# Sometimes, you will need to iterate on this step for several times in order to get all results completed
+# manually check the validation result. 
+# If the validation doesn't pass, this is either due to core-dump or hang.  
+# you need to manually find out the test file or test cases that cause the issue.
+# sort the test cases in a seperate txt file, then run them one by one, e.g.  
+# save_txt_cases_to_bash(f"{target_lib}/need_rerun.txt", target_lib, f"{target_lib}/need_rerun.sh")
 
 
 # ==============================================================
@@ -38,7 +40,7 @@ import os
 # ==============================================================
 
 # ----STEP 3: merge transformers' UT results and get initial merged test results----
-# consolidate_and_get_stats(target_lib, f"{device}_{target_lib}_ut.xlsx")
+# consolidate_and_get_stats(raw_result_path, f"{device}_{target_lib}_ut.xlsx")
 
 
 # ----STEP 4: manually check the skip and fail statistics and rerun test subsets if needed----
@@ -51,7 +53,7 @@ import os
 # ]
 # rerun = df[df["message"].isin(message_list)]
 #
-# save_cases_to_bash(rerun, "xpu_rerun.sh")
+# save_df_cases_to_bash(rerun, "xpu_rerun.sh")
 
 
 # ----STEP 5: merge results to the original excel file after rerun----
@@ -63,7 +65,7 @@ import os
 # df = pd.read_excel(excel_file)
 #
 # rerun = df[df["need rerun"] == 1.0] # manually marked as `need rerun` for abnormal failed messages like OOM or ccl error etc.
-# save_cases_to_bash(rerun, "xpu_rerun2.sh")
+# save_df_cases_to_bash(rerun, "xpu_rerun2.sh")
 
 
 # ----STEP 7: merge results to the original excel file after rerun----

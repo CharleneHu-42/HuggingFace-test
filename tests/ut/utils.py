@@ -65,11 +65,10 @@ def extract_short_cases(in_txt_file, out_txt_file):
     return final_cases
 
 
-def save_cases_to_bash(df, output_file):
+def save_df_cases_to_bash(df, target_lib, output_file):
     df = df.sort_values(by=["suite_name", "test_name"])
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    rerun_dir_name = "RERUN_" + timestamp
+    rerun_dir_name = f"{target_lib}/RERUN" 
     os.makedirs(rerun_dir_name, exist_ok=False)
 
     cases = []
@@ -83,6 +82,22 @@ def save_cases_to_bash(df, output_file):
 
     save_list_to_txt(cases, output_file)
 
+
+def save_txt_cases_to_bash(txt_file, target_lib, output_file):
+    case_list = read_txt_to_list(txt_file)
+    
+    rerun_dir_name = f"{target_lib}/RERUN" 
+    rerun_command = []
+    
+    for case in case_list:
+        suite_name = case.split("::")[1]
+        test_name = case.split("::")[2]
+        rerun_command.append(
+            f"pytest -rA {case} --excelreport /mnt/{rerun_dir_name}/{suite_name+test_name}.xlsx"
+        )
+    
+    save_list_to_txt(rerun_command, output_file)
+    
 
 def save_cases_to_txt(df, output_file):
     df = df.sort_values(by=["suite_name", "test_name"])
