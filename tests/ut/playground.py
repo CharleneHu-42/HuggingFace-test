@@ -138,21 +138,21 @@ import os
 
 
 # ----STEP 13: mark cases with existing knowledge for statistics----
-xpu_file = os.path.join(result_path, f"clean_xpu_{target_lib}_ut.xlsx")
-cuda_file = os.path.join(result_path, f"clean_cuda_{target_lib}_ut.xlsx")
+# xpu_file = os.path.join(result_path, f"clean_xpu_{target_lib}_ut.xlsx")
+# cuda_file = os.path.join(result_path, f"clean_cuda_{target_lib}_ut.xlsx")
 
-xpu = pd.read_excel(xpu_file)
-cuda = pd.read_excel(cuda_file)
+# xpu = pd.read_excel(xpu_file)
+# cuda = pd.read_excel(cuda_file)
 
-mark_ut_results_with_ignore_cases(xpu_file, ignore_path, result_path, f"final_xpu_{target_lib}_ut.xlsx")
-mark_ut_results_with_ignore_cases(cuda_file, ignore_path, result_path, f"final_cuda_{target_lib}_ut.xlsx")
+# mark_ut_results_with_ignore_cases(xpu_file, ignore_path, result_path, f"final_xpu_{target_lib}_ut.xlsx")
+# mark_ut_results_with_ignore_cases(cuda_file, ignore_path, result_path, f"final_cuda_{target_lib}_ut.xlsx")
 
-# ----STEP 14: gather final statistics for both CUDA and XPU----
+# # ----STEP 14: gather final statistics for both CUDA and XPU----
 
-xpu_file = os.path.join(result_path, f"final_xpu_{target_lib}_ut.xlsx")
-cuda_file = os.path.join(result_path, f"final_cuda_{target_lib}_ut.xlsx")
+# xpu_file = os.path.join(result_path, f"final_xpu_{target_lib}_ut.xlsx")
+# cuda_file = os.path.join(result_path, f"final_cuda_{target_lib}_ut.xlsx")
 
-create_final_report(result_path, cuda_file, xpu_file)
+# create_final_report(result_path, cuda_file, xpu_file)
 
 
 # ==============================================================
