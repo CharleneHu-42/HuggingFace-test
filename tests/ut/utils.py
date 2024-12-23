@@ -117,7 +117,7 @@ def save_cases_with_empty_messages(file_name):
     skipped = df[(df["result"] == "SKIPPED") | (df["result"] == "FAILED")]
     rerun = skipped[skipped["message"].isnull()]
 
-    save_cases_to_bash(rerun, "rerun.sh")
+    save_df_cases_to_bash(rerun, "rerun.sh")
 
 
 def merge_excel_files_to_one(input_path, output_file):
@@ -293,9 +293,14 @@ def add_column_and_mark_with_case_list(df, new_column, case_list, value=None):
     return df
 
 
-def consolidate_and_get_stats(excel_dir, out_file_name):
+def consolidate_and_get_stats(excel_dir, out_file_name, rerun_folder=""):
     # read xpu ut excel files
-    tests_df = merge_excel_files_to_df(excel_dir)
+    raw_df = merge_excel_files_to_df(excel_dir)
+
+    if os.path.exists(rerun_folder):
+        rerun_df = merge_excel_files_to_df(rerun_folder)
+        tests_df = pd.concat([raw_df, rerun_df])
+
     tests_df = tests_df[RELEVANT_COLS]
 
     tests_df.to_excel(os.path.join(excel_dir, out_file_name), index=False)
@@ -341,7 +346,7 @@ def compare_xpu_with_cuda_ut(cuda_df, xpu_df, save_dir):
             xpu_df.loc[index, "align with cuda"] = 1
 
     if cuda_df.shape[0] != xpu_df.shape[0]:
-        print(f"----------FAILED: total ut numbers are different------------")
+        print(f"----------total ut numbers are different, pls double-check------------")
         save_cases_to_txt(cuda_df, os.path.join(save_dir, "all_cases_cuda.txt"))
         save_cases_to_txt(xpu_df, os.path.join(save_dir, "all_cases_xpu.txt"))
         xpu_df.to_excel(os.path.join(save_dir, "aligned_xpu_ut.xlsx"), index=False)

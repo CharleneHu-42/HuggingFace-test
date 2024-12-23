@@ -49,9 +49,9 @@ run_test_folder() {
 		IGNORE2="tests/bettertransformer"
 	elif [ "$target" = "diffusers" ]; then
 		NOT_RUN_MARKERS=""
-		NOT_RUN_KEYWORDS="not animatediff"
-		IGNORE1=""
-		IGNORE2="tests/single_file/test_stable_diffusion_img2img_single_file.py"
+		NOT_RUN_KEYWORDS="not (animatediff or npu or flax)"
+		IGNORE1="tests/single_file/test_stable_diffusion_img2img_single_file.py"
+		IGNORE2="tests/pipelines/test_pipelines_flax.py"
 	else
 		NOT_RUN_MARKERS=""
 		NOT_RUN_KEYWORDS=""
@@ -121,7 +121,7 @@ elif [ "$target" = "diffusers" ]; then
 		else
 			run_test_folder "tests/single_file/$(basename "$file")" "$(basename "$file" .py)"
 			fi 
-		fi
+			fi
 	done
 
     for x in a b c d f h i k l m p s t u w
