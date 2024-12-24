@@ -53,7 +53,7 @@ import os
 # ]
 # rerun = df[df["message"].isin(message_list)]
 #
-# save_df_cases_to_bash(rerun, "xpu_rerun.sh")
+# save_df_cases_to_bash(rerun, target_lib, f"{target_lib}/xpu_rerun.sh")
 
 
 # ----STEP 5: merge results to the original excel file after rerun----
@@ -65,11 +65,11 @@ import os
 # df = pd.read_excel(excel_file)
 #
 # rerun = df[df["need rerun"] == 1.0] # manually marked as `need rerun` for abnormal failed messages like OOM or ccl error etc.
-# save_df_cases_to_bash(rerun, "xpu_rerun2.sh")
+# save_df_cases_to_bash(rerun, target_lib, f"{target_lib}/xpu_rerun2.sh")
 
 
 # ----STEP 7: merge results to the original excel file after rerun----
-# update_ut_result_after_rerun(f"{target_lib}/RERUN", f"{raw_result_path}/{device}_{target_lib}_ut.xlsx", f"{raw_result_path}/{device}_{target_lib}_ut2.xlsx")
+# update_ut_result_after_rerun(f"{target_lib}/RERUN", f"{raw_result_path}/{device}_{target_lib}_ut2.xlsx", f"{raw_result_path}/{device}_{target_lib}_ut3.xlsx")
 
 
 # ==============================================================
@@ -196,7 +196,6 @@ import os
 # ----STEP 2: consolidate and get initial test results----
 # consolidate_and_get_stats(raw_result_path, f"{device}_{target_lib}_ut.xlsx")
 
-
 # ----STEP 3: manually check the skip and fail statistics and rerun test subsets if needed----
 # you can manually modify the rerun test result in excel sheet for small libraries like accelerate, trl
 
@@ -210,8 +209,8 @@ import os
 
 
 # ----STEP 5: validate xpu ut results with cuda ut results----
-# cuda_excel = os.path.join(target_lib, f"cuda_{target_lib}_ut.xlsx")
-# xpu_excel = os.path.join(target_lib, f"xpu_{target_lib}_ut.xlsx")
+# cuda_excel = os.path.join(raw_result_path, f"cuda_{target_lib}_ut.xlsx")
+# xpu_excel = os.path.join(raw_result_path, f"xpu_{target_lib}_ut2.xlsx")
 
 # cuda_df = pd.read_excel(cuda_excel)
 # xpu_df = pd.read_excel(xpu_excel)
@@ -226,8 +225,8 @@ import os
 
 # ----STEP 7: gather final UT results----
 
-# xpu_excel = os.path.join(target_lib, f"xpu_{target_lib}_ut.xlsx")
-# cuda_excel = os.path.join(target_lib, f"cuda_{target_lib}_ut.xlsx")
+# cuda_excel = os.path.join(raw_result_path, f"cuda_{target_lib}_ut.xlsx")
+# xpu_excel = os.path.join(raw_result_path, f"xpu_{target_lib}_ut2.xlsx")
 # xpu_df = pd.read_excel(xpu_excel)
 # cuda_df = pd.read_excel(cuda_excel)
 # # xpu_df = xpu_df[xpu_df["ignore"] != 1]

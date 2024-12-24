@@ -120,6 +120,9 @@ elif [ "$target" = "diffusers" ]; then
 elif [ "$target" = "optimum-quanto" ] || [ "$target" = "accelerate" ] || [ "$target" = "peft" ] || [ "$target" = "trl" ]; then
 
 	if [ "$target" = "trl" ]; then
+		# since trl imports transformers' torch_device
+		export TRANSFORMERS_TEST_DEVICE="${device}"
+		export TRANSFORMERS_TEST_DEVICE_SPEC="spec_${device}.py"
 		if [ "$device" = "cuda" ]; then
 			export CUDA_VISIBLE_DEVICES=2,3
 		elif [ "$device" = "xpu" ]; then

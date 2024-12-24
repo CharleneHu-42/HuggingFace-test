@@ -312,11 +312,11 @@ def add_column_and_mark_with_case_list(df, new_column, case_list, value=None):
 
 def consolidate_and_get_stats(excel_dir, out_file_name, rerun_folder=""):
     # read xpu ut excel files
-    raw_df = merge_excel_files_to_df(excel_dir)
+    tests_df = merge_excel_files_to_df(excel_dir)
 
     if os.path.exists(rerun_folder):
         rerun_df = merge_excel_files_to_df(rerun_folder)
-        tests_df = pd.concat([raw_df, rerun_df])
+        tests_df = pd.concat([tests_df, rerun_df])
 
     tests_df = tests_df[RELEVANT_COLS]
 
