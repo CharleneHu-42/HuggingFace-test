@@ -34,7 +34,7 @@ RUN pip install --no-cache-dir -U torch==$PYTORCH_VER torchvision torchaudio --e
 RUN pip install pyctcdecode pytesseract decord galore-torch fire scipy scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en kenlm mpi4py
 RUN pip install pretty_midi essentia resampy Levenshtein av sacrebleu phonemizer tensorboard invisible_watermark schedulefree clearml
 RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets timm transformers accelerate peft onnx optimum
-RUN pip install gguf hqq quanto compressed_tensors liger-kernel auto-gptq
+RUN pip install gguf hqq quanto compressed_tensors liger-kernel auto-gptq mergekit
 
 RUN pip install --no-cache-dir bitsandbytes
 RUN pip install onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/

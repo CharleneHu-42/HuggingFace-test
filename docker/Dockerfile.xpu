@@ -38,7 +38,7 @@ RUN pip install torch==2.5.1+cxx11.abi torchvision==0.20.1+cxx11.abi torchaudio=
 RUN pip install pyctcdecode pytesseract decord galore-torch fire scipy scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en kenlm mpi4py
 RUN pip install pretty_midi essentia resampy Levenshtein av sacrebleu phonemizer invisible_watermark schedulefree clearml
 RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets timm transformers accelerate peft onnx optimum
-RUN pip install gguf hqq quanto compressed_tensors liger-kernel auto-gptq
+RUN pip install gguf hqq quanto compressed_tensors liger-kernel auto-gptq mergekit
 
 # install bitsandbytes
 RUN pip install git+https://github.com/bitsandbytes-foundation/bitsandbytes.git@multi-backend-refactor
