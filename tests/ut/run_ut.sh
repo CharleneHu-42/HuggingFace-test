@@ -76,7 +76,7 @@ if [ "$target" = "transformers" ]; then
 		echo "+++++++++run test folder quantization/$folder ++++++++++++++++"
 		run_test_folder "tests/quantization/$folder" "$folder"
 	done
-	# if we run all tests in one short and one test case has core-dump or hangs, we will end up with no test result saved.
+	# if we run all tests in one shot and one test case has core-dump or hangs, we will end up with no test result saved.
 	# to avoid this issue, we run the cases batch per batch.
 	for x in {a..z}; do
 		echo "+++++++++run test folder models/$x* ++++++++++++++++"
@@ -107,7 +107,7 @@ elif [ "$target" = "diffusers" ]; then
 			run_test_folder "tests/single_file/$(basename "$file")" "$(basename "$file" .py)"
 		fi
 	done
-	# if we run all tests in one short and one test case has core-dump or hangs, we will end up with no test result saved.
+	# if we run all tests in one shot and one test case has core-dump or hangs, we will end up with no test result saved.
 	# to avoid this issue, we run the cases batch per batch.
 	for x in {a..z}; do
 		echo "+++++++++run test folder pipelines/$x* ++++++++++++++++"
