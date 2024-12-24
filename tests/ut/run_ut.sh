@@ -78,18 +78,20 @@ if [ "$target" = "transformers" ]; then
 	echo "+++++++++run single files++++++++++++++++"
 	run_test_folder "tests" "single_files"
 
-	for folder in benchmark extended fsdp generation peft_integration trainer pipelines deepspeed; do
+	folders=("benchmark" "extended" "fsdp" "generation" "peft_integration" "trainer" "pipelines" "deepspeed")
+	for folder in "${folders[@]}"; do
 		echo "+++++++++run test folder $folder ++++++++++++++++"
 		run_test_folder "tests/$folder" "$folder"
 	done
 
-	for folder in autoawq bnb quanto_integration; do
+	folders=("autoawq" "bnb" "quanto_integration")
+	for folder in "${folders[@]}"; do
 		echo "+++++++++run test folder quantization/$folder ++++++++++++++++"
 		run_test_folder "tests/quantization/$folder" "$folder"
 	done
 	# if we run all tests in one short and one test case has core-dump or hangs, we will end up with no test result saved.
 	# to avoid this issue, we run the cases batch per batch.
-	for x in a b c d e f g h i j k l m n o p q r s t u v w x y z; do
+	for x in {a..z}; do
 		echo "+++++++++run test folder models/$x* ++++++++++++++++"
 		run_test_folder "tests/models/$x*" "models_$x"
 	done
@@ -104,7 +106,8 @@ elif [ "$target" = "diffusers" ]; then
 	export DIFFUSERS_TEST_DEVICE="${device}"
 	export DIFFUSERS_TEST_DEVICE_SPEC="spec_${device}.py"
 
-	for folder in lora models others quantization schedulers; do
+	folders=("lora" "models" "others" "quantization" "schedulers")
+	for folder in "${folders[@]}"; do
 		echo "+++++++++run test folder $folder ++++++++++++++++"
 		run_test_folder "tests/$folder" "$folder"
 	done
@@ -113,12 +116,13 @@ elif [ "$target" = "diffusers" ]; then
 		if [ "$(basename "$file")" = "__init__.py" ] || [ "$(basename "$file")" = "single_file_testing_utils.py" ]; then
 			echo "----skip $file----"
 		else
+			echo "+++++++++run test file $file ++++++++++++++++"
 			run_test_folder "tests/single_file/$(basename "$file")" "$(basename "$file" .py)"
 		fi
 	done
 	# if we run all tests in one short and one test case has core-dump or hangs, we will end up with no test result saved.
 	# to avoid this issue, we run the cases batch per batch.
-	for x in a b c d f h i k l m p s t u w; do
+	for x in {a..z}; do
 		echo "+++++++++run test folder pipelines/$x* ++++++++++++++++"
 		run_test_folder "tests/pipelines/$x*" "${x}_pipeline"
 	done
