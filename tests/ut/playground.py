@@ -34,7 +34,7 @@ import os
 # If the real ut number doesn't match the real ut number, this is either due to core-dump or hang.  
 # in this case, you need to manually find out the test file or test cases that cause the issue.
 # sort the test cases in a seperate txt file, and run them one by one, e.g.  
-# save_txt_cases_to_bash(f"{target_lib}/need_rerun.txt", target_lib, f"{target_lib}/need_rerun.sh")
+# save_txt_cases_to_bash(f"{target_lib}/need_rerun.txt", target_lib, True)
 
 # ==============================================================
 #       PHASE 2: Rough analyze, rerun and update UT results
@@ -69,7 +69,7 @@ import os
 
 
 # ----STEP 7: merge results to the original excel file after rerun----
-# update_ut_result_after_rerun("RERUN", f"{raw_result_path}/{device}_{target_lib}_ut.xlsx", f"{raw_result_path}/{device}_{target_lib}_ut2.xlsx")
+# update_ut_result_after_rerun(f"{target_lib}/RERUN", f"{raw_result_path}/{device}_{target_lib}_ut.xlsx", f"{raw_result_path}/{device}_{target_lib}_ut2.xlsx")
 
 
 # ==============================================================
@@ -120,7 +120,7 @@ import os
 # ==============================================================
 
 # ----STEP 12: save cuda failed and skipped cases----
-# cuda_df = os.path.join(result_path, f"clean_cuda_{target_lib}_ut.xlsx")
+# cuda_df = os.path.join(result_path, f"clean_cuda_{target_lib}_ut2.xlsx")
 # save_skipped_cases_to_txt(cuda_df, os.path.join(result_path, "cuda_skipped.txt"))
 # save_failed_cases_to_txt(cuda_df, os.path.join(result_path, "cuda_failed.txt"))
 
@@ -137,9 +137,9 @@ import os
 # shutil.move(os.path.join(result_path, "cuda_failed.txt"), f"{target_lib}/cases_to_ignore")
 
 
-# ----STEP 13: mark cases with existing knowledge for statistics----
-# xpu_file = os.path.join(result_path, f"clean_xpu_{target_lib}_ut.xlsx")
-# cuda_file = os.path.join(result_path, f"clean_cuda_{target_lib}_ut.xlsx")
+# # ----STEP 13: mark cases with existing knowledge for statistics----
+# xpu_file = os.path.join(result_path, f"clean_xpu_{target_lib}_ut2.xlsx")
+# cuda_file = os.path.join(result_path, f"clean_cuda_{target_lib}_ut2.xlsx")
 
 # xpu = pd.read_excel(xpu_file)
 # cuda = pd.read_excel(cuda_file)
@@ -147,8 +147,7 @@ import os
 # mark_ut_results_with_ignore_cases(xpu_file, ignore_path, result_path, f"final_xpu_{target_lib}_ut.xlsx")
 # mark_ut_results_with_ignore_cases(cuda_file, ignore_path, result_path, f"final_cuda_{target_lib}_ut.xlsx")
 
-# # ----STEP 14: gather final statistics for both CUDA and XPU----
-
+# ## ----STEP 14: gather final statistics for both CUDA and XPU----
 # xpu_file = os.path.join(result_path, f"final_xpu_{target_lib}_ut.xlsx")
 # cuda_file = os.path.join(result_path, f"final_cuda_{target_lib}_ut.xlsx")
 
@@ -296,10 +295,22 @@ import os
 # you need to go through the tests one by one and categorize them. Then update the report statistics.
 #
 
-# ----STEP 12: reorder txt test case files for upstreaming----
+
+# =======================================================================================================
+#                            Other useful cases for analysis
+# =======================================================================================================
+
+# ----reorder txt test case files for upstreaming----
 # file1 = os.path.join(ignore_path, "cuda_shouldnot_only.txt")
 # file2 = os.path.join(ignore_path, "xpu_missing_thirdPartyLib.txt")
 # file2 = os.path.join(ignore_path, "xpu_missing_quantization.txt")
 # reorder_txt_cases(file1)
 # reorder_txt_cases(file2)
 # reorder_txt_cases(file3)
+
+
+# ----get diff test cases----
+# target_lib = "diffusers"
+# get_cases_in_one_not_in_two(f"{target_lib}/test_result/cuda_all_failed_cases.txt", f"{target_lib}/test_result/xpu_all_failed_cases.txt", f"{target_lib}/need_rerun2.txt")
+# save_txt_cases_to_bash(f"{target_lib}/need_rerun2.txt", target_lib, False)
+

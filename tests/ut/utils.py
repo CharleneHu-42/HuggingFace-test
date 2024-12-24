@@ -65,10 +65,20 @@ def extract_short_cases(in_txt_file, out_txt_file):
     return final_cases
 
 
+def get_cases_in_one_not_in_two(txt_file1, txt_file2, output_file):
+    txt1 = read_txt_to_list(txt_file1)
+    txt2 = read_txt_to_list(txt_file2)
+
+    diff_cases = [case for case in txt1 if case not in txt2]
+    save_list_to_txt(diff_cases, output_file)
+
+    return diff_cases
+
+
 def save_df_cases_to_bash(df, target_lib, output_file):
     df = df.sort_values(by=["suite_name", "test_name"])
 
-    rerun_dir_name = f"{target_lib}/RERUN" 
+    rerun_dir_name = f"{target_lib}/RERUN"
     os.makedirs(rerun_dir_name, exist_ok=False)
 
     cases = []
@@ -83,22 +93,28 @@ def save_df_cases_to_bash(df, target_lib, output_file):
     save_list_to_txt(cases, output_file)
 
 
-def save_txt_cases_to_bash(txt_file, target_lib, output_file):
+def save_txt_cases_to_bash(txt_file, target_lib, with_file_name):
     case_list = read_txt_to_list(txt_file)
-    
-    rerun_dir_name = f"{target_lib}/RERUN" 
+
+    rerun_dir_name = f"{target_lib}/RERUN"
     os.makedirs(rerun_dir_name, exist_ok=False)
+
     rerun_command = []
-    
+
+    if with_file_name:
+        suite_index = 1
+    else:
+        suite_index = 0
+
     for case in case_list:
-        suite_name = case.split("::")[1]
-        test_name = case.split("::")[2]
+        suite_name = case.split("::")[suite_index]
+        test_name = case.split("::")[suite_index + 1]
         rerun_command.append(
-            f"pytest -rA {case} --excelreport /mnt/{rerun_dir_name}/{suite_name+test_name}.xlsx"
+            f"pytest -rA tests -k '{suite_name} and {test_name}' --excelreport /mnt/{rerun_dir_name}/{suite_name+test_name}.xlsx"
         )
-    
-    save_list_to_txt(rerun_command, output_file)
-    
+
+    save_list_to_txt(rerun_command, txt_file.replace(".txt", ".sh"))
+
 
 def save_cases_to_txt(df, output_file):
     df = df.sort_values(by=["suite_name", "test_name"])

@@ -126,7 +126,7 @@ elif [ "$target" = "diffusers" ]; then
 	if [ "$dry_run" = "1" ]; then
 		collect_test_count
 	fi
-elif [ "$target" = "optimum-quanto" ] || [ "$target" = "peft" ] || [ "$target" = "accelerate" ] || [ "$target" = "trl" ]; then
+elif [ "$target" = "optimum-quanto" ] || [ "$target" = "accelerate" ] || [ "$target" = "peft" ] || [ "$target" = "trl" ]; then
 
 	if [ "$target" = "trl" ]; then
 		if [ "$device" = "cuda" ]; then
