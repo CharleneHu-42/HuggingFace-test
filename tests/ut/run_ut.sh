@@ -87,7 +87,8 @@ if [ "$target" = "transformers" ]; then
 		echo "+++++++++run test folder quantization/$folder ++++++++++++++++"
 		run_test_folder "tests/quantization/$folder" "$folder"
 	done
-
+	# if we run all tests in one short and one test case has core-dump or hangs, we will end up with no test result saved.
+	# to avoid this issue, we run the cases batch per batch.
 	for x in a b c d e f g h i j k l m n o p q r s t u v w x y z; do
 		echo "+++++++++run test folder models/$x* ++++++++++++++++"
 		run_test_folder "tests/models/$x*" "models_$x"
@@ -115,7 +116,8 @@ elif [ "$target" = "diffusers" ]; then
 			run_test_folder "tests/single_file/$(basename "$file")" "$(basename "$file" .py)"
 		fi
 	done
-
+	# if we run all tests in one short and one test case has core-dump or hangs, we will end up with no test result saved.
+	# to avoid this issue, we run the cases batch per batch.
 	for x in a b c d f h i k l m p s t u w; do
 		echo "+++++++++run test folder pipelines/$x* ++++++++++++++++"
 		run_test_folder "tests/pipelines/$x*" "${x}_pipeline"
@@ -124,7 +126,7 @@ elif [ "$target" = "diffusers" ]; then
 	if [ "$dry_run" = "1" ]; then
 		collect_test_count
 	fi
-elif [ "$target" = "accelerate" ] || [ "$target" = "peft" ] || [ "$target" = "optimum-quanto" ] || [ "$target" = "trl" ]; then
+elif [ "$target" = "optimum-quanto" ] || [ "$target" = "peft" ] || [ "$target" = "accelerate" ] || [ "$target" = "trl" ]; then
 
 	if [ "$target" = "trl" ]; then
 		if [ "$device" = "cuda" ]; then
