@@ -87,6 +87,7 @@ def save_txt_cases_to_bash(txt_file, target_lib, output_file):
     case_list = read_txt_to_list(txt_file)
     
     rerun_dir_name = f"{target_lib}/RERUN" 
+    os.makedirs(rerun_dir_name, exist_ok=False)
     rerun_command = []
     
     for case in case_list:
