@@ -27,19 +27,6 @@ collect_test_count() {
 run_test_folder() {
 	local folder=$1
 	local save_name=$2
-	local is_transformers=$3
-
-	if [ "$is_transformers" = "1" ]; then
-		NOT_RUN_MARKERS="not (not_device_test)"
-		NOT_RUN_KEYWORDS="not (tpu or npu or tf or ModelOnTheFlyConversionTester or SigOpt or TrainerHyperParameterRayIntegrationTest or TrainerHyperParameterWandbIntegrationTest or TestTrainerDistributedNeuronCore or TestTrainerDistributedNPU)"
-		IGNORE1="tests/sagemaker"
-		IGNORE2="tests/bettertransformer"
-	else
-		NOT_RUN_MARKERS=""
-		NOT_RUN_KEYWORDS=""
-		IGNORE1=""
-		IGNORE2=""
-	fi
 
 	if [ "$target" = "transformers" ]; then
 		NOT_RUN_MARKERS="not (not_device_test)"
