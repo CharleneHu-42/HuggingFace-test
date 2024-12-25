@@ -39,6 +39,7 @@ RUN pip install pyctcdecode pytesseract decord galore-torch fire scipy scikit-le
 RUN pip install pretty_midi essentia resampy Levenshtein av sacrebleu phonemizer invisible_watermark schedulefree clearml
 RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets timm transformers accelerate peft onnx optimum
 RUN pip install gguf hqq quanto compressed_tensors liger-kernel auto-gptq mergekit
+RUN pip uninstall triton && pip install --pre pytorch-triton-xpu==3.1.0+91b14bf559 --index-url https://download.pytorch.org/whl/nightly/xpu
 
 # install bitsandbytes
 RUN pip install git+https://github.com/bitsandbytes-foundation/bitsandbytes.git@multi-backend-refactor
