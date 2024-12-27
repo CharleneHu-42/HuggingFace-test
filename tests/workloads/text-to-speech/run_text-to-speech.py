@@ -74,7 +74,10 @@ if __name__ == "__main__":
     forward_params = (
         {"speaker_embeddings": speaker_embedding} if "t5" in model_id else {}
     )
-    forward_params["do_sample"] = False
+    if synthesiser.model.can_generate():
+        forward_params["do_sample"] = False
+    if "seamless_m4t" in synthesiser.model.config.model_type:
+        forward_params["tgt_lang"] = "eng"
 
     if args.jit:
         raise ValueError("Text-to-speech does not support jit trace")
@@ -87,6 +90,8 @@ if __name__ == "__main__":
             synthesiser.model.semantic.forward = torch.compile(synthesiser.model.semantic.forward)
             synthesiser.model.coarse_acoustics.forward = torch.compile(synthesiser.model.coarse_acoustics.forward)
             synthesiser.model.fine_acoustics.forward = torch.compile(synthesiser.model.fine_acoustics.forward)
+        elif "seamless_m4t" in synthesiser.model.config.model_type:
+            synthesiser.model.forward  = torch.compile(synthesiser.model.forward)
         else:
             synthesiser.model.generate = torch.compile(synthesiser.model.generate)
     elif args.ipex_optimize:

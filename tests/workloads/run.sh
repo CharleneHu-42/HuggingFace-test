@@ -186,6 +186,7 @@ handle_options "$@"
 
 CORES=`lscpu | grep 'Core(s) per socket' | awk '{print $4}'`
 export TORCHINDUCTOR_FREEZING=1
+export TORCHINDUCTOR_CPP_WRAPPER=1
 export TRITON_CODEGEN_INTEL_XPU_BACKEND=1
 export OMP_NUM_THREADS=${CORES}
 export TORCHINDUCTOR_CPP_MIN_CHUNK_SIZE=${CORES}

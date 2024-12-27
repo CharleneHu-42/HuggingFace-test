@@ -2,12 +2,14 @@ from diffusers import (
     StableDiffusionPipeline,
     DiffusionPipeline,
     DPMSolverMultistepScheduler,
+    StableDiffusionInpaintPipeline,
 )
 import torch
 import time
 import sys
 import logging
 import os
+import PIL
 from transformers.utils import ContextManagers
 
 logging.basicConfig(level=logging.INFO)
@@ -49,7 +51,7 @@ def load_model(model_id, seed, model_dtype, device):
         pipe = DiffusionPipeline.from_pretrained(
             model_id, torch_dtype=model_dtype, use_safetensors=True
         )
-    elif model_id == "runwayml/stable-diffusion-v1-5":
+    elif model_id in ["runwayml/stable-diffusion-v1-5", "stable-diffusion-v1-5/stable-diffusion-v1-5"]:
         pipe = StableDiffusionPipeline.from_pretrained(
             model_id, torch_dtype=model_dtype
         )
@@ -58,25 +60,42 @@ def load_model(model_id, seed, model_dtype, device):
             model_id, torch_dtype=model_dtype
         )
         pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
+    elif model_id == "stable-diffusion-v1-5/stable-diffusion-inpainting":
+        pipe = StableDiffusionInpaintPipeline.from_pretrained(
+            model_id, torch_dtype=model_dtype
+        )
     else:
         raise ValueError("the given model id is not supported currently.")
     pipe.to(device)
     return pipe
 
 
-def benchmark(pipe, prompt, seed, nb_pass):
+def benchmark(pipe, prompt, seed, nb_pass, input_image):
     elapsed_time = []
     for i in range(nb_pass):
         synchronize_device(pipe.device.type)
         start = time.time()
         torch.manual_seed(seed)
-        image = pipe(prompt=prompt).images[0]
+        if model_id == "stable-diffusion-v1-5/stable-diffusion-inpainting":
+            image = pipe(prompt=prompt, image=input_image, mask_image=input_image).images[0]
+        else:
+            image = pipe(prompt=prompt).images[0]
         synchronize_device(pipe.device.type)
         duration = time.time() - start
         elapsed_time.append(duration * 1000)
         image.save(f"img_{i}.jpg", "JPEG")
 
     return elapsed_time
+
+
+def prepare_image():
+    image_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "datasets", "Astronaut_Riding_a_Horse.jpg"
+    )
+    image = PIL.Image.open(image_path)
+    image = PIL.ImageOps.exif_transpose(image)
+    image = image.convert("RGB")
+    return image
 
 
 def prepare_inputs(model_id, jit, dtype, device):
@@ -206,8 +225,12 @@ if __name__ == "__main__":
     if use_torch_compile:
         pipe = apply_torch_compile(pipe, backend)
 
+    image = None
+    if model_id == "stable-diffusion-v1-5/stable-diffusion-inpainting":
+        image = prepare_image()
+
     with ContextManagers(inference_context):
-        elapsed_time = benchmark(pipe, PROMPT, SEED, warm_up_steps + run_steps)
+        elapsed_time = benchmark(pipe, PROMPT, SEED, warm_up_steps + run_steps, image)
 
     logging.info(f"total time [s]: {elapsed_time}")
     logging.info(

@@ -14,6 +14,9 @@ RUN apt-get install -y numactl build-essential python3-dev
 # install oneapi
 RUN apt-get install -y intel-basekit
 
+# install
+RUN apt-get install -y python3-opencv
+
 # install performance utilities
 RUN apt-get install -y google-perftools
 RUN pip install -U intel-openmp

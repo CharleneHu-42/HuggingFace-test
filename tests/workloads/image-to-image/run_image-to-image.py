@@ -6,6 +6,10 @@ from diffusers import (
     EulerAncestralDiscreteScheduler,
     StableDiffusionXLImg2ImgPipeline,
     StableDiffusionImageVariationPipeline,
+    StableDiffusionInpaintPipeline,
+    StableDiffusionControlNetPipeline,
+    ControlNetModel,
+    UniPCMultistepScheduler,
 )
 import time
 from torchvision import transforms
@@ -69,6 +73,18 @@ def load_model(model_id, seed, model_dtype, device):
         pipe = StableDiffusionImageVariationPipeline.from_pretrained(
             model_id, torch_dtype=model_dtype, revision="v2.0"
         )
+    elif model_id == "stabilityai/stable-diffusion-2-inpainting":
+        pipe = StableDiffusionInpaintPipeline.from_pretrained(
+            model_id, torch_dtype=model_dtype
+        )
+    elif model_id == "lllyasviel/sd-controlnet-canny":
+        controlnet = ControlNetModel.from_pretrained(
+            model_id, torch_dtype=model_dtype
+        )
+        pipe = StableDiffusionControlNetPipeline.from_pretrained(
+            "runwayml/stable-diffusion-v1-5", controlnet=controlnet, safety_checker=None, torch_dtype=model_dtype
+        )
+        pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
     else:
         raise ValueError(
             f"the given model id is not supported currently. it is {model_id}"
@@ -98,6 +114,8 @@ def benchmark(pipe, prompt, image, seed, nb_pass, model_id):
             new_image = pipe(
                 prompt, image=image, num_inference_steps=10, image_guidance_scale=1
             ).images[0]
+        elif model_id == "stabilityai/stable-diffusion-2-inpainting":
+            new_image = pipe(prompt, image=image, mask_image=image).images[0]
         else:
             new_image = pipe(prompt=prompt, image=image).images[0]
         synchronize_device(pipe.device.type)
@@ -190,7 +208,7 @@ def apply_torch_compile(pipe, backend):
     logging.info(f"using torch compile with {backend} backend for acceleration...")
     if backend == "ipex":
         import intel_extension_for_pytorch as ipex
-    pipe.unet.forward = torch.compile(pipe.unet.forward, backend=backend)
+    pipe.unet = torch.compile(pipe.unet, backend=backend)
     return pipe
 
 

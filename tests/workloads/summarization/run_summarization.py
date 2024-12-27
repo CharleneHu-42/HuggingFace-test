@@ -111,7 +111,9 @@ if __name__ == "__main__":
         inference_context.append(torch.autocast(device, dtype, enable))
     
     model_kwargs = {}
-    quantization_config = get_bitsandbytes_config(args.quant_type)
+    quantization_config = None
+    if args.quant_algo == "bitsandbytes":
+        quantization_config = get_bitsandbytes_config(args.quant_dtype)
     if quantization_config is not None:
         model_kwargs["quantization_config"] = quantization_config
 
@@ -159,8 +161,6 @@ if __name__ == "__main__":
         logging.info(f"Use torch compile with {args.backend} backend")
         if args.backend == "ipex":
             import intel_extension_for_pytorch as ipex
-        from torch._inductor import config
-        torch._inductor.config.cpp_wrapper = True
         # pipeline warmup
         _, _, _ = generate(generator, input_seq, args.batch_size, 1, 1)
         generator.model.forward = torch.compile(

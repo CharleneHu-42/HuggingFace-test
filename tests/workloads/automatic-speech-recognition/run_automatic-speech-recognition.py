@@ -10,7 +10,6 @@ logging.basicConfig(level=logging.INFO)
 
 import sys
 import os
-import torch._inductor.config
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 
@@ -18,7 +17,7 @@ from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchr
 
 inference_context = [torch.inference_mode()]
 
-def generate(generator, pipe_input, warm_up_steps, run_steps):
+def generate(generator, pipe_input, warm_up_steps, run_steps, generate_kwargs=None):
     time_costs = []
     forward_times = []
     with ContextManagers(inference_context):
@@ -26,7 +25,10 @@ def generate(generator, pipe_input, warm_up_steps, run_steps):
             generator.forward_time = 0
             synchronize_device(generator.device.type)
             pre = time.time()
-            output = generator(pipe_input)
+            if generate_kwargs:
+                output = generator(pipe_input, generate_kwargs=generate_kwargs)
+            else:
+                output = generator(pipe_input)
             synchronize_device(generator.device.type)
             time_costs.append((time.time() - pre) * 1000)
             forward_times.append(generator.forward_time * 1000)
@@ -55,7 +57,6 @@ if __name__ == "__main__":
     dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32
 
-    torch._inductor.config.cpp_wrapper = True
     if enable:
         inference_context.append(torch.autocast(device, dtype, enable))
 
@@ -69,6 +70,11 @@ if __name__ == "__main__":
             device=device,
             torch_dtype=torch_dtype,
         )
+        generate_kwargs = None
+        if generator.model.can_generate():
+            generation_config = generator.model.generation_config
+            generation_config.cache_implementation="static"
+            generate_kwargs = {"generation_config": generation_config}
         wrap_forward_for_benchmark(generator)
         logging.info(data["train"][0])
 
@@ -84,7 +90,7 @@ if __name__ == "__main__":
             generator.model = ipex.optimize(generator.model, dtype=torch_dtype, inplace=True)
 
         generate(
-            generator, data["train"][0]["audio"]["array"], warm_up_steps, run_steps
+            generator, data["train"][0]["audio"]["array"], warm_up_steps, run_steps, generate_kwargs=generate_kwargs
         )
     else:
         from pyannote.audio import Pipeline
