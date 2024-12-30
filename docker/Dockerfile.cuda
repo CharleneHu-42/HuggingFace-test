@@ -34,7 +34,7 @@ RUN pip install --no-cache-dir -U torch==$PYTORCH_VER torchvision torchaudio --e
 RUN pip install pyctcdecode pytesseract decord galore-torch fire scipy scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en kenlm mpi4py
 RUN pip install pretty_midi essentia resampy Levenshtein av sacrebleu phonemizer tensorboard invisible_watermark schedulefree clearml
 RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets timm transformers accelerate peft onnx optimum
-RUN pip install gguf hqq quanto compressed_tensors liger-kernel auto-gptq
+RUN pip install gguf hqq quanto compressed_tensors liger-kernel auto-gptq mergekit
 
 RUN pip install --no-cache-dir bitsandbytes
 RUN pip install onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/
@@ -48,17 +48,15 @@ ENTRYPOINT ["/entrypoint.sh"]
 
 FROM base AS ut
 
-ENV RUN_SLOW=1
-
 RUN pip install pytest-env pytest-timeout pytest-excel openpyxl
 
 WORKDIR /.tests
 ARG QUANTO_COMMIT=450870266df82a0c2ecf0d86c9fa738172763a5c
 ARG TRANSFORMERS_COMMIT=1f6b423f0ce0c6e7afd300b59e5fd1a816e4896c
 ARG ACCELERATE_COMMIT=200c9eb7833cfa505907f6f224ebf5a275aa6d92
-ARG PEFT_COMMIT=8eeae0a63f28a80ef42b6bfc977c34ffc0b650ff
-ARG DIFFUSERS_COMMIT=9a92b8177cb3f8bf4b095fff55da3b45a3607960
-ARG TRL_COMMIT=b2696578ce6db1749a250661b507bf8b90e14dd5
+ARG PEFT_COMMIT=ae55fdcc5c4830e0f9fb6e56f16555bafca392de
+ARG DIFFUSERS_COMMIT=4450d26b63b4f6e7736ca86f11d0c37827159bfa
+ARG TRL_COMMIT=8c49ea39ec2e11ce4c61291ff2ad59edb46522aa
 
 RUN git clone https://github.com/huggingface/optimum-quanto.git && cd optimum-quanto && git checkout $QUANTO_COMMIT && pip install .[dev]
 RUN git clone https://github.com/huggingface/transformers && cd transformers && git checkout $TRANSFORMERS_COMMIT && pip install .[deepspeed-testing]

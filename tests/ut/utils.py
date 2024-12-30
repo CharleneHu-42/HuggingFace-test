@@ -65,11 +65,20 @@ def extract_short_cases(in_txt_file, out_txt_file):
     return final_cases
 
 
-def save_cases_to_bash(df, output_file):
+def get_cases_in_one_not_in_two(txt_file1, txt_file2, output_file):
+    txt1 = read_txt_to_list(txt_file1)
+    txt2 = read_txt_to_list(txt_file2)
+
+    diff_cases = [case for case in txt1 if case not in txt2]
+    save_list_to_txt(diff_cases, output_file)
+
+    return diff_cases
+
+
+def save_df_cases_to_bash(df, target_lib, output_file):
     df = df.sort_values(by=["suite_name", "test_name"])
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    rerun_dir_name = "RERUN_" + timestamp
+    rerun_dir_name = f"{target_lib}/RERUN"
     os.makedirs(rerun_dir_name, exist_ok=False)
 
     cases = []
@@ -82,6 +91,29 @@ def save_cases_to_bash(df, output_file):
         )
 
     save_list_to_txt(cases, output_file)
+
+
+def save_txt_cases_to_bash(txt_file, target_lib, with_file_name):
+    case_list = read_txt_to_list(txt_file)
+
+    rerun_dir_name = f"{target_lib}/RERUN"
+    os.makedirs(rerun_dir_name, exist_ok=False)
+
+    rerun_command = []
+
+    if with_file_name:
+        suite_index = 1
+    else:
+        suite_index = 0
+
+    for case in case_list:
+        suite_name = case.split("::")[suite_index]
+        test_name = case.split("::")[suite_index + 1]
+        rerun_command.append(
+            f"pytest -rA tests -k '{suite_name} and {test_name}' --excelreport /mnt/{rerun_dir_name}/{suite_name+test_name}.xlsx"
+        )
+
+    save_list_to_txt(rerun_command, txt_file.replace(".txt", ".sh"))
 
 
 def save_cases_to_txt(df, output_file):
@@ -102,7 +134,7 @@ def save_cases_with_empty_messages(file_name):
     skipped = df[(df["result"] == "SKIPPED") | (df["result"] == "FAILED")]
     rerun = skipped[skipped["message"].isnull()]
 
-    save_cases_to_bash(rerun, "rerun.sh")
+    save_df_cases_to_bash(rerun, "rerun.sh")
 
 
 def merge_excel_files_to_one(input_path, output_file):
@@ -278,9 +310,14 @@ def add_column_and_mark_with_case_list(df, new_column, case_list, value=None):
     return df
 
 
-def consolidate_and_get_stats(excel_dir, out_file_name):
+def consolidate_and_get_stats(excel_dir, out_file_name, rerun_folder=""):
     # read xpu ut excel files
     tests_df = merge_excel_files_to_df(excel_dir)
+
+    if os.path.exists(rerun_folder):
+        rerun_df = merge_excel_files_to_df(rerun_folder)
+        tests_df = pd.concat([tests_df, rerun_df])
+
     tests_df = tests_df[RELEVANT_COLS]
 
     tests_df.to_excel(os.path.join(excel_dir, out_file_name), index=False)
@@ -310,7 +347,7 @@ def save_ut_results_to_txt(xpu_df, output_dir, name_prefix):
     )
 
 
-def compare_xpu_with_cuda_ut(cuda_df, xpu_df, xpu_output_file):
+def compare_xpu_with_cuda_ut(cuda_df, xpu_df, save_dir):
     xpu_df["align with cuda"] = [0] * xpu_df.shape[0]
     xpu_df = xpu_df.sort_values(by=["suite_name", "test_name"])
     cuda_df = cuda_df.sort_values(by=["suite_name", "test_name"])
@@ -326,27 +363,29 @@ def compare_xpu_with_cuda_ut(cuda_df, xpu_df, xpu_output_file):
             xpu_df.loc[index, "align with cuda"] = 1
 
     if cuda_df.shape[0] != xpu_df.shape[0]:
-        print(f"----------total ut numbers are different------------")
-        save_cases_to_txt(cuda_df, "all_cases_cuda.txt")
-        save_cases_to_txt(xpu_df, "all_cases_xpu.txt")
-
-    xpu_df.to_excel(xpu_output_file, index=False)
+        print(f"----------total ut numbers are different, pls double-check------------")
+        save_cases_to_txt(cuda_df, os.path.join(save_dir, "all_cases_cuda.txt"))
+        save_cases_to_txt(xpu_df, os.path.join(save_dir, "all_cases_xpu.txt"))
+        xpu_df.to_excel(os.path.join(save_dir, "aligned_xpu_ut.xlsx"), index=False)
+    else:
+        print(f"----------PASSED------------")
 
 
 def validate_ut_run(target_lib):
-    pattern = r"(.*) tests"
-    save_dir = os.path.join(os.path.dirname(__file__), target_lib)
+    pattern1 = r"(.*) tests"
+    pattern2 = r"(.*) test"
+    save_dir = os.path.join(os.path.dirname(__file__), target_lib, "raw_ut_result")
 
-    if target_lib == "transformers":
-        txt_files_glob = sorted(
-            glob.glob(os.path.join(os.path.dirname(__file__), target_lib, "*.txt"))
-        )
+    if target_lib in ["transformers", "diffusers"]:
+        txt_files_glob = sorted(glob.glob(os.path.join(save_dir, "*.txt")))
 
         rerun_cases = []
         total_num = 0
         for txt_file in txt_files_glob:
             txt_file_name = os.path.basename(txt_file).split(".")[0]
-            excel_file_path = txt_file.replace("txt", "xlsx")
+            excel_file_path = txt_file.replace("_collected", "").replace("txt", "xlsx")
+
+            print(f"-------{txt_file_name}-------")
 
             if not os.path.exists(excel_file_path):
                 rerun_cases.append(txt_file_name)
@@ -355,8 +394,14 @@ def validate_ut_run(target_lib):
             with open(txt_file, "r") as file:
                 lines = file.readlines()
                 last_line = lines[-1] if lines else None
-                match = re.match(pattern, last_line)
-                true_case_num = match.group(1)
+                match1 = re.match(pattern1, last_line)
+                match2 = re.match(pattern2, last_line)
+                if match1:
+                    true_case_num = match1.group(1)
+                elif match2:
+                    true_case_num = match2.group(1)
+                else:
+                    true_case_num = "0"
 
             if "/" in true_case_num:
                 true_case_num = true_case_num.split("/")[0]
@@ -375,22 +420,28 @@ def validate_ut_run(target_lib):
                 extract_short_cases(
                     txt_file, os.path.join(save_dir, f"{txt_file_name}_true.txt")
                 )
-
-            print("+", end="", flush=True)  # Print + in the same line
-
         print(f"\nThere are {total_num} test cases in total.")
         print(f"\n{rerun_cases} need double-check.")
     else:
-        txt_file = os.path.join(os.path.dirname(__file__), target_lib, "all_cases.txt")
-        excel_file_path = os.path.join(os.path.dirname(__file__), target_lib, "ut.xlsx")
+        txt_file = os.path.join(
+            save_dir,
+            "all_cases_collected.txt",
+        )
+        excel_file_path = os.path.join(save_dir, "all_cases.xlsx")
 
         txt_file_name = os.path.basename(txt_file).split(".")[0]
 
         with open(txt_file, "r") as file:
             lines = file.readlines()
             last_line = lines[-1] if lines else None
-            match = re.match(pattern, last_line)
-            true_case_num = match.group(1)
+            match1 = re.match(pattern1, last_line)
+            match2 = re.match(pattern2, last_line)
+            if match1:
+                true_case_num = match1.group(1)
+            elif match2:
+                true_case_num = match2.group(1)
+            else:
+                true_case_num = "0"
 
         if "/" in true_case_num:
             true_case_num = true_case_num.split("/")[0]

@@ -1,15 +1,60 @@
+#!/bin/bash
+
 device="$1"
 target="$2"
 dry_run="$3"
 
-excel_dir=$(dirname "$report")
+result_dir="/mnt/${target}/raw_ut_result"
+mkdir -p $result_dir
+report="${result_dir}/ut.xlsx"
 
+export RUN_SLOW=1
 
-if [[ $target == "transformers" ]]; then
+collect_test_count() {
+	total=0
+	for file in "$result_dir"/*.txt; do
+		if [ -f "$file" ]; then
+			last_line=$(tail -n 1 "$file")
+			first_number=$(echo "$last_line" | grep -oE '^[0-9]+')
+			if [ -n "$first_number" ]; then
+				total=$((total + first_number))
+			fi
+		fi
+	done
+	echo "Total number of tests collected: $total"
+}
 
-	result_dir="${excel_dir}/test_results" 
+run_test_folder() {
+	local folder=$1
+	local save_name=$2
 
-	mkdir -p $result_dir
+	if [ "$target" = "transformers" ]; then
+		NOT_RUN_MARKERS="not (not_device_test)"
+		NOT_RUN_KEYWORDS="not (tpu or npu or tf or ModelOnTheFlyConversionTester or SigOpt or TrainerHyperParameterRayIntegrationTest or TrainerHyperParameterWandbIntegrationTest or TestTrainerDistributedNeuronCore or TestTrainerDistributedNPU)"
+		IGNORE1="tests/sagemaker"
+		IGNORE2="tests/bettertransformer"
+	elif [ "$target" = "diffusers" ]; then
+		NOT_RUN_MARKERS=""
+		NOT_RUN_KEYWORDS="not (animatediff or npu or flax)"
+		IGNORE1="tests/single_file/test_stable_diffusion_img2img_single_file.py"
+		IGNORE2="tests/pipelines/test_pipelines_flax.py"
+	else
+		NOT_RUN_MARKERS=""
+		NOT_RUN_KEYWORDS=""
+		IGNORE1=""
+		IGNORE2=""
+	fi
+
+	if [ "$dry_run" = "1" ]; then
+		pytest $folder -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore "${IGNORE1}" --ignore "${IGNORE2}" --collectonly -q 2>&1 | tee "${result_dir}/${save_name}_collected.txt"
+	else
+		pytest $folder -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore "${IGNORE1}" --ignore "${IGNORE2}" -sv --excelreport="${result_dir}/${save_name}.xlsx" --timeout=600 2>&1 | tee "${result_dir}/${save_name}.log"
+	fi
+}
+
+if [ "$target" = "transformers" ]; then
+
+	cp /mnt/spec_${device}.py .
 
 	export TRANSFORMERS_TEST_DEVICE="${device}"
 	export TRANSFORMERS_TEST_DEVICE_SPEC="spec_${device}.py"
@@ -17,90 +62,73 @@ if [[ $target == "transformers" ]]; then
 	export RUN_PT_FLAX_CROSS_TESTS="False"
 	export WANDB_DISABLED="true"
 
-	# only skip tests that are cpu-only, tpu-only, npu-only, sagemaker-only and tf-only.
-	# tests that are not xpu-relevant, e.g. apex, torch.fx, will be filtered during analysis
-	NOT_RUN_MARKERS="not (not_device_test)"
-	NOT_RUN_KEYWORDS="not (tpu or npu or tf or ModelOnTheFlyConversionTester or SigOpt or TrainerHyperParameterRayIntegrationTest or TrainerHyperParameterWandbIntegrationTest or TestTrainerDistributedNeuronCore or TestTrainerDistributedNPU)"
+	echo "+++++++++run single files++++++++++++++++"
+	run_test_folder "tests" "single_files"
 
-	echo "+++++++++run single test files++++++++++++++++"
-	if [[ $dry_run == "1" ]]; then 
-		pytest tests/*.py -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --collectonly -q 2>&1 | tee "${result_dir}/single_files.txt"
-	else
-		pytest tests/*.py -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --excelreport="${result_dir}/single_files.xlsx" --make-reports="${result_dir}/single_files" --timeout=600
-	fi
-	echo "+++++++++++++++++++++++done for single_files+++++++++++++"
-
-	test_folders=("benchmark" "extended" "fsdp" "generation" "peft_integration" "trainer" "pipelines" "deepspeed")
-	for folder in "${test_folders[@]}"
-	do 
-		echo "+++++++++run test folder $folder++++++++++++++++"
-		if [[ $dry_run == "1" ]]; then 
-			pytest tests/$folder -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --collectonly -q 2>&1 | tee "${result_dir}/${folder}.txt"
-		else
-			pytest tests/$folder -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --excelreport="${result_dir}/${folder}.xlsx" --make-reports="${result_dir}/${folder}" --timeout=600
-		fi
-		echo "+++++++++++++++++++++++done for $folder+++++++++++++"
-	done 
-
-	echo "+++++++++run quantization test folder++++++++++++++++"
-	folder="quantization"
-	quant_targets=("autoawq" "bnb" "quanto_integration")
-	for quant_target in "${quant_targets[@]}"
-	do 
-		if [[ $dry_run == "1" ]]; then 
-			pytest tests/$folder/$quant_target -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --collectonly -q 2>&1 | tee "${result_dir}/${folder}_${quant_target}.txt"
-		else
-			pytest tests/$folder/$quant_target -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --excelreport="${result_dir}/${folder}_${quant_target}.xlsx" --make-reports="${result_dir}/${folder}_${quant_target}" --timeout=600
-		fi
+	folders=("benchmark" "extended" "fsdp" "generation" "peft_integration" "trainer" "pipelines" "deepspeed")
+	for folder in "${folders[@]}"; do
+		echo "+++++++++run test folder $folder ++++++++++++++++"
+		run_test_folder "tests/$folder" "$folder"
 	done
 
-	for x in {a..z}
-	do 
-		echo "++++++++run models beginning with $x++++++++++++++++"
-		if [[ $dry_run == "1" ]]; then 
-			pytest tests/models/${x}* -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --collectonly -q 2>&1 | tee "${excel_dir}/${x}_models.txt"
-		else 
-			pytest tests/models/${x}* -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --excelreport="${result_dir}/${x}_models.xlsx" --make-reports="${result_dir}/${x}_models" --timeout=600
-		fi
-		echo "+++++++++++++++++++++++done for $x+++++++++++++"
+	folders=("autoawq" "bnb" "quanto_integration")
+	for folder in "${folders[@]}"; do
+		echo "+++++++++run test folder quantization/$folder ++++++++++++++++"
+		run_test_folder "tests/quantization/$folder" "$folder"
+	done
+	# if we run all tests in one shot and one test case has core-dump or hangs, we will end up with no test result saved.
+	# to avoid this issue, we run the cases batch per batch.
+	for x in {a..z}; do
+		echo "+++++++++run test folder models/$x* ++++++++++++++++"
+		run_test_folder "tests/models/$x*" "models_$x"
 	done
 
-	# values=("c")
-	# for x in "${values[@]}"; do
-	#     python -m pytest tests/models/${x}* -m "${NOT_RUN_MARKERS}" -k "${NOT_RUN_KEYWORDS}" --ignore tests/sagemaker --ignore tests/bettertransformer --excelreport="${result_dir}/${x}_models.xlsx" --make-reports="${result_dir}/${x}_models" --timeout=600
-	#     echo "============done for $x============="
-	# done 
-
-
-	if [[ $dry_run == "1" ]]; then 
-		total=0
-		for file in "$result_dir"/*.txt; do
-			if [[ -f "$file" ]]; then
-				# Extract the last line of the file
-        		last_line=$(tail -n 1 "$file")
-
-				# Extract the first number in the last line
-        		first_number=$(echo "$last_line" | grep -oE '^[0-9]+')
-
-				# Add the number to the total
-				if [[ -n "$first_number" ]]; then
-					total=$((total + first_number))
-				fi
-			fi 
-		done 
-
-		echo "Total number of tests collected: $total"
-	fi 
-elif [[ $target == "accelerate" ]]; then
-	if [[ $dry_run == "1" ]]; then 
-		pytest tests --collectonly -q 2>&1 | tee "${excel_dir}/all_cases.txt"
-	else
-		RUN_SLOW=1 pytest tests -sv --excelreport $report --timeout 600 2>&1 | tee $log
+	if [ "$dry_run" = "1" ]; then
+		collect_test_count
 	fi
-elif [[ $device == "optimum-quanto" ]]; then
-	if [[ $dry_run == "1" ]]; then 
-		pytest -rA test --collectonly -q 2>&1 | tee "${excel_dir}/all_cases.txt"
-	else
-		pytest -rA test --excelreport $report | tee $log
+elif [ "$target" = "diffusers" ]; then
+
+	cp /mnt/spec_${device}.py .
+
+	export DIFFUSERS_TEST_DEVICE="${device}"
+	export DIFFUSERS_TEST_DEVICE_SPEC="spec_${device}.py"
+
+	folders=("lora" "models" "others" "quantization" "schedulers")
+	for folder in "${folders[@]}"; do
+		echo "+++++++++run test folder $folder ++++++++++++++++"
+		run_test_folder "tests/$folder" "$folder"
+	done
+
+	for file in $(find tests/single_file -type f -name "*.py"); do
+		if [ "$(basename "$file")" = "__init__.py" ] || [ "$(basename "$file")" = "single_file_testing_utils.py" ]; then
+			echo "----skip $file----"
+		else
+			echo "+++++++++run test file $file ++++++++++++++++"
+			run_test_folder "tests/single_file/$(basename "$file")" "$(basename "$file" .py)"
+		fi
+	done
+	# if we run all tests in one shot and one test case has core-dump or hangs, we will end up with no test result saved.
+	# to avoid this issue, we run the cases batch per batch.
+	for x in {a..z}; do
+		echo "+++++++++run test folder pipelines/$x* ++++++++++++++++"
+		run_test_folder "tests/pipelines/$x*" "${x}_pipeline"
+	done
+
+	if [ "$dry_run" = "1" ]; then
+		collect_test_count
 	fi
+elif [ "$target" = "optimum-quanto" ] || [ "$target" = "accelerate" ] || [ "$target" = "peft" ] || [ "$target" = "trl" ]; then
+
+	if [ "$target" = "trl" ]; then
+		# since trl imports transformers' torch_device
+		export TRANSFORMERS_TEST_DEVICE="${device}"
+		export TRANSFORMERS_TEST_DEVICE_SPEC="spec_${device}.py"
+		if [ "$device" = "cuda" ]; then
+			export CUDA_VISIBLE_DEVICES=2,3
+		elif [ "$device" = "xpu" ]; then
+			export ZE_AFFINITY_MASK=2,3
+		fi
+	fi
+
+	run_test_folder "tests" "all_cases"
 fi

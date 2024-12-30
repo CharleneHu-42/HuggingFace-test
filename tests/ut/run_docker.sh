@@ -88,8 +88,6 @@ if [[ $device == "cuda" ]]; then
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
 		-e no_proxy=${no_proxy} \
-		-e report=/mnt/${library}/ut.xlsx \
-		-e log=/mnt/${library}/ut.log \
 		-v ${HF_HOME}:/root/.cache/huggingface \
 		-v ${mount_dir}:/mnt \
 		-v /dev/shm:/dev/shm \
@@ -104,8 +102,6 @@ elif [[ $device == "xpu" ]]; then
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
 		-e no_proxy=${no_proxy} \
-		-e report=/mnt/${library}/ut.xlsx \
-		-e log=/mnt/${library}/ut.log \
 		-v /dev/dri/by-path:/dev/dri/by-path \
 		-v ${HF_HOME}:/root/.cache/huggingface \
 		-v ${mount_dir}:/mnt \
