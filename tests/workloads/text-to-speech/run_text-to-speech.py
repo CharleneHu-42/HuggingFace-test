@@ -1,4 +1,4 @@
-from transformers import pipeline
+from transformers import pipeline, set_seed
 from datasets import load_from_disk
 import torch
 import time
@@ -15,6 +15,7 @@ sys.path.append(os.path.dirname(__file__) + "/..")
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
 inference_context = [torch.inference_mode()]
+SEED = 42
 
 
 def generate(generator, forward_params, warm_up_steps, run_steps):
@@ -22,6 +23,7 @@ def generate(generator, forward_params, warm_up_steps, run_steps):
     forward_times = []
     with ContextManagers(inference_context):
         for i in range(run_steps + warm_up_steps):
+            set_seed(SEED)
             generator.forward_time = 0
             synchronize_device(generator.device.type)
             pre = time.time()
@@ -90,7 +92,7 @@ if __name__ == "__main__":
             synthesiser.model.semantic.forward = torch.compile(synthesiser.model.semantic.forward)
             synthesiser.model.coarse_acoustics.forward = torch.compile(synthesiser.model.coarse_acoustics.forward)
             synthesiser.model.fine_acoustics.forward = torch.compile(synthesiser.model.fine_acoustics.forward)
-        elif "seamless_m4t" in synthesiser.model.config.model_type:
+        elif synthesiser.model.config.model_type == "vits":
             synthesiser.model.forward  = torch.compile(synthesiser.model.forward)
         else:
             synthesiser.model.generate = torch.compile(synthesiser.model.generate)

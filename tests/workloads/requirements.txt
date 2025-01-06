@@ -8,6 +8,9 @@ accelerate
 peft
 diffusers
 opencv-python
+pytesseract
+timm
+git+https://github.com/facebookresearch/pytorchvideo
 
 requests
 librosa

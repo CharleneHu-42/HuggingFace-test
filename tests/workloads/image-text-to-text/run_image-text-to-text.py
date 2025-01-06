@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 inference_context = [torch.inference_mode()]
 
 
-def generate(generator, raw_image, warm_up_steps, run_steps):
+def generate(generator, messages, warm_up_steps, run_steps):
     time_costs = []
     forward_times = []
     with ContextManagers(inference_context):
@@ -26,7 +26,7 @@ def generate(generator, raw_image, warm_up_steps, run_steps):
             generator.forward_time = 0
             synchronize_device(generator.device.type)
             pre = time.time()
-            output = generator(raw_image, topk=1)
+            output = generator(text=messages, generate_kwargs=generate_kwargs, return_full_text=False)
             synchronize_device(generator.device.type)
             time_costs.append((time.time() - pre) * 1000)
             forward_times.append(generator.forward_time * 1000)
@@ -37,7 +37,8 @@ def generate(generator, raw_image, warm_up_steps, run_steps):
     logging.info(
         f"pipeline average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}"
     )
-    logging.info(f"output = {torch.Tensor(output)}")
+    generate_text = output[0]["generated_text"]
+    logging.info(f"output = {generate_text}")
 
 
 if __name__ == "__main__":
@@ -51,8 +52,27 @@ if __name__ == "__main__":
     if device == "xpu":
         import intel_extension_for_pytorch as ipex
 
-    image_path = "./datasets/vqa_cats.jpg"
+    image_path = "./datasets/demo.jpeg"
     raw_image = Image.open(image_path).convert("RGB")
+
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "image",
+                    "image": raw_image,
+                },
+                {"type": "text", "text": "Describe this image."},
+            ],
+        },
+        {
+            "role": "assistant",
+            "content": [
+                {"type": "text", "text": "A dog"},
+            ],
+        },
+    ]
 
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
@@ -61,12 +81,22 @@ if __name__ == "__main__":
         inference_context.append(torch.autocast(device, dtype, enable))
 
     pipe = pipeline(
-        "image-feature-extraction",
+        "image-text-to-text",
         model=model_id,
         torch_dtype=torch_dtype,
         device=device,
     )
     wrap_forward_for_benchmark(pipe)
+
+    generation_config = pipe.model.generation_config
+    generation_config.do_sample = False
+    generation_config.use_cache = True
+    generation_config.temperature = 1.0
+    generation_config.max_new_tokens = 20
+    generation_config.min_new_tokens = 20
+    generation_config.top_p = 1.0
+    generate_kwargs = {"generation_config": generation_config}
+
 
     if args.jit:
         raise ValueError("Image-feature-extraction does not support jit trace")
@@ -82,4 +112,4 @@ if __name__ == "__main__":
 
         pipe.model = ipex.optimize(pipe.model, dtype=torch_dtype, inplace=True)
 
-    generate(pipe, raw_image, warm_up_steps, run_steps)
+    generate(pipe, messages, warm_up_steps, run_steps)

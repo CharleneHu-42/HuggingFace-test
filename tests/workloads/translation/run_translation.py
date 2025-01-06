@@ -35,6 +35,7 @@ MODEL_LIST = [
     "gpt2",
 ]
 
+
 def generate(generator, input_sentence, batch_size, warm_up_steps, run_steps):
     latency = []
     forward_latency = []
@@ -49,6 +50,8 @@ def generate(generator, input_sentence, batch_size, warm_up_steps, run_steps):
             synchronize_device(generator.device.type)
             latency.append((time.time() - pre) * 1000)
             forward_latency.append(generator.forward_time * 1000)
+
+    logging.info(f"fwd latency: {forward_latency}")
 
     return (
         sum(latency[warm_up_steps:]) / run_steps,
@@ -78,7 +81,7 @@ def benchmark(
     latency, out, forward_latency = generate(
         generator, input_sentence, batch_size, warm_up_steps, run_steps
     )
-    out_num = out_num = len(tokenizer(out[0]["summary_text"])["input_ids"])
+    out_num = out_num = len(tokenizer(out[0]["translation_text"])["input_ids"])
     logging.info(
         f"2nd+ token latency = {(latency - first_latency) / (out_num - 1)} ms"
     )
@@ -87,6 +90,17 @@ def benchmark(
     logging.info(
         f"pipeline average time [ms] {latency}, average fwd time [ms] {forward_latency}"
     )
+
+
+def get_translation_task_type(model_id):
+    if "google-t5/t5-" in model_id:
+        return "translation_en_to_fr"
+    elif model_id == "facebook/nllb-200-distilled-600M":
+        return "translation_en_to_es"
+    elif model_id == "Helsinki-NLP/opus-mt-mul-en":
+        return "translation_fr_to_en"
+    else:
+        raise ValueError("the given model id is not supported currently.")
 
 
 if __name__ == "__main__":
@@ -100,9 +114,6 @@ if __name__ == "__main__":
     device = args.device
     if device == "xpu":
         import intel_extension_for_pytorch as ipex
-
-    with open("./datasets/prompt.json", "r") as f:
-        prompt = json.load(f)
 
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
@@ -118,8 +129,9 @@ if __name__ == "__main__":
         model_kwargs["quantization_config"] = quantization_config
 
     tokenizer = AutoTokenizer.from_pretrained(model_id)
+    translation_task = get_translation_task_type(model_id)
     generator = pipeline(
-        "summarization",
+        translation_task,
         model=model_id,
         torch_dtype=torch_dtype,
         device=device if quantization_config is None else None,
@@ -141,11 +153,15 @@ if __name__ == "__main__":
 
     wrap_forward_for_benchmark(generator)
 
-    model = [name for name in MODEL_LIST if name in model_id.lower()]
-    if len(model) == 0:
-        model = ["gpt-j"]
+    if translation_task == "translation_fr_to_en":
+        with open("./datasets/fr_prompt.json", "r") as f:
+            prompt = json.load(f)
+        prompt = prompt[str(args.input_tokens)]
+    else:
+        with open("./datasets/prompt.json", "r") as f:
+            prompt = json.load(f)
+        prompt = prompt["gpt-j"][str(args.input_tokens)]
 
-    prompt = prompt[model[0]][str(args.input_tokens)]
     input_seq = get_batched_prompts(prompt, args.batch_size)
 
     if args.optimum_intel:

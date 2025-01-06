@@ -191,6 +191,17 @@ export TRITON_CODEGEN_INTEL_XPU_BACKEND=1
 export OMP_NUM_THREADS=${CORES}
 export TORCHINDUCTOR_CPP_MIN_CHUNK_SIZE=${CORES}
 
+small_model_list=("Helsinki-NLP/opus-mt-mul-en" "google-t5/t5-small")
+for item in "${small_model_list[@]}"; do
+  if [[ "$item" == "$model_id" ]]; then
+    CORES=4
+    break
+  fi
+done
+
+export OMP_NUM_THREADS=${CORES}
+export TORCHINDUCTOR_CPP_MIN_CHUNK_SIZE=${CORES}
+
 # Perform the desired actions based on the provided flags and arguments
 if [[ "$task_name" == "fine-tune" ]]; then
   if [[ "$device" == "cpu" ]]; then

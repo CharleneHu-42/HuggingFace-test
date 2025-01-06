@@ -83,6 +83,8 @@ if __name__ == "__main__":
                 import intel_extension_for_pytorch as ipex
             logging.info(f"using torch compile with {args.backend} backend")
             generator.model.forward = torch.compile(generator.model.forward, backend=args.backend)
+            if model_id == "jonatasgrosman/wav2vec2-large-xlsr-53-english":
+                generator.preprocess = torch.compile(generator.preprocess, backend=args.backend)
         elif args.ipex_optimize:
             import intel_extension_for_pytorch as ipex
 

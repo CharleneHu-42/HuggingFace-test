@@ -1,43 +1,43 @@
-from PIL import Image
-from transformers import pipeline
-import torch
 import time
-import logging
-import sys
+import torch
+from transformers import pipeline, set_seed
 from transformers.utils import ContextManagers
+from datasets import load_from_disk
 
-sys.setrecursionlimit(10000000)
-
-import os
-
-sys.path.append(os.path.dirname(__file__) + "/..")
-from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
+import logging
 
 logging.basicConfig(level=logging.INFO)
 
+import sys
+import os
+
+sys.path.append(os.path.dirname(__file__) + "/..")
+
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
+
 inference_context = [torch.inference_mode()]
+SEED = 42
 
-
-def generate(generator, raw_image, warm_up_steps, run_steps):
+def generate(generator, pipe_input, warm_up_steps, run_steps):
     time_costs = []
     forward_times = []
     with ContextManagers(inference_context):
         for i in range(warm_up_steps + run_steps):
+            set_seed(SEED)
             generator.forward_time = 0
             synchronize_device(generator.device.type)
             pre = time.time()
-            output = generator(raw_image, topk=1)
+            output = generator(pipe_input)
             synchronize_device(generator.device.type)
             time_costs.append((time.time() - pre) * 1000)
             forward_times.append(generator.forward_time * 1000)
-
     average_time = sum(time_costs[warm_up_steps:]) / run_steps
     average_fwd_time = sum(forward_times[warm_up_steps:]) / run_steps
     logging.info(f"total time [ms]: {time_costs}")
     logging.info(
         f"pipeline average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}"
     )
-    logging.info(f"output = {torch.Tensor(output)}")
+    logging.info(f"output = {output}")
 
 
 if __name__ == "__main__":
@@ -46,40 +46,42 @@ if __name__ == "__main__":
     warm_up_steps = args.warm_up_steps
     run_steps = args.run_steps
     model_id = args.model_id
-
     device = args.device
     if device == "xpu":
         import intel_extension_for_pytorch as ipex
-
-    image_path = "./datasets/vqa_cats.jpg"
-    raw_image = Image.open(image_path).convert("RGB")
-
+        torch.use_deterministic_algorithms(True)
+        
+    data = load_from_disk("./datasets/speech_demo")
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
     enable = dtype != torch.float32
+
     if enable:
         inference_context.append(torch.autocast(device, dtype, enable))
 
-    pipe = pipeline(
-        "image-feature-extraction",
-        model=model_id,
-        torch_dtype=torch_dtype,
-        device=device,
-    )
-    wrap_forward_for_benchmark(pipe)
-
     if args.jit:
-        raise ValueError("Image-feature-extraction does not support jit trace")
+        raise ValueError("Automatic-speech-recognition does not support jit trace")
+
+    generator = pipeline(
+        "audio-classification",
+        model=model_id,
+        device=device,
+        torch_dtype=torch_dtype,
+    )
+    wrap_forward_for_benchmark(generator)
+    logging.info(data["train"][0])
 
     if args.torch_compile:
-        logging.info(f"Use torch compile with {args.backend} backend")
         if args.backend == "ipex":
             import intel_extension_for_pytorch as ipex
-        pipe.model.forward = torch.compile(pipe.model.forward, backend=args.backend)
+        logging.info(f"using torch compile with {args.backend} backend")
+        generator.model.forward = torch.compile(generator.model.forward, backend=args.backend)
     elif args.ipex_optimize:
-        logging.info("Use ipex optimize")
         import intel_extension_for_pytorch as ipex
 
-        pipe.model = ipex.optimize(pipe.model, dtype=torch_dtype, inplace=True)
+        logging.info("Use ipex optimize")
+        generator.model = ipex.optimize(generator.model, dtype=torch_dtype, inplace=True)
 
-    generate(pipe, raw_image, warm_up_steps, run_steps)
+    generate(
+        generator, data["train"][0]["audio"]["array"], warm_up_steps, run_steps
+    )
