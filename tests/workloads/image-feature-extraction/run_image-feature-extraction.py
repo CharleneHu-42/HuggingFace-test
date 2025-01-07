@@ -1,20 +1,16 @@
-from PIL import Image
-from transformers import pipeline
+import os
 import torch
 import time
 import logging
 import sys
+from PIL import Image
+from transformers import pipeline
 from transformers.utils import ContextManagers
-
-sys.setrecursionlimit(10000000)
-
-import os
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
 logging.basicConfig(level=logging.INFO)
-
 inference_context = [torch.inference_mode()]
 
 
@@ -46,19 +42,16 @@ if __name__ == "__main__":
     warm_up_steps = args.warm_up_steps
     run_steps = args.run_steps
     model_id = args.model_id
-
     device = args.device
-    if device == "xpu":
-        import intel_extension_for_pytorch as ipex
 
     image_path = "./datasets/vqa_cats.jpg"
     raw_image = Image.open(image_path).convert("RGB")
 
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
-    enable = dtype != torch.float32
-    if enable:
-        inference_context.append(torch.autocast(device, dtype, enable))
+    apply_cast = dtype != torch.float32
+    if apply_cast:
+        inference_context.append(torch.autocast(device, dtype, apply_cast))
 
     pipe = pipeline(
         "image-feature-extraction",

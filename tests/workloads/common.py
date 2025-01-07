@@ -2,9 +2,10 @@ import argparse
 import torch
 import time
 import random
-from transformers import AwqConfig, BitsAndBytesConfig
+from transformers import AwqConfig, BitsAndBytesConfig, set_seed
 
-random.seed(42)
+set_seed(42)
+torch.use_deterministic_algorithms(True)
 
 def str2bool(str):
     return True if str.lower() == "true" else False

@@ -1,22 +1,20 @@
-import time
-import torch
-from transformers import pipeline, set_seed
-from transformers.utils import ContextManagers
-from datasets import load_from_disk
-
-import logging
-
-logging.basicConfig(level=logging.INFO)
 
 import sys
 import os
+import time
+import torch
+import logging
+from datasets import load_from_disk
+from transformers import pipeline, set_seed
+from transformers.utils import ContextManagers
 
 sys.path.append(os.path.dirname(__file__) + "/..")
-
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
+logging.basicConfig(level=logging.INFO)
 inference_context = [torch.inference_mode()]
 SEED = 42
+
 
 def generate(generator, pipe_input, warm_up_steps, run_steps):
     time_costs = []
@@ -47,17 +45,14 @@ if __name__ == "__main__":
     run_steps = args.run_steps
     model_id = args.model_id
     device = args.device
-    if device == "xpu":
-        import intel_extension_for_pytorch as ipex
-        torch.use_deterministic_algorithms(True)
-        
+
     data = load_from_disk("./datasets/speech_demo")
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
-    enable = dtype != torch.float32
+    apply_cast = dtype != torch.float32
 
-    if enable:
-        inference_context.append(torch.autocast(device, dtype, enable))
+    if apply_cast:
+        inference_context.append(torch.autocast(device, dtype, apply_cast))
 
     if args.jit:
         raise ValueError("Automatic-speech-recognition does not support jit trace")

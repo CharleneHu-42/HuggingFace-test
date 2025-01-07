@@ -3,36 +3,28 @@ import time
 import sys
 import logging
 import os
-import PIL
+from transformers import set_seed
 from transformers.utils import ContextManagers
 from diffusers import (
     AnimateDiffPipeline,
     CogVideoXPipeline,
-    DiffusionPipeline,
     MotionAdapter,
-    DPMSolverMultistepScheduler,
     EulerDiscreteScheduler,
 )
 from diffusers.utils import export_to_video
 from safetensors.torch import load_file
 from huggingface_hub import hf_hub_download
 
-
-logging.basicConfig(level=logging.INFO)
-sys.setrecursionlimit(100000)
-
 sys.path.append(os.path.dirname(__file__) + "/..")
-
 from common import get_args, get_torch_dtype, synchronize_device
 
-SEED = 20
-PROMPT = "An astronaut riding a green horse"
-
+logging.basicConfig(level=logging.INFO)
 inference_context = [torch.no_grad()]
+SEED = 42
+PROMPT = "An astronaut riding a green horse"
 
 
 def load_model(model_id, seed, model_dtype, device):
-    torch.manual_seed(seed)
     if model_id == "ByteDance/AnimateDiff-Lightning":
         step = 4  # Options: [1,2,4,8]
         ckpt = f"animatediff_lightning_{step}step_diffusers.safetensors"
@@ -54,7 +46,7 @@ def benchmark(pipe, prompt, seed, nb_pass):
     for i in range(nb_pass):
         synchronize_device(pipe.device.type)
         start = time.time()
-        torch.manual_seed(seed)
+        set_seed(seed)
         if model_id == "ByteDance/AnimateDiff-Lightning":
             output = pipe(prompt=prompt, guidance_scale=1.0, num_inference_steps=4).frames[0]
         elif model_id in ("THUDM/CogVideoX-2b", "THUDM/CogVideoX-5b"):
@@ -96,14 +88,12 @@ if __name__ == "__main__":
     use_torch_compile = args.torch_compile
     backend = args.backend
     device = args.device
-    if device == "xpu":
-        import intel_extension_for_pytorch as ipex
 
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
-    enable = dtype != torch.float32
-    if enable:
-        inference_context.append(torch.autocast(device, dtype, enable))
+    apply_cast = dtype != torch.float32
+    if apply_cast:
+        inference_context.append(torch.autocast(device, dtype, apply_cast))
 
     pipe = load_model(model_id, SEED, model_dtype=torch_dtype, device=device)
 

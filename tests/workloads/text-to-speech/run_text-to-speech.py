@@ -1,19 +1,16 @@
-from transformers import pipeline, set_seed
-from datasets import load_from_disk
+import os
+import sys
 import torch
 import time
 import logging
+from datasets import load_from_disk
+from transformers import pipeline, set_seed
 from transformers.utils import ContextManagers
 
-logging.basicConfig(level=logging.INFO)
-
-import os
-import sys
-
 sys.path.append(os.path.dirname(__file__) + "/..")
-
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
+logging.basicConfig(level=logging.INFO)
 inference_context = [torch.inference_mode()]
 SEED = 42
 
@@ -49,16 +46,13 @@ if __name__ == "__main__":
     warm_up_steps = args.warm_up_steps
     run_steps = args.run_steps
     model_id = args.model_id
-
     device = args.device
-    if device == "xpu":
-        import intel_extension_for_pytorch as ipex
 
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
-    enable = dtype != torch.float32
-    if enable:
-        inference_context.append(torch.autocast(device, dtype, enable))
+    apply_cast = dtype != torch.float32
+    if apply_cast:
+        inference_context.append(torch.autocast(device, dtype, apply_cast))
     synthesiser = pipeline(
         "text-to-speech", model_id, device=device, torch_dtype=torch_dtype
     )

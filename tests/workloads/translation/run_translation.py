@@ -1,17 +1,13 @@
+import sys
+import os
 import time
 import torch
 import json
-from transformers import pipeline, AutoTokenizer
 import logging
+from transformers import pipeline, AutoTokenizer
 from transformers.utils import ContextManagers
 
-logging.basicConfig(level=logging.INFO)
-
-import sys
-import os
-
 sys.path.append(os.path.dirname(__file__) + "/..")
-
 from common import (
     get_args,
     get_torch_dtype,
@@ -21,19 +17,9 @@ from common import (
     get_batched_prompts,
 )
 
+logging.basicConfig(level=logging.INFO)
 inference_context = [torch.no_grad()]
-
-MODEL_LIST = [
-    "gpt-j",
-    "llama",
-    "gpt-neox",
-    "opt",
-    "falcon",
-    "bloom",
-    "baichuan",
-    "t5",
-    "gpt2",
-]
+MODEL_LIST = ["gpt-j", "llama", "gpt-neox", "opt", "falcon", "bloom", "t5", "gpt2"]
 
 
 def generate(generator, input_sentence, batch_size, warm_up_steps, run_steps):
@@ -108,18 +94,14 @@ if __name__ == "__main__":
     warm_up_steps = args.warm_up_steps
     run_steps = args.run_steps
     model_id = args.model_id
-
-    logging.info(f"args = {args}")
-
     device = args.device
-    if device == "xpu":
-        import intel_extension_for_pytorch as ipex
+    logging.info(f"args = {args}")
 
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
-    enable = dtype != torch.float32
-    if enable:
-        inference_context.append(torch.autocast(device, dtype, enable))
+    apply_cast = dtype != torch.float32
+    if apply_cast:
+        inference_context.append(torch.autocast(device, dtype, apply_cast))
     
     model_kwargs = {}
     quantization_config = None

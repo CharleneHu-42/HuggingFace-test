@@ -1,27 +1,25 @@
-from diffusers import (
-    StableDiffusionPipeline,
-    DiffusionPipeline,
-    DPMSolverMultistepScheduler,
-    StableDiffusionInpaintPipeline,
-)
 import torch
 import time
 import sys
 import logging
 import os
 import PIL
+from transformers import set_seed
 from transformers.utils import ContextManagers
-
-logging.basicConfig(level=logging.INFO)
-sys.setrecursionlimit(100000)
+from diffusers import (
+    StableDiffusionPipeline,
+    DiffusionPipeline,
+    DPMSolverMultistepScheduler,
+    StableDiffusionInpaintPipeline,
+)
 
 sys.path.append(os.path.dirname(__file__) + "/..")
-
 from common import get_args, get_torch_dtype, synchronize_device
 
-SEED = 20
+logging.basicConfig(level=logging.INFO)
+inference_context = [torch.no_grad()]
+SEED = 42
 PROMPT = "An astronaut riding a green horse"
-
 MODEL_INPUT_SIZE = {
     "stabilityai/stable-diffusion-xl-base-1.0": {
         "sample": (2, 4, 128, 128),
@@ -42,11 +40,8 @@ MODEL_INPUT_SIZE = {
     },
 }
 
-inference_context = [torch.no_grad()]
-
 
 def load_model(model_id, seed, model_dtype, device):
-    torch.manual_seed(seed)
     if model_id == "stabilityai/stable-diffusion-xl-base-1.0":
         pipe = DiffusionPipeline.from_pretrained(
             model_id, torch_dtype=model_dtype, use_safetensors=True
@@ -75,7 +70,7 @@ def benchmark(pipe, prompt, seed, nb_pass, input_image):
     for i in range(nb_pass):
         synchronize_device(pipe.device.type)
         start = time.time()
-        torch.manual_seed(seed)
+        set_seed(seed)
         if model_id == "stable-diffusion-v1-5/stable-diffusion-inpainting":
             image = pipe(prompt=prompt, image=input_image, mask_image=input_image).images[0]
         else:
@@ -203,14 +198,12 @@ if __name__ == "__main__":
     use_torch_compile = args.torch_compile
     backend = args.backend
     device = args.device
-    if device == "xpu":
-        import intel_extension_for_pytorch as ipex
 
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
-    enable = dtype != torch.float32
-    if enable:
-        inference_context.append(torch.autocast(device, dtype, enable))
+    apply_cast = dtype != torch.float32
+    if apply_cast:
+        inference_context.append(torch.autocast(device, dtype, apply_cast))
 
     pipe = load_model(model_id, SEED, model_dtype=torch_dtype, device=device)
 

@@ -1,4 +1,4 @@
-from PIL import Image
+import os
 import av
 import torch
 import time
@@ -9,24 +9,17 @@ from transformers.utils import ContextManagers
 from transformers import (
     set_seed,
     AutoTokenizer,
-    AutoModel,
     AutoModelForCausalLM,
     LlavaNextVideoProcessor,
     LlavaNextVideoForConditionalGeneration,
 )
 
-
-sys.setrecursionlimit(10000000)
-SEED = 42
-
-import os
-
 sys.path.append(os.path.dirname(__file__) + "/..")
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
 logging.basicConfig(level=logging.INFO)
-
 inference_context = [torch.inference_mode()]
+SEED = 42
 
 
 def generate(model, inputs, warm_up_steps, run_steps):
@@ -89,7 +82,6 @@ def get_video_inputs(model_id):
     videos = read_video_pyav(container, indices)
     conversation = [
         {
-
             "role": "user",
             "content": [
                 {"type": "text", "text": "Why is this video funny?"},
@@ -143,20 +135,16 @@ if __name__ == "__main__":
     warm_up_steps = args.warm_up_steps
     run_steps = args.run_steps
     model_id = args.model_id
-
     device = args.device
-    if device == "xpu":
-        import intel_extension_for_pytorch as ipex
 
     # define a chat history and use `apply_chat_template` to get correctly formatted prompt
     # Each value in "content" has to be a list of dicts with types ("text", "image", "video") 
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
-    enable = dtype != torch.float32
-    if enable:
-        inference_context.append(torch.autocast(device, dtype, enable))
+    apply_cast = dtype != torch.float32
+    if apply_cast:
+        inference_context.append(torch.autocast(device, dtype, apply_cast))
 
-    set_seed(SEED)
     model, processor, tokenizer = get_model_and_proceessor(model_id, torch_dtype, device)
     # wrap_forward_for_benchmark(model)
     inputs = get_video_inputs(model_id)
