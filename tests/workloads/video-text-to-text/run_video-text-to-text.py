@@ -7,6 +7,7 @@ import sys
 import numpy as np
 from transformers.utils import ContextManagers
 from transformers import (
+    set_seed,
     AutoTokenizer,
     AutoModel,
     AutoModelForCausalLM,
@@ -16,6 +17,7 @@ from transformers import (
 
 
 sys.setrecursionlimit(10000000)
+SEED = 42
 
 import os
 
@@ -33,9 +35,10 @@ def generate(model, inputs, warm_up_steps, run_steps):
     with ContextManagers(inference_context):
         for i in range(warm_up_steps + run_steps):
             # model.forward_time = 0
+            set_seed(SEED)
             synchronize_device(model.device.type)
             pre = time.time()
-            if model_id in ("KangarooGroup/kangaroo", "OpenGVLab/InternVideo2_chat_8B_HD"):
+            if model_id == "KangarooGroup/kangaroo":
                 outputs, history = model.chat(**inputs)
             else:
                 outputs = model.generate(**inputs, generation_config=generation_config)
@@ -51,7 +54,7 @@ def generate(model, inputs, warm_up_steps, run_steps):
     )
     if model_id == "llava-hf/LLaVA-NeXT-Video-7B-hf":
         generate_text = processor.decode(outputs[0][2:], skip_special_tokens=True)
-    elif model_id in ("KangarooGroup/kangaroo", "OpenGVLab/InternVideo2_chat_8B_HD"):
+    elif model_id == "KangarooGroup/kangaroo":
         generate_text = outputs
     logging.info(f"output = {generate_text}")
 
@@ -98,16 +101,6 @@ def get_video_inputs(model_id):
     if model_id == "llava-hf/LLaVA-NeXT-Video-7B-hf":
         prompt = processor.apply_chat_template(conversation, add_generation_prompt=True)
         inputs = processor(text=prompt, videos=videos, padding=True, return_tensors="pt").to(model.device)
-    elif model_id == "OpenGVLab/InternVideo2_chat_8B_HD":
-        videos = torch.from_numpy(videos).permute(3, 0, 1, 2)
-        inputs = dict(tokenizer, '',
-                      'describe the action step by step.',
-                      media_type='video',
-                      media_tensor=videos,
-                      chat_history="chat",
-                      return_history=True,
-                      generation_config=generation_config,
-                    )
     elif model_id == "KangarooGroup/kangaroo":
         terminators = [tokenizer.eos_token_id, tokenizer.convert_tokens_to_ids("<|eot_id|>")]
         inputs = dict(video_path=video_path,
@@ -133,12 +126,6 @@ def get_model_and_proceessor(model_id, torch_dtype, device):
         ).to(device)
 
         processor = LlavaNextVideoProcessor.from_pretrained(model_id)
-    elif model_id == "OpenGVLab/InternVideo2_chat_8B_HD":
-        tokenizer =  AutoTokenizer.from_pretrained(model_id, trust_remote_code=True, use_fast=False)
-        model = AutoModel.from_pretrained(
-            model_id,
-            torch_dtype=torch_dtype,
-            trust_remote_code=True).to(device)
     elif model_id == "KangarooGroup/kangaroo":
         tokenizer = AutoTokenizer.from_pretrained(model_id)
         model = AutoModelForCausalLM.from_pretrained(
@@ -169,6 +156,7 @@ if __name__ == "__main__":
     if enable:
         inference_context.append(torch.autocast(device, dtype, enable))
 
+    set_seed(SEED)
     model, processor, tokenizer = get_model_and_proceessor(model_id, torch_dtype, device)
     # wrap_forward_for_benchmark(model)
     inputs = get_video_inputs(model_id)
