@@ -41,7 +41,6 @@ def generate(generator, pipe_input, warm_up_steps, run_steps):
 
 if __name__ == "__main__":
     args = get_args()
-    import pdb; pdb.set_trace()
     logging.info(f"args = {args}")
     warm_up_steps = args.warm_up_steps
     run_steps = args.run_steps
