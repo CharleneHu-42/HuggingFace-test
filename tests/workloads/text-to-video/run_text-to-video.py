@@ -1,8 +1,10 @@
+import os
+import sys
 import torch
 import time
-import sys
 import logging
-import os
+logging.basicConfig(level=logging.INFO)
+
 from transformers import set_seed
 from transformers.utils import ContextManagers
 from diffusers import (
@@ -18,7 +20,6 @@ from huggingface_hub import hf_hub_download
 sys.path.append(os.path.dirname(__file__) + "/..")
 from common import get_args, get_torch_dtype, synchronize_device
 
-logging.basicConfig(level=logging.INFO)
 inference_context = [torch.no_grad()]
 SEED = 42
 PROMPT = "An astronaut riding a green horse"

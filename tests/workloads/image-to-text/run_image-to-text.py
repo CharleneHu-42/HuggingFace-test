@@ -1,17 +1,18 @@
-import sys
 import os
+import sys
 import torch
 import time
-import logging
 import requests
 import PIL.Image
+import logging
+logging.basicConfig(level=logging.INFO)
+
 from transformers import pipeline
 from transformers.utils import ContextManagers
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
-logging.basicConfig(level=logging.INFO)
 inference_context = [torch.inference_mode()]
 
 

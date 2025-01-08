@@ -2,15 +2,16 @@ import os
 import torch
 import time
 import sys
-import logging
-from transformers import pipeline, set_seed
 import torch.nn.functional as F
+import logging
+logging.basicConfig(level=logging.INFO)
+
+from transformers import pipeline, set_seed
 from transformers.utils import ContextManagers
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
-logging.basicConfig(level=logging.INFO)
 inference_context = [torch.inference_mode()]
 SEED = 42
 SENTENCES = ["This is an example sentence", "Each sentence is converted"]

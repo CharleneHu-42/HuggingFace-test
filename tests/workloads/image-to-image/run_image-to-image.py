@@ -2,10 +2,12 @@
 import os
 import sys
 import time
-import logging
 import PIL
 import requests
 import torch
+import logging
+logging.basicConfig(level=logging.INFO)
+
 from torchvision import transforms
 from transformers import set_seed
 from transformers.utils import ContextManagers
@@ -23,7 +25,6 @@ from diffusers import (
 sys.path.append(os.path.dirname(__file__) + "/..")
 from common import get_args, get_torch_dtype, synchronize_device
 
-logging.basicConfig(level=logging.INFO)
 inference_context = [torch.no_grad()]
 SEED = 42
 IMG_URL = "https://raw.githubusercontent.com/timothybrooks/instruct-pix2pix/main/imgs/example.jpg"

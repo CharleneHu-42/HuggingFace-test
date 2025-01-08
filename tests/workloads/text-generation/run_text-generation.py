@@ -1,9 +1,11 @@
-import sys
 import os
+import sys
 import time
 import torch
 import json
 import logging
+logging.basicConfig(level=logging.INFO)
+
 from transformers import pipeline, AutoTokenizer
 from transformers.utils import ContextManagers
 
@@ -18,7 +20,6 @@ from common import (
     get_batched_prompts,
 )
 
-logging.basicConfig(level=logging.INFO)
 inference_context = [torch.no_grad()]
 MODEL_LIST = ["gpt-j", "llama", "gpt-neox", "opt", "falcon", "bloom", "t5", "gpt2"]
 

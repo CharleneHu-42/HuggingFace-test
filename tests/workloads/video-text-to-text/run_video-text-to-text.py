@@ -1,10 +1,12 @@
 import os
+import sys
 import av
 import torch
 import time
-import logging
-import sys
 import numpy as np
+import logging
+logging.basicConfig(level=logging.INFO)
+
 from transformers.utils import ContextManagers
 from transformers import (
     set_seed,
@@ -17,7 +19,6 @@ from transformers import (
 sys.path.append(os.path.dirname(__file__) + "/..")
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
-logging.basicConfig(level=logging.INFO)
 inference_context = [torch.inference_mode()]
 SEED = 42
 

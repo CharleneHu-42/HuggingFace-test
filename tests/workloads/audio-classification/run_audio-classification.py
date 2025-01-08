@@ -4,6 +4,8 @@ import os
 import time
 import torch
 import logging
+logging.basicConfig(level=logging.INFO)
+
 from datasets import load_from_disk
 from transformers import pipeline, set_seed
 from transformers.utils import ContextManagers
@@ -11,7 +13,6 @@ from transformers.utils import ContextManagers
 sys.path.append(os.path.dirname(__file__) + "/..")
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
-logging.basicConfig(level=logging.INFO)
 inference_context = [torch.inference_mode()]
 SEED = 42
 
@@ -40,6 +41,7 @@ def generate(generator, pipe_input, warm_up_steps, run_steps):
 
 if __name__ == "__main__":
     args = get_args()
+    import pdb; pdb.set_trace()
     logging.info(f"args = {args}")
     warm_up_steps = args.warm_up_steps
     run_steps = args.run_steps

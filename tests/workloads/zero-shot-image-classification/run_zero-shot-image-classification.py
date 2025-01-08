@@ -3,15 +3,16 @@ import sys
 import requests
 import torch
 import time
-import logging
 import PIL.Image
+import logging
+logging.basicConfig(level=logging.INFO)
+
 from transformers import pipeline, set_seed
 from transformers.utils import ContextManagers
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
-logging.basicConfig(level=logging.INFO)
 inference_context = [torch.inference_mode()]
 SEED = 42
 TEXT = ["a photo of a cat", "a photo of a dog"]

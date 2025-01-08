@@ -5,13 +5,14 @@ import torch
 import time
 import logging
 import PIL.Image
+logging.basicConfig(level=logging.INFO)
+
 from transformers import pipeline, set_seed
 from transformers.utils import ContextManagers
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
-logging.basicConfig(level=logging.INFO)
 inference_context = [torch.no_grad()]
 SEED = 42
 IMG_URL = "http://images.cocodataset.org/val2017/000000039769.jpg"
