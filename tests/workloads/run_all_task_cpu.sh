@@ -140,7 +140,7 @@ model_list=("stabilityai/stable-diffusion-2-inpainting" "stabilityai/stable-diff
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task image-to-image --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    bash ./run.sh --task image-to-image --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -150,7 +150,7 @@ model_list=("nlpconnect/vit-gpt2-image-captioning" "Salesforce/blip-image-captio
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task image-to-text --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    bash ./run.sh --task image-to-text --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -160,17 +160,17 @@ model_list=("google/vit-base-patch16-224-in21k" "facebook/dinov2-base" "facebook
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task image-feature-extraction --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    bash ./run.sh --task image-feature-extraction --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
 
 echo "test text-to-image"
-model_list=("stabilityai/stable-diffusion-xl-base-1.0" "runwayml/stable-diffusion-v1-5" "stabilityai/stable-diffusion-2-1")
+model_list=("stable-diffusion-v1-5/stable-diffusion-v1-5" "stable-diffusion-v1-5/stable-diffusion-inpainting" "stabilityai/stable-diffusion-xl-base-1.0")
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task text-to-image --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    bash ./run.sh --task text-to-image --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -180,7 +180,7 @@ model_list=("THUDM/CogVideoX-5b" "ByteDance/AnimateDiff-Lightning" "THUDM/CogVid
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task text-to-video --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    bash ./run.sh --task text-to-video --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -190,7 +190,7 @@ model_list=("openai/clip-vit-large-patch14" "openai/clip-vit-base-patch16" "open
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task zero-shot-image-classification --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    bash ./run.sh --task zero-shot-image-classification --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -200,7 +200,7 @@ model_list=("sentence-transformers/all-mpnet-base-v2" "sentence-transformers/all
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task sentence-similarity --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    bash ./run.sh --task sentence-similarity --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -210,7 +210,7 @@ model_list=("deepset/roberta-base-squad2" "distilbert/distilbert-base-cased-dist
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task question-answering --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    bash ./run.sh --task question-answering --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -220,7 +220,7 @@ model_list=("Qwen/Qwen2.5-1.5B-Instruct" "facebook/opt-1.3b" "gpt2" "meta-llama/
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task text-generation --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps
+    bash ./run.sh --task text-generation --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -229,7 +229,7 @@ model_list=("facebook/bart-large-cnn" "sshleifer/distilbart-cnn-12-6" "google/pe
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task summarization --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens
+    bash ./run.sh --task summarization --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens
     echo "----------------------------"
 done
 
@@ -239,7 +239,7 @@ model_list=("google-t5/t5-small" "google-t5/t5-base" "Helsinki-NLP/opus-mt-mul-e
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task translation --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps --batch_size $batch_size --num_beams $num_beams --input_tokens 128 --output_tokens 128
+    bash ./run.sh --task translation --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps --batch_size $batch_size --num_beams $num_beams --input_tokens 128 --output_tokens 128
     echo "----------------------------"
 done
 
@@ -249,7 +249,7 @@ model_list=("openai/whisper-large-v2" "jonatasgrosman/wav2vec2-large-xlsr-53-eng
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task automatic-speech-recognition --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize  --model_dtype $model_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    bash ./run.sh --task automatic-speech-recognition --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize  --model_dtype $model_dtype --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -259,7 +259,7 @@ model_list=("microsoft/speecht5_tts" "suno/bark-small" "facebook/mms-tts-eng")
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task text-to-speech --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    bash ./run.sh --task text-to-speech --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -269,7 +269,7 @@ model_list=("facebook/mms-lid-256" "MIT/ast-finetuned-audioset-10-10-0.4593" "al
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task audio-classification --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    bash ./run.sh --task audio-classification --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -279,7 +279,7 @@ model_list=("Salesforce/blip-vqa-capfilt-large" "Salesforce/blip-vqa-base" "dand
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task visual-question-answering --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    bash ./run.sh --task visual-question-answering --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -289,7 +289,7 @@ model_list=("impira/layoutlm-document-qa" "naver-clova-ix/donut-base-finetuned-d
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task document-question-answering --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    bash ./run.sh --task document-question-answering --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -299,7 +299,7 @@ model_list=("meta-llama/Llama-3.2-11B-Vision-Instruct" "llava-hf/llava-v1.6-mist
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task image-text-to-text --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    bash ./run.sh --task image-text-to-text --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
 
@@ -309,6 +309,6 @@ model_list=("llava-hf/LLaVA-NeXT-Video-7B-hf" "KangarooGroup/kangaroo")
 
 for model in "${model_list[@]}"
 do
-    ./run.sh --task video-text-to-text --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
+    bash ./run.sh --task video-text-to-text --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --warm_up_steps $warm_up_steps --run_steps $run_steps
     echo "----------------------------"
 done
