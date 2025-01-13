@@ -56,7 +56,7 @@ def benchmark(extractor, sentences, seed, nb_pass):
         duration = time.time() - start
         elapsed_times.append(duration * 1000)
         forward_times.append(extractor.forward_time * 1000)
-        logging.info(score)
+    logging.info(score)
     return elapsed_times, forward_times
 
 
