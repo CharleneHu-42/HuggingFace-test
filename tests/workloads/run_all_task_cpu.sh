@@ -255,7 +255,7 @@ done
 
 
 echo "test text-to-speech"
-model_list=("microsoft/speecht5_tts" "suno/bark-small" "facebook/mms-tts-eng")
+model_list=("microsoft/speecht5_tts" "suno/bark" "facebook/mms-tts-eng")
 
 for model in "${model_list[@]}"
 do

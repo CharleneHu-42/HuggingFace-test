@@ -6,7 +6,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 from PIL import Image
-from transformers import pipeline
+from transformers import pipeline, set_seed
 from transformers.utils import ContextManagers
 
 sys.path.append(os.path.dirname(__file__) + "/..")
@@ -20,6 +20,7 @@ def generate(generator, raw_image, warm_up_steps, run_steps):
     forward_times = []
     with ContextManagers(inference_context):
         for i in range(warm_up_steps + run_steps):
+            set_seed(42)
             generator.forward_time = 0
             synchronize_device(generator.device.type)
             pre = time.time()
@@ -44,6 +45,7 @@ if __name__ == "__main__":
     run_steps = args.run_steps
     model_id = args.model_id
     device = args.device
+    set_seed(42)
 
     image_path = "./datasets/vqa_cats.jpg"
     raw_image = Image.open(image_path).convert("RGB")
