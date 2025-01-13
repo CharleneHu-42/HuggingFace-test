@@ -136,7 +136,7 @@ handle_options "$@"
 
 echo "test image to image"
 declare -a model_list
-model_list=("stabilityai/stable-diffusion-2-inpainting" "stabilityai/stable-diffusion-xl-refiner-1.0" "timbrooks/instruct-pix2pix")
+model_list=("stabilityai/stable-diffusion-2-inpainting" "stabilityai/stable-diffusion-xl-refiner-1.0" "lllyasviel/sd-controlnet-canny" "timbrooks/instruct-pix2pix")
 
 for model in "${model_list[@]}"
 do

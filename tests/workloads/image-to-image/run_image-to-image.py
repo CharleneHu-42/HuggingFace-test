@@ -2,9 +2,11 @@
 import os
 import sys
 import time
+import cv2
 import PIL
 import requests
 import torch
+import numpy as np
 import logging
 logging.basicConfig(level=logging.INFO)
 
@@ -96,6 +98,14 @@ def download_image(url):
     image = PIL.Image.open(requests.get(url, stream=True).raw)
     image = PIL.ImageOps.exif_transpose(image)
     image = image.convert("RGB")
+    if model_id == "lllyasviel/sd-controlnet-canny":
+        image = np.array(image)
+        low_threshold = 100
+        high_threshold = 200
+        image = cv2.Canny(image, low_threshold, high_threshold)
+        image = image[:, :, None]
+        image = np.concatenate([image, image, image], axis=2)
+        image = PIL.Image.fromarray(image)
     return image
 
 
