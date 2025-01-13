@@ -191,7 +191,7 @@ export TRITON_CODEGEN_INTEL_XPU_BACKEND=1
 export OMP_NUM_THREADS=${CORES}
 export TORCHINDUCTOR_CPP_MIN_CHUNK_SIZE=${CORES}
 
-small_model_list=("Helsinki-NLP/opus-mt-mul-en" "google-t5/t5-small")
+small_model_list=("Helsinki-NLP/opus-mt-mul-en" "google-t5/t5-small" "facebook/dinov2-small" "sentence-transformers/all-mpnet-base-v2" "sentence-transformers/all-MiniLM-L6-v2" "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
 for item in "${small_model_list[@]}"; do
   if [[ "$item" == "$model_id" ]]; then
     CORES=4
