@@ -2,9 +2,10 @@ import argparse
 import torch
 import time
 import random
-from transformers import AwqConfig, BitsAndBytesConfig
+from transformers import AwqConfig, BitsAndBytesConfig, set_seed
 
-random.seed(42)
+set_seed(42)
+torch.use_deterministic_algorithms(True)
 
 def str2bool(str):
     return True if str.lower() == "true" else False
@@ -63,7 +64,7 @@ def get_bitsandbytes_config(quant_type):
         quantization_config = BitsAndBytesConfig(load_in_4bit=True,
                                                  bnb_4bit_compute_dtype=torch.bfloat16,
                                                  bnb_4bit_quant_type=quant_type,
-                                                 bnb_4bit_use_double_quant=False)
+                                                 bnb_4bit_use_double_quant=True)
     else:
         quantization_config = None
 

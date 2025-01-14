@@ -1,24 +1,21 @@
-import time
-import torch
-from transformers import pipeline
-from transformers.utils import ContextManagers
-from datasets import load_from_disk
-
-import logging
-
-logging.basicConfig(level=logging.INFO)
-
 import sys
 import os
-import torch._inductor.config
+import time
+import torch
+import logging
+logging.basicConfig(level=logging.INFO)
+
+from datasets import load_from_disk
+from transformers import pipeline
+from transformers.utils import ContextManagers
 
 sys.path.append(os.path.dirname(__file__) + "/..")
-
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
 inference_context = [torch.inference_mode()]
 
-def generate(generator, pipe_input, warm_up_steps, run_steps):
+
+def generate(generator, pipe_input, warm_up_steps, run_steps, generate_kwargs=None):
     time_costs = []
     forward_times = []
     with ContextManagers(inference_context):
@@ -26,7 +23,10 @@ def generate(generator, pipe_input, warm_up_steps, run_steps):
             generator.forward_time = 0
             synchronize_device(generator.device.type)
             pre = time.time()
-            output = generator(pipe_input)
+            if generate_kwargs:
+                output = generator(pipe_input, generate_kwargs=generate_kwargs)
+            else:
+                output = generator(pipe_input)
             synchronize_device(generator.device.type)
             time_costs.append((time.time() - pre) * 1000)
             forward_times.append(generator.forward_time * 1000)
@@ -46,18 +46,14 @@ if __name__ == "__main__":
     run_steps = args.run_steps
     model_id = args.model_id
     device = args.device
-    if device == "xpu":
-        import intel_extension_for_pytorch as ipex
-        torch.use_deterministic_algorithms(True)
-        
+
     data = load_from_disk("./datasets/speech_demo")
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
-    enable = dtype != torch.float32
+    apply_cast = dtype != torch.float32
 
-    torch._inductor.config.cpp_wrapper = True
-    if enable:
-        inference_context.append(torch.autocast(device, dtype, enable))
+    if apply_cast:
+        inference_context.append(torch.autocast(device, dtype, apply_cast))
 
     if args.jit:
         raise ValueError("Automatic-speech-recognition does not support jit trace")
@@ -69,6 +65,11 @@ if __name__ == "__main__":
             device=device,
             torch_dtype=torch_dtype,
         )
+        generate_kwargs = None
+        if generator.model.can_generate():
+            generation_config = generator.model.generation_config
+            generation_config.cache_implementation="static"
+            generate_kwargs = {"generation_config": generation_config}
         wrap_forward_for_benchmark(generator)
         logging.info(data["train"][0])
 
@@ -77,6 +78,8 @@ if __name__ == "__main__":
                 import intel_extension_for_pytorch as ipex
             logging.info(f"using torch compile with {args.backend} backend")
             generator.model.forward = torch.compile(generator.model.forward, backend=args.backend)
+            if model_id == "jonatasgrosman/wav2vec2-large-xlsr-53-english":
+                generator.preprocess = torch.compile(generator.preprocess, backend=args.backend)
         elif args.ipex_optimize:
             import intel_extension_for_pytorch as ipex
 
@@ -84,7 +87,7 @@ if __name__ == "__main__":
             generator.model = ipex.optimize(generator.model, dtype=torch_dtype, inplace=True)
 
         generate(
-            generator, data["train"][0]["audio"]["array"], warm_up_steps, run_steps
+            generator, data["train"][0]["audio"]["array"], warm_up_steps, run_steps, generate_kwargs=generate_kwargs
         )
     else:
         from pyannote.audio import Pipeline

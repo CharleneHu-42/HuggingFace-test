@@ -8,7 +8,7 @@ model_id=""
 model_dtype="float32"
 autocast_dtype="float32"
 batch_size=1
-num_beams=4
+num_beams=1
 input_tokens=32
 output_tokens=32
 gradient_checkpointing=False
@@ -186,7 +186,19 @@ handle_options "$@"
 
 CORES=`lscpu | grep 'Core(s) per socket' | awk '{print $4}'`
 export TORCHINDUCTOR_FREEZING=1
+export TORCHINDUCTOR_CPP_WRAPPER=1
 export TRITON_CODEGEN_INTEL_XPU_BACKEND=1
+export OMP_NUM_THREADS=${CORES}
+export TORCHINDUCTOR_CPP_MIN_CHUNK_SIZE=${CORES}
+
+small_model_list=("Helsinki-NLP/opus-mt-mul-en" "google-t5/t5-small" "facebook/dinov2-small" "sentence-transformers/all-mpnet-base-v2" "sentence-transformers/all-MiniLM-L6-v2" "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+for item in "${small_model_list[@]}"; do
+  if [[ "$item" == "$model_id" ]]; then
+    CORES=4
+    break
+  fi
+done
+
 export OMP_NUM_THREADS=${CORES}
 export TORCHINDUCTOR_CPP_MIN_CHUNK_SIZE=${CORES}
 

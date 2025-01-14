@@ -5,6 +5,7 @@ import time
 import logging
 logging.basicConfig(level=logging.INFO)
 
+from PIL import Image
 from transformers import pipeline
 from transformers.utils import ContextManagers
 
@@ -14,28 +15,18 @@ from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchr
 inference_context = [torch.inference_mode()]
 
 
-def prepare_jit_inputs(device):
-    example_inputs = {
-        "input_ids": torch.randint(100, (1, 19)).to(device),
-        "token_type_ids": torch.randint(1, (1, 19)).to(device),
-        "attention_mask": torch.randint(1, (1, 19)).to(device),
-    }
-
-    return example_inputs
-
-
-def benchmark(pipe, question, context, warm_up_steps, run_steps):
+def generate(generator, messages, warm_up_steps, run_steps):
     time_costs = []
     forward_times = []
     with ContextManagers(inference_context):
         for i in range(warm_up_steps + run_steps):
-            pipe.forward_time = 0
-            synchronize_device(pipe.device.type)
+            generator.forward_time = 0
+            synchronize_device(generator.device.type)
             pre = time.time()
-            output = pipe(question=question, context=context)
-            synchronize_device(pipe.device.type)
+            output = generator(text=messages, generate_kwargs=generate_kwargs, return_full_text=False)
+            synchronize_device(generator.device.type)
             time_costs.append((time.time() - pre) * 1000)
-            forward_times.append(pipe.forward_time * 1000)
+            forward_times.append(generator.forward_time * 1000)
 
     average_time = sum(time_costs[warm_up_steps:]) / run_steps
     average_fwd_time = sum(forward_times[warm_up_steps:]) / run_steps
@@ -43,7 +34,8 @@ def benchmark(pipe, question, context, warm_up_steps, run_steps):
     logging.info(
         f"pipeline average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}"
     )
-    logging.info(f"output = {output}")
+    generate_text = output[0]["generated_text"]
+    logging.info(f"output = {generate_text}")
 
 
 if __name__ == "__main__":
@@ -54,8 +46,27 @@ if __name__ == "__main__":
     model_id = args.model_id
     device = args.device
 
-    question = "Where do I live?"
-    context = "My name is Merve and I live in İstanbul."
+    image_path = "./datasets/demo.jpeg"
+    raw_image = Image.open(image_path).convert("RGB")
+
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "image",
+                    "image": raw_image,
+                },
+                {"type": "text", "text": "Describe this image."},
+            ],
+        },
+        {
+            "role": "assistant",
+            "content": [
+                {"type": "text", "text": "A dog"},
+            ],
+        },
+    ]
 
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
@@ -64,38 +75,35 @@ if __name__ == "__main__":
         inference_context.append(torch.autocast(device, dtype, apply_cast))
 
     pipe = pipeline(
-        "question-answering",
+        "image-text-to-text",
         model=model_id,
         torch_dtype=torch_dtype,
         device=device,
     )
     wrap_forward_for_benchmark(pipe)
 
-    if args.optimum_intel:
-        logging.info("Use optimum-intel")
-        from optimum.intel import IPEXModelForQuestionAnswering
-        pipe.model = IPEXModelForQuestionAnswering(pipe.model, export=True, torch_dtype=torch_dtype)
+    generation_config = pipe.model.generation_config
+    generation_config.do_sample = False
+    generation_config.use_cache = True
+    generation_config.temperature = 1.0
+    generation_config.max_new_tokens = 20
+    generation_config.min_new_tokens = 20
+    generation_config.top_p = 1.0
+    generate_kwargs = {"generation_config": generation_config}
+
+
+    if args.jit:
+        raise ValueError("Image-feature-extraction does not support jit trace")
+
     if args.torch_compile:
         logging.info(f"Use torch compile with {args.backend} backend")
         if args.backend == "ipex":
             import intel_extension_for_pytorch as ipex
         pipe.model.forward = torch.compile(pipe.model.forward, backend=args.backend)
-    if args.ipex_optimize:
+    elif args.ipex_optimize:
         logging.info("Use ipex optimize")
         import intel_extension_for_pytorch as ipex
 
         pipe.model = ipex.optimize(pipe.model, dtype=torch_dtype, inplace=True)
-    if args.jit:
-        logging.info("using jit trace for acceleration...")
-        example_inputs = prepare_jit_inputs(device)
-        pipe.model.config.return_dict = False
-        with ContextManagers(inference_context):
-            pipe.model = torch.jit.trace(
-                pipe.model, example_kwarg_inputs=example_inputs, strict=False
-            )
 
-        pipe.model = torch.jit.freeze(pipe.model.eval())
-        pipe.model(**example_inputs)
-        pipe.model(**example_inputs)
-
-    benchmark(pipe, question, context, warm_up_steps, run_steps)
+    generate(pipe, messages, warm_up_steps, run_steps)

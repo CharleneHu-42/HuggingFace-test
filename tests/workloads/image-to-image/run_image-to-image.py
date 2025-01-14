@@ -1,31 +1,37 @@
+
+import os
+import sys
+import time
+import cv2
 import PIL
 import requests
 import torch
+import numpy as np
+import logging
+logging.basicConfig(level=logging.INFO)
+
+from torchvision import transforms
+from transformers import set_seed
+from transformers.utils import ContextManagers
 from diffusers import (
     StableDiffusionInstructPix2PixPipeline,
     EulerAncestralDiscreteScheduler,
     StableDiffusionXLImg2ImgPipeline,
     StableDiffusionImageVariationPipeline,
+    StableDiffusionInpaintPipeline,
+    StableDiffusionControlNetPipeline,
+    ControlNetModel,
+    UniPCMultistepScheduler,
 )
-import time
-from torchvision import transforms
-import os
-import logging
-from transformers.utils import ContextManagers
 
-logging.basicConfig(level=logging.INFO)
-import sys
-
-sys.setrecursionlimit(100000)
 sys.path.append(os.path.dirname(__file__) + "/..")
-
 from common import get_args, get_torch_dtype, synchronize_device
 
-SEED = 20
+inference_context = [torch.no_grad()]
+SEED = 42
 IMG_URL = "https://raw.githubusercontent.com/timothybrooks/instruct-pix2pix/main/imgs/example.jpg"
 SAMPLE_IMAGE = "example.jpg"
 PROMPT = "turn him into cyborg"
-
 MODEL_INPUT_SIZE = {
     "timbrooks/instruct-pix2pix": {
         "sample": (3, 8, 64, 64),
@@ -46,11 +52,8 @@ MODEL_INPUT_SIZE = {
     },
 }
 
-inference_context = [torch.no_grad()]
-
 
 def load_model(model_id, seed, model_dtype, device):
-    torch.manual_seed(seed)
     if model_id == "timbrooks/instruct-pix2pix":
         pipe = StableDiffusionInstructPix2PixPipeline.from_pretrained(
             model_id, torch_dtype=model_dtype, safety_checker=None
@@ -69,6 +72,18 @@ def load_model(model_id, seed, model_dtype, device):
         pipe = StableDiffusionImageVariationPipeline.from_pretrained(
             model_id, torch_dtype=model_dtype, revision="v2.0"
         )
+    elif model_id == "stabilityai/stable-diffusion-2-inpainting":
+        pipe = StableDiffusionInpaintPipeline.from_pretrained(
+            model_id, torch_dtype=model_dtype
+        )
+    elif model_id == "lllyasviel/sd-controlnet-canny":
+        controlnet = ControlNetModel.from_pretrained(
+            model_id, torch_dtype=model_dtype
+        )
+        pipe = StableDiffusionControlNetPipeline.from_pretrained(
+            "runwayml/stable-diffusion-v1-5", controlnet=controlnet, safety_checker=None, torch_dtype=model_dtype
+        )
+        pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
     else:
         raise ValueError(
             f"the given model id is not supported currently. it is {model_id}"
@@ -83,6 +98,14 @@ def download_image(url):
     image = PIL.Image.open(requests.get(url, stream=True).raw)
     image = PIL.ImageOps.exif_transpose(image)
     image = image.convert("RGB")
+    if model_id == "lllyasviel/sd-controlnet-canny":
+        image = np.array(image)
+        low_threshold = 100
+        high_threshold = 200
+        image = cv2.Canny(image, low_threshold, high_threshold)
+        image = image[:, :, None]
+        image = np.concatenate([image, image, image], axis=2)
+        image = PIL.Image.fromarray(image)
     return image
 
 
@@ -91,13 +114,15 @@ def benchmark(pipe, prompt, image, seed, nb_pass, model_id):
     for i in range(nb_pass):
         synchronize_device(pipe.device.type)
         start = time.time()
-        torch.manual_seed(seed)
+        set_seed(seed)
         if model_id == "lambdalabs/sd-image-variations-diffusers":
             new_image = pipe(image, guidance_scale=3).images[0]
         elif model_id == "timbrooks/instruct-pix2pix":
             new_image = pipe(
                 prompt, image=image, num_inference_steps=10, image_guidance_scale=1
             ).images[0]
+        elif model_id == "stabilityai/stable-diffusion-2-inpainting":
+            new_image = pipe(prompt, image=image, mask_image=image).images[0]
         else:
             new_image = pipe(prompt=prompt, image=image).images[0]
         synchronize_device(pipe.device.type)
@@ -190,7 +215,7 @@ def apply_torch_compile(pipe, backend):
     logging.info(f"using torch compile with {backend} backend for acceleration...")
     if backend == "ipex":
         import intel_extension_for_pytorch as ipex
-    pipe.unet.forward = torch.compile(pipe.unet.forward, backend=backend)
+    pipe.unet = torch.compile(pipe.unet, backend=backend)
     return pipe
 
 
@@ -230,18 +255,15 @@ if __name__ == "__main__":
     use_jit = args.jit
     use_torch_compile = args.torch_compile
     backend = args.backend
-    logging.info(f"args = {args}")
-
     device = args.device
-    if device == "xpu":
-        import intel_extension_for_pytorch as ipex
+    logging.info(f"args = {args}")
 
     image = read_image(model_id, device)
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
-    enable = dtype != torch.float32
-    if enable:
-        inference_context.append(torch.autocast(device, dtype, enable))
+    apply_cast = dtype != torch.float32
+    if apply_cast:
+        inference_context.append(torch.autocast(device, dtype, apply_cast))
 
     pipe = load_model(model_id, SEED, torch_dtype, device)
 
@@ -251,7 +273,7 @@ if __name__ == "__main__":
         )
     if use_jit:
         pipe = apply_jit_trace(
-            pipe, model_id, ["unet"], dtype=torch_dtype, device=device, enable=enable
+            pipe, model_id, ["unet"], dtype=torch_dtype, device=device
         )
     if use_torch_compile:
         pipe = apply_torch_compile(pipe, backend)

@@ -1,20 +1,19 @@
-from transformers import pipeline
-from datasets import load_from_disk
+import os
+import sys
 import torch
 import time
 import logging
-from transformers.utils import ContextManagers
-
 logging.basicConfig(level=logging.INFO)
 
-import os
-import sys
+from datasets import load_from_disk
+from transformers import pipeline, set_seed
+from transformers.utils import ContextManagers
 
 sys.path.append(os.path.dirname(__file__) + "/..")
-
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
 inference_context = [torch.inference_mode()]
+SEED = 42
 
 
 def generate(generator, forward_params, warm_up_steps, run_steps):
@@ -22,6 +21,7 @@ def generate(generator, forward_params, warm_up_steps, run_steps):
     forward_times = []
     with ContextManagers(inference_context):
         for i in range(run_steps + warm_up_steps):
+            set_seed(SEED)
             generator.forward_time = 0
             synchronize_device(generator.device.type)
             pre = time.time()
@@ -47,16 +47,13 @@ if __name__ == "__main__":
     warm_up_steps = args.warm_up_steps
     run_steps = args.run_steps
     model_id = args.model_id
-
     device = args.device
-    if device == "xpu":
-        import intel_extension_for_pytorch as ipex
 
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
-    enable = dtype != torch.float32
-    if enable:
-        inference_context.append(torch.autocast(device, dtype, enable))
+    apply_cast = dtype != torch.float32
+    if apply_cast:
+        inference_context.append(torch.autocast(device, dtype, apply_cast))
     synthesiser = pipeline(
         "text-to-speech", model_id, device=device, torch_dtype=torch_dtype
     )
@@ -74,7 +71,10 @@ if __name__ == "__main__":
     forward_params = (
         {"speaker_embeddings": speaker_embedding} if "t5" in model_id else {}
     )
-    forward_params["do_sample"] = False
+    if synthesiser.model.can_generate():
+        forward_params["do_sample"] = False
+    if "seamless_m4t" in synthesiser.model.config.model_type:
+        forward_params["tgt_lang"] = "eng"
 
     if args.jit:
         raise ValueError("Text-to-speech does not support jit trace")
@@ -87,6 +87,8 @@ if __name__ == "__main__":
             synthesiser.model.semantic.forward = torch.compile(synthesiser.model.semantic.forward)
             synthesiser.model.coarse_acoustics.forward = torch.compile(synthesiser.model.coarse_acoustics.forward)
             synthesiser.model.fine_acoustics.forward = torch.compile(synthesiser.model.fine_acoustics.forward)
+        elif synthesiser.model.config.model_type == "vits":
+            synthesiser.model.forward  = torch.compile(synthesiser.model.forward)
         else:
             synthesiser.model.generate = torch.compile(synthesiser.model.generate)
     elif args.ipex_optimize:

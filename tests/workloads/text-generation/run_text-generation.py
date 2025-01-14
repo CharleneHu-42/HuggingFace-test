@@ -1,17 +1,15 @@
+import os
+import sys
 import time
 import torch
 import json
-from transformers import pipeline, AutoTokenizer
 import logging
-from transformers.utils import ContextManagers
-
 logging.basicConfig(level=logging.INFO)
 
-import sys
-import os
+from transformers import pipeline, AutoTokenizer
+from transformers.utils import ContextManagers
 
 sys.path.append(os.path.dirname(__file__) + "/..")
-
 from common import (
     get_args,
     get_torch_dtype,
@@ -23,18 +21,8 @@ from common import (
 )
 
 inference_context = [torch.no_grad()]
+MODEL_LIST = ["gpt-j", "llama", "gpt-neox", "opt", "falcon", "bloom", "t5", "gpt2"]
 
-MODEL_LIST = [
-    "gpt-j",
-    "llama",
-    "gpt-neox",
-    "opt",
-    "falcon",
-    "bloom",
-    "baichuan",
-    "t5",
-    "gpt2",
-]
 
 def generate(generator, input_sentence, batch_size, warm_up_steps, run_steps):
     latency = []
@@ -96,21 +84,17 @@ if __name__ == "__main__":
     warm_up_steps = args.warm_up_steps
     run_steps = args.run_steps
     model_id = args.model_id
-
-    logging.info(f"args = {args}")
-
     device = args.device
-    if device == "xpu":
-        import intel_extension_for_pytorch as ipex
+    logging.info(f"args = {args}")
 
     with open("./datasets/prompt.json", "r") as f:
         prompt = json.load(f)
 
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
-    enable = dtype != torch.float32
-    if enable:
-        inference_context.append(torch.autocast(device, dtype, enable))
+    apply_cast = dtype != torch.float32
+    if apply_cast:
+        inference_context.append(torch.autocast(device, dtype, apply_cast))
     
     device_map = {"": 0} if device != "cpu" else "cpu"
     model_kwargs = dict(torch_dtype=torch_dtype, device_map=device_map)
@@ -170,8 +154,6 @@ if __name__ == "__main__":
         logging.info(f"Use torch compile with {args.backend} backend")
         if args.backend == "ipex":
             import intel_extension_for_pytorch as ipex
-        from torch._inductor import config
-        torch._inductor.config.cpp_wrapper = True
         # pipeline warmup
         _, _, _ = generate(generator, input_seq, args.batch_size, 1, 1)
         generator.model.forward = torch.compile(

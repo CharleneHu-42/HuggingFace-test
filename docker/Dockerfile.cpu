@@ -9,10 +9,13 @@ RUN wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRO
 RUN apt-get update
 
 # install system tools
-RUN apt-get install -y numactl build-essential python3-dev
+RUN apt-get install -y numactl build-essential python3-dev git
 
 # install oneapi
 RUN apt-get install -y intel-basekit
+
+# install task required lib
+RUN apt-get install -y python3-opencv
 
 # install performance utilities
 RUN apt-get install -y google-perftools

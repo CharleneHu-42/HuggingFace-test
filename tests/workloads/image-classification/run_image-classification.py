@@ -1,31 +1,27 @@
+import os
+import sys
 import requests
 import torch
 import time
 import logging
 import PIL.Image
-from transformers import pipeline
-from transformers.utils import ContextManagers
-
 logging.basicConfig(level=logging.INFO)
 
-import os
-import sys
+from transformers import pipeline, set_seed
+from transformers.utils import ContextManagers
 
 sys.path.append(os.path.dirname(__file__) + "/..")
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
-SEED = 24
-IMG_URL = "http://images.cocodataset.org/val2017/000000039769.jpg"
-
 inference_context = [torch.no_grad()]
-
+SEED = 42
+IMG_URL = "http://images.cocodataset.org/val2017/000000039769.jpg"
 MODEL_INPUT_SIZE = {
     "pixel_values": (1, 3, 224, 224),
 }
 
 
 def load_model(model_id, seed, model_dtype, device):
-    torch.manual_seed(seed)
     classifier = pipeline(
         "image-classification",
         model=model_id,
@@ -39,7 +35,7 @@ def benchmark(pipeline, image, seed, nb_pass):
     elapsed_times = []
     forward_times = []
     for _ in range(nb_pass):
-        torch.manual_seed(seed)
+        set_seed(seed)
         pipeline.forward_time = 0
         synchronize_device(pipeline.device.type)
         start = time.time()
@@ -114,16 +110,13 @@ if __name__ == "__main__":
     use_torch_compile = args.torch_compile
     backend = args.backend
     use_optimum_intel = args.optimum_intel
-
     device = args.device
-    if device == "xpu":
-        import intel_extension_for_pytorch as ipex
 
     dtype = get_torch_dtype(args.autocast_dtype)
     torch_dtype = get_torch_dtype(args.model_dtype)
-    enable = dtype != torch.float32
-    if enable:
-        inference_context.append(torch.autocast(device, dtype, enable))
+    apply_cast = dtype != torch.float32
+    if apply_cast:
+        inference_context.append(torch.autocast(device, dtype, apply_cast))
 
     image = PIL.Image.open(requests.get(IMG_URL, stream=True, timeout=3000).raw)
 

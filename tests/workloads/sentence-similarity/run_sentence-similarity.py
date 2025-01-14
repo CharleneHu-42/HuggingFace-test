@@ -1,28 +1,26 @@
+import os
 import torch
 import time
 import sys
-import logging
-from transformers import pipeline
 import torch.nn.functional as F
+import logging
+logging.basicConfig(level=logging.INFO)
+
+from transformers import pipeline, set_seed
 from transformers.utils import ContextManagers
 
-import os
-
 sys.path.append(os.path.dirname(__file__) + "/..")
-
 from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
 
-logging.basicConfig(level=logging.INFO)
-SEED = 20
+inference_context = [torch.inference_mode()]
+SEED = 42
 SENTENCES = ["This is an example sentence", "Each sentence is converted"]
 CHI_SENTENCES = ["如何更换花呗绑定银行卡", "花呗更改绑定银行卡"]
-
 MODEL_INPUT_SIZE = {
     "input_ids": (1, 7),
     "token_type_ids": (1, 7),
     "attention_mask": (1, 7),
 }
-inference_context = [torch.inference_mode()]
 
 
 # Mean Pooling - Take attention mask into account for correct averaging
@@ -39,7 +37,7 @@ def benchmark(extractor, sentences, seed, nb_pass):
     elapsed_times = []
     forward_times = []
     for _ in range(nb_pass):
-        torch.manual_seed(seed)
+        set_seed(seed)
         extractor.forward_time = 0
         synchronize_device(extractor.device.type)
         start = time.time()
@@ -58,7 +56,7 @@ def benchmark(extractor, sentences, seed, nb_pass):
         duration = time.time() - start
         elapsed_times.append(duration * 1000)
         forward_times.append(extractor.forward_time * 1000)
-        logging.info(score)
+    logging.info(score)
     return elapsed_times, forward_times
 
 
@@ -127,17 +125,13 @@ if __name__ == "__main__":
     use_jit = args.jit
     use_torch_compile = args.torch_compile
     backend = args.backend
-
     device = args.device
-    if device == "xpu":
-        import intel_extension_for_pytorch as ipex
-        torch.use_deterministic_algorithms(True)
-        
+
     torch_dtype = get_torch_dtype(args.model_dtype)
     dtype = get_torch_dtype(args.autocast_dtype)
-    enable = dtype != torch.float32
-    if enable:
-        inference_context.append(torch.autocast(device, dtype, enable))
+    apply_cast = dtype != torch.float32
+    if apply_cast:
+        inference_context.append(torch.autocast(device, dtype, apply_cast))
 
     if "shibing624/text2vec-base-chinese" in model_id:
         sentences = CHI_SENTENCES
