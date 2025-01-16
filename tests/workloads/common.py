@@ -35,6 +35,7 @@ def get_args():
         help="choose from [32, 64, 128, 256, 512, 1024]",
     )
     parser.add_argument("--output_tokens", default=32, type=int)
+    parser.add_argument("--do_sample", default="False", type=str2bool)
     parser.add_argument("--ipex_optimize_transformers", default="False", type=str2bool)
     parser.add_argument("--warm_up_steps", default=10, type=int)
     parser.add_argument("--run_steps", default=10, type=int)

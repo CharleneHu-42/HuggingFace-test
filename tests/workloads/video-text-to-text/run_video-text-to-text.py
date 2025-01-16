@@ -151,7 +151,7 @@ if __name__ == "__main__":
     inputs = get_video_inputs(model_id)
 
     generation_config = model.generation_config
-    generation_config.do_sample = False
+    generation_config.do_sample = args.do_sample
     generation_config.use_cache = True
     generation_config.temperature = 1.0
     generation_config.max_new_tokens = 20

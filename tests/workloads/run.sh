@@ -11,6 +11,7 @@ batch_size=1
 num_beams=1
 input_tokens=32
 output_tokens=32
+do_sample=False
 gradient_checkpointing=False
 quant_algo="None"
 quant_dtype="None"
@@ -42,6 +43,7 @@ usage() {
  echo " --num_beams           The num_beams for text-generation"
  echo " --input_tokens        The input token length for text-generation[32, 64, 128, 256, 512, 1024]"
  echo " --output_tokens       The output token length for text-generation"
+ echo " --do_sample           Whether to use sample in text-generation"
  echo " --gradient_checkpointing  Whether to run fine-tuning with gradient checkpoint to save memory, only used for fine-tune task"
  echo " --quant_algo          Use quant_algo to decide quantization method, options are ["bitsandbytes", "autoawq"]"
  echo " --quant_dtype         Use quant_dtype to decide quantization data type, like ["int8", "nf4", "fp4"] in bitsandbytes, ["int4"] in autoawq"
@@ -139,6 +141,10 @@ handle_options() {
         output_tokens=$(extract_argument $@)
         shift
         ;;
+      --do_sample)
+        do_sample=$(extract_argument $@)
+        shift
+        ;;
       --ipex_optimize_transformers)
         ipex_optimize_transformers=$(extract_argument $@)
         shift
@@ -211,5 +217,5 @@ if [[ "$task_name" == "fine-tune" ]]; then
     accelerate launch --config_file $task_name/"$device"_config_ddp.yaml $task_name/run_$task_name.py --base_model $model_id --quant_algo $quant_algo --quant_dtype $quant_dtype --device $device
   fi
 else
-  numactl -C '0-'${CORES} --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_algo $quant_algo --quant_dtype $quant_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel
+  numactl -C '0-'${CORES} --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_algo $quant_algo --quant_dtype $quant_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --do_sample $do_sample --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel
 fi

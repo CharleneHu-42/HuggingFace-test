@@ -83,7 +83,7 @@ if __name__ == "__main__":
     wrap_forward_for_benchmark(pipe)
 
     generation_config = pipe.model.generation_config
-    generation_config.do_sample = False
+    generation_config.do_sample = args.do_sample
     generation_config.use_cache = True
     generation_config.temperature = 1.0
     generation_config.max_new_tokens = 20

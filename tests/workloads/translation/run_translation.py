@@ -122,7 +122,7 @@ if __name__ == "__main__":
         model_kwargs=model_kwargs,
     )
     generation_config = generator.model.generation_config
-    generation_config.do_sample = False
+    generation_config.do_sample = args.do_sample
     generation_config.use_cache = True
     generation_config.temperature = 1.0
     generation_config.num_beams = args.num_beams
