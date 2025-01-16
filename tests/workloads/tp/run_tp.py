@@ -63,7 +63,7 @@ def benchmark(
         f"2nd+ token latency = {(latency - first_latency) / (out_num - 1)} ms"
     )
     logging.info(f"output token nums = {out_num*batch_size}")
-    logging.info(f"output = {tokenizer.batch_decode(out)}")
+    logging.info(f"output = {tokenizer.batch_decode(out, skip_special_tokens=True)}")
     logging.info(
         f"total average time [ms] {latency}"
     )
