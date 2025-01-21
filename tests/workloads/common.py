@@ -5,7 +5,6 @@ import random
 from transformers import AwqConfig, BitsAndBytesConfig, set_seed
 
 set_seed(42)
-torch.use_deterministic_algorithms(True)
 
 def str2bool(str):
     return True if str.lower() == "true" else False
