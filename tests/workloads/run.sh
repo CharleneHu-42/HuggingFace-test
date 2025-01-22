@@ -30,6 +30,10 @@ jit=False
 torch_compile=False
 optimum_intel=False
 
+# TP args
+tp_plan="auto"
+tp_size=1
+
 # arg parser
 usage() {
  echo "Usage: $0 [OPTIONS]"
@@ -57,6 +61,8 @@ usage() {
  echo " -c, --torch_compile   Use torch compile"
  echo " --ipex_optimize_transformers              Ipex optimize_transformers for text-generation"
  echo " --optimum_intel       Use optimum-intel optimization"
+ echo " --tp_plan             Run model with tensor parallelism"
+ echo " --tp_size             The tensor parallelism size"
 }
 
 has_argument() {
@@ -177,6 +183,14 @@ handle_options() {
         quant_dtype=$(extract_argument $@)
         shift
         ;;
+      --tp_plan)
+        tp_plan=$(extract_argument $@)
+        shift
+        ;;
+      --tp_size)
+        tp_size=$(extract_argument $@)
+        shift
+        ;;
       *)
         echo "Invalid option: $1" >&2
         usage
@@ -217,5 +231,9 @@ if [[ "$task_name" == "fine-tune" ]]; then
     accelerate launch --config_file $task_name/"$device"_config_ddp.yaml $task_name/run_$task_name.py --base_model $model_id --quant_algo $quant_algo --quant_dtype $quant_dtype --device $device
   fi
 else
-  numactl -C '0-'${CORES} --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_algo $quant_algo --quant_dtype $quant_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --do_sample $do_sample --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel
+  if [ "$task_name" == "tp" ]; then
+    torchrun --standalone --nproc-per-node $tp_size $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_algo $quant_algo --quant_dtype $quant_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --do_sample $do_sample --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel --tp_plan $tp_plan
+  else
+    numactl -C '0-'${CORES} --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_algo $quant_algo --quant_dtype $quant_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --do_sample $do_sample --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel
+  fi
 fi

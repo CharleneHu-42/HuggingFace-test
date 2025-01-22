@@ -43,6 +43,8 @@ def get_args():
         help="choose from [bitsandbytes, autoawq]")
     parser.add_argument("--quant_dtype", default=None, type=str,
         help="choose from [int, nf4, fp4, int4]")
+    parser.add_argument("--tp_plan", default=None, type=str,
+        help="tensor parallelism strategy")
     args = parser.parse_args()
 
     return args
