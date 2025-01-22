@@ -205,11 +205,12 @@ handle_options() {
 handle_options "$@"
 
 CORES=`lscpu | grep 'Core(s) per socket' | awk '{print $4}'`
+NUMAS=`lscpu | grep 'NUMA node(s):' | awk '{print $3}'`
+SOCKETS=`lscpu | grep 'Socket(s):' | awk '{print $2}'`
+CORES=$[CORES*SOCKETS/NUMAS]
 export TORCHINDUCTOR_FREEZING=1
 export TORCHINDUCTOR_CPP_WRAPPER=1
 export TRITON_CODEGEN_INTEL_XPU_BACKEND=1
-export OMP_NUM_THREADS=${CORES}
-export TORCHINDUCTOR_CPP_MIN_CHUNK_SIZE=${CORES}
 
 small_model_list=("Helsinki-NLP/opus-mt-mul-en" "google-t5/t5-small" "facebook/dinov2-small" "sentence-transformers/all-mpnet-base-v2" "sentence-transformers/all-MiniLM-L6-v2" "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
 for item in "${small_model_list[@]}"; do
@@ -234,6 +235,6 @@ else
   if [ "$task_name" == "tp" ]; then
     torchrun --standalone --nproc-per-node $tp_size $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_algo $quant_algo --quant_dtype $quant_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --do_sample $do_sample --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel --tp_plan $tp_plan
   else
-    numactl -C '0-'${CORES} --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_algo $quant_algo --quant_dtype $quant_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --do_sample $do_sample --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel
+    numactl -C '0-'$[CORES-1] --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_algo $quant_algo --quant_dtype $quant_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --do_sample $do_sample --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel
   fi
 fi
