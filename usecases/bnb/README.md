@@ -18,36 +18,36 @@ Go to `tests/workloads` directory.
 The following commands defaultly use CPU, please add flag: `--device xpu --model_dtype float16` if you use XPU.
 #### bf16(baseline)
 ```bash
-$ bash ./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16
+$ bash ./run.sh -t text-generation -m meta-llama/Llama-3.1-8B-Instruct --model_dtype bfloat16
 ```
 #### int8
 ```bash
-$ bash ./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --quant_algo bitsandbytes --quant_dtype int8
+$ bash ./run.sh -t text-generation -m meta-llama/Llama-3.1-8B-Instruct --model_dtype bfloat16 --quant_algo bitsandbytes --quant_dtype int8
 ```
 #### nf4
 ```bash
-$ bash ./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --quant_algo bitsandbytes --quant_dtype nf4
+$ bash ./run.sh -t text-generation -m meta-llama/Llama-3.1-8B-Instruct --model_dtype bfloat16 --quant_algo bitsandbytes --quant_dtype nf4
 ```
 #### fp4
 ```bash
-$ bash ./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16 --quant_algo bitsandbytes --quant_dtype fp4
+$ bash ./run.sh -t text-generation -m meta-llama/Llama-3.1-8B-Instruct --model_dtype bfloat16 --quant_algo bitsandbytes --quant_dtype fp4
 ```
 
 ### Finetune
 The following commands defaultly use CPU, please add flag: `--device xpu` if you use XPU.
 #### bf16 LoRA(baseline)
 ```bash
-$ bash ./run.sh -t fine-tune
+$ bash ./run.sh -t llm-lora -m meta-llama/Llama-3.1-8B-Instruct --model_dtype bfloat16
 ```
 #### int8 LoRA
 ```bash
-$ bash ./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf --quant_algo bitsandbytes --quant_dtype int8
+$ bash ./run.sh -t llm-lora -m alokabhishek/Meta-Llama-3-8B-Instruct-bnb-8bit --model_dtype bfloat16
 ```
 #### nf4 QLoRA
 ```bash
-$ bash ./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf --quant_algo bitsandbytes --quant_dtype nf4
+$ bash ./run.sh -t llm-lora -m hugging-quants/Meta-Llama-3.1-8B-Instruct-BNB-NF4 --model_dtype bfloat16
 ```
 #### fp4 QLoRA
 ```bash
-$ bash ./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf --quant_algo bitsandbytes --quant_dtype fp4
+$ bash ./run.sh -t fine-tune -m unrahul/Meta-Llama-3-8B-Instruct-fp4 --model_dtype bfloat16
 ```

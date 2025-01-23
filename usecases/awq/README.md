@@ -17,11 +17,11 @@ The following commands defaultly use CPU, please add flag: `--device xpu --model
 #### bf16(baseline)
 
 ```bash
-$ bash ./run.sh -t text-generation -m meta-llama/Llama-2-7b-chat-hf --model_dtype bfloat16
+$ bash ./run.sh -t text-generation -m meta-llama/Llama-3.1-8B-Instruct --model_dtype bfloat16
 ```
 #### int4
 ```bash
-$ bash ./run.sh -t text-generation -m TheBloke/firefly-llama2-7B-chat-AWQ --model_dtype bfloat16 --quant_algo autoawq --quant_dtype int4
+$ bash ./run.sh -t text-generation -m hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4 --model_dtype bfloat16 --quant_algo autoawq --quant_dtype int4
 ```
 
 ### Finetune
@@ -30,9 +30,9 @@ The following commands defaultly use CPU, please add flag: `--device xpu` if you
 #### bf16 LoRA(baseline)
 
 ```bash
-bash ./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf
+$ bash ./run.sh -t llm-lora -m meta-llama/Llama-3.1-8B-Instruct --model_dtype bfloat16
 ```
 #### int4 LoRA
 ```bash
-$ bash ./run.sh -t fine-tune -m TheBloke/firefly-llama2-7B-chat-AWQ --quant_algo autoawq --quant_dtype int4
+$ bash ./run.sh -t llm-lora -m hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4 --model_dtype bfloat16
 ```

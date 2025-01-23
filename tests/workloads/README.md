@@ -79,22 +79,44 @@ $ python analyse_logs.py --file_names xpu_benchmark_raw.log --out_name xpu_bench
 
 ### Finetune
 #### CPU
-We defaultly use amp bf16 to train [meta-llama/Llama-2-7b-hf](https://huggingface.co/meta-llama/Llama-2-7b-hf) in [yahma/alpaca-cleaned](https://huggingface.co/datasets/yahma/alpaca-cleaned) dataset with 4 DDP across 4 instances. Please change the [fine-tune/hostfile](https://github.com/intel-sandbox/HuggingFace/blob/main/tests/workloads/fine-tune/hostfile) to your instances ip and run the following command:
+Please notice that we run the official finetune script on peft and diffusers which are the submodules, please get the latest update by:
+```bash
+git submodule sync && git submodule update --init --recursive
+```
+Install from source in the container:
+```bash
+cd third_party/peft/ && pip install . && cd ../diffusers/ && pip install .
+```
+
+We defaultly use bf16 to train [meta-llama/Llama-3.1-8B-Instruct](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct) in [yahma/alpaca-cleaned](https://huggingface.co/datasets/yahma/alpaca-cleaned) dataset with 4 DDP across 4 instances. Please change the [fine-tune/hostfile](https://github.com/intel-sandbox/HuggingFace/blob/main/tests/workloads/fine-tune/hostfile) to your instances ip and run the following command:
 
 ```bash
-$ bash ./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf --device cpu
+$ bash ./run.sh -t llm-lora -m meta-llama/Llama-3.1-8B-Instruct --model_dtype bfloat16
+```
+
+To train a stable diffusion dreambooth lora finetune, please run:
+```bash
+bash ./run.sh -t sd-dreambooth-lora -m stable-diffusion-v1-5/stable-diffusion-v1-5
 ```
 
 #### XPU
 
 ```bash
-$ bash ./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf --device xpu
+$ bash ./run.sh -t llm-lora -m meta-llama/Llama-3.1-8B-Instruct --model_dtype bfloat16 --device xpu
+```
+
+```bash
+bash ./run.sh -t sd-dreambooth-lora -m stable-diffusion-v1-5/stable-diffusion-v1-5 --device xpu
 ```
 
 #### CUDA
 
 ```bash
-$ bash ./run.sh -t fine-tune -m meta-llama/Llama-2-7b-hf --device cuda
+$ bash ./run.sh -t llm-lora -m meta-llama/Llama-3.1-8B-Instruct --model_dtype bfloat16 --device cuda
+```
+
+```bash
+bash ./run.sh -t sd-dreambooth-lora -m stable-diffusion-v1-5/stable-diffusion-v1-5 --device cuda
 ```
 
 ## Notes

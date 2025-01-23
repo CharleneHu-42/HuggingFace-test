@@ -223,18 +223,42 @@ done
 export OMP_NUM_THREADS=${CORES}
 export TORCHINDUCTOR_CPP_MIN_CHUNK_SIZE=${CORES}
 
+if [[ "$device" == "cpu" ]]; then
+  export CCL_WORKER_COUNT=1
+  accelerate_config="fine-tune/cpu_config.yaml"
+elif [[ "$device" == "xpu" ]]; then
+  accelerate_config="fine-tune/xpu_config_ddp.yaml"
+elif [[ "$device" == "cuda" ]]; then
+  accelerate_config="fine-tune/cuda_config_ddp.yaml"
+fi
+
 # Perform the desired actions based on the provided flags and arguments
-if [[ "$task_name" == "fine-tune" ]]; then
-  if [[ "$device" == "cpu" ]]; then
-    export CCL_WORKER_COUNT=1
-    accelerate launch --config_file $task_name/"$device"_config.yaml $task_name/run_$task_name.py --base_model $model_id --use_ipex $ipex_optimize --quant_algo $quant_algo --quant_dtype $quant_dtype --device $device
-  else
-    accelerate launch --config_file $task_name/"$device"_config_ddp.yaml $task_name/run_$task_name.py --base_model $model_id --quant_algo $quant_algo --quant_dtype $quant_dtype --device $device
-  fi
+if [[ "$task_name" == "llm-lora" ]]; then
+  file="../../third_party/peft/examples/olora_finetuning/olora_finetuning.py"
+  accelerate launch --config_file $accelerate_config $file --base_model $model_id --init_lora_weights gaussian --seed 42 --torch_dtype $model_dtype --device_map $device
+elif [[ "$task_name" == "sd-dreambooth-lora" ]]; then
+  file="../../third_party/diffusers/examples/dreambooth/train_dreambooth_lora.py"
+  export INSTANCE_DIR="./datasets/dog"
+  export OUTPUT_DIR="./outputs"
+  accelerate launch --config_file $accelerate_config $file \
+    --pretrained_model_name_or_path=$model_id  \
+    --instance_data_dir=$INSTANCE_DIR \
+    --output_dir=$OUTPUT_DIR \
+    --instance_prompt="a photo of sks dog" \
+    --resolution=512 \
+    --prior_generation_precision bf16 \
+    --train_batch_size=1 \
+    --gradient_accumulation_steps=1 \
+    --checkpointing_steps=100 \
+    --learning_rate=3e-5 \
+    --lr_scheduler="constant" \
+    --lr_warmup_steps=0 \
+    --max_train_steps=200 \
+    --validation_prompt="A photo of sks dog in a bucket" \
+    --validation_epochs=20 \
+    --seed="0"
+elif [[ "$task_name" == "tp" ]]; then
+  torchrun --standalone --nproc-per-node $tp_size $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_algo $quant_algo --quant_dtype $quant_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --do_sample $do_sample --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel --tp_plan $tp_plan
 else
-  if [ "$task_name" == "tp" ]; then
-    torchrun --standalone --nproc-per-node $tp_size $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_algo $quant_algo --quant_dtype $quant_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --do_sample $do_sample --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel --tp_plan $tp_plan
-  else
-    numactl -C '0-'$[CORES-1] --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_algo $quant_algo --quant_dtype $quant_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --do_sample $do_sample --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel
-  fi
+  numactl -C '0-'$[CORES-1] --membind 0 python $task_name/run_$task_name.py --model_id $model_id --model_dtype $model_dtype --quant_algo $quant_algo --quant_dtype $quant_dtype --jit $jit --ipex_optimize $ipex_optimize --autocast_dtype $autocast_dtype --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --do_sample $do_sample --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel
 fi
