@@ -78,7 +78,7 @@ $ python analyse_logs.py --file_names xpu_benchmark_raw.log --out_name xpu_bench
 <to be filled>
 
 ### Finetune
-#### CPU
+
 Please notice that we run the official finetune script on peft and diffusers which are the submodules, please get the latest update by:
 ```bash
 git submodule sync && git submodule update --init --recursive
@@ -89,6 +89,8 @@ cd third_party/peft/ && pip install . && cd ../diffusers/ && pip install .
 ```
 
 We defaultly use bf16 to train [meta-llama/Llama-3.1-8B-Instruct](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct) in [yahma/alpaca-cleaned](https://huggingface.co/datasets/yahma/alpaca-cleaned) dataset with 4 DDP across 4 instances. Please change the [fine-tune/hostfile](https://github.com/intel-sandbox/HuggingFace/blob/main/tests/workloads/fine-tune/hostfile) to your instances ip and run the following command:
+
+#### CPU
 
 ```bash
 $ bash ./run.sh -t llm-lora -m meta-llama/Llama-3.1-8B-Instruct --model_dtype bfloat16

@@ -94,7 +94,8 @@ if __name__ == "__main__":
     if apply_cast:
         inference_context.append(torch.autocast(device, dtype, apply_cast))
     
-    model_kwargs = {}
+    device_map = {"": 0} if device != "cpu" else "cpu"
+    model_kwargs = dict(torch_dtype=torch_dtype, device_map=device_map)
     quantization_config = None
     if args.quant_algo == "bitsandbytes":
         quantization_config = get_bitsandbytes_config(args.quant_dtype)
@@ -105,8 +106,6 @@ if __name__ == "__main__":
     generator = pipeline(
         "summarization",
         model=model_id,
-        torch_dtype=torch_dtype,
-        device=device if quantization_config is None else None,
         tokenizer=tokenizer,
         model_kwargs=model_kwargs,
     )
@@ -133,8 +132,8 @@ if __name__ == "__main__":
     input_seq = get_batched_prompts(prompt, args.batch_size)
 
     if args.optimum_intel:
-        from optimum.intel import IPEXModelForCausalLM
-        generator.model = IPEXModelForCausalLM(
+        from optimum.intel import IPEXModelForSeq2SeqLM
+        generator.model = IPEXModelForSeq2SeqLM(
             generator.model, export=True, torch_dtype=torch_dtype
         )
     elif args.ipex_optimize_transformers:

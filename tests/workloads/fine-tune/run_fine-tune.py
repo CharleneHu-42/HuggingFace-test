@@ -134,18 +134,20 @@ def train(
     elif quant_algo == "autoawq":
         logging.info(f"Use {quant_dtype} AutoAWQ quantization, please pass a quantized model like 'TheBloke/firefly-llama2-7B-chat-AWQ'")
         quantization_config = get_awq_config(quant_dtype)
+    elif quant_algo == "gptqmodel":
+        logging.info(f"Use {quant_dtype} GPTQModel quantization, please pass a quantized model like 'TheBloke/TinyLlama-1.1B-Chat-v0.3-GPTQ'")
+        quantization_config = None
 
     if device == "cpu":
         device_map = None
     else:
         device_map = {'': Accelerator().process_index}
-    model = AutoModelForCausalLM.from_pretrained(
-        base_model,
-        low_cpu_mem_usage=True,
-        torch_dtype=torch.bfloat16,
-        quantization_config=quantization_config,
-        device_map=device_map,
-    )
+
+    model_kwargs = dict(low_cpu_mem_usage=True, torch_dtype=torch.bfloat16, device_map=device_map)
+    if quantization_config:
+        model_kwargs["quantization_config"] = quantization_config
+
+    model = AutoModelForCausalLM.from_pretrained(base_model, **model_kwargs)
 
     if quant_algo == "bitsandbytes":
         model = prepare_model_for_kbit_training(model)

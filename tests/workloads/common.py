@@ -40,7 +40,7 @@ def get_args():
     parser.add_argument("--run_steps", default=10, type=int)
     parser.add_argument("--optimum_intel", default="False", type=str2bool)
     parser.add_argument("--quant_algo", default=None, type=str,
-        help="choose from [bitsandbytes, autoawq]")
+        help="choose from [bitsandbytes, autoawq, gptqmodel]")
     parser.add_argument("--quant_dtype", default=None, type=str,
         help="choose from [int, nf4, fp4, int4]")
     parser.add_argument("--tp_plan", default=None, type=str,

@@ -106,6 +106,9 @@ if __name__ == "__main__":
     elif args.quant_algo == "autoawq":
         logging.info(f"Use {args.quant_dtype} AutoAWQ quantization, please pass a quantized model like 'TheBloke/firefly-llama2-7B-chat-AWQ'")
         quantization_config = get_awq_config(args.quant_dtype)
+    elif args.quant_algo == "gptqmodel":
+        logging.info(f"Use {args.quant_dtype} GPTQModel quantization, please pass a quantized model like 'TheBloke/TinyLlama-1.1B-Chat-v0.3-GPTQ'")
+        quantization_config = None
 
     if quantization_config is not None:
         model_kwargs["quantization_config"] = quantization_config

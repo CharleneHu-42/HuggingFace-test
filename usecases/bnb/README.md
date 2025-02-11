@@ -49,5 +49,5 @@ $ bash ./run.sh -t llm-lora -m hugging-quants/Meta-Llama-3.1-8B-Instruct-BNB-NF4
 ```
 #### fp4 QLoRA
 ```bash
-$ bash ./run.sh -t fine-tune -m unrahul/Meta-Llama-3-8B-Instruct-fp4 --model_dtype bfloat16
+$ bash ./run.sh -t llm-lora -m unrahul/Meta-Llama-3-8B-Instruct-fp4 --model_dtype bfloat16
 ```
