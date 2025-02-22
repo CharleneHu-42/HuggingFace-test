@@ -190,7 +190,7 @@ node(NODE_LABEL){
 
     try{
         env.DOCKER_IMAGE = "appliedml/huggingface:cpu-base"
-        stage("Prepare Env"){
+        stage("Prepare Env") {
             withEnv(["NODE_LABEL=${NODE_LABEL}", "oi_repo=${oi_repo}", "oi_branch=${oi_branch}", "oi_commit=${oi_commit}", \
                     "ipex_whl_url=${ipex_whl_url}", \
                     "transformers_version=${transformers_version}", "transformers_repo=${transformers_repo}", "transformers_branch=${transformers_branch}", "transformers_commit=${transformers_commit}", \
@@ -251,7 +251,7 @@ node(NODE_LABEL){
             }
         }
 
-        }
+        
 
         stage('Run Tests') {
             withEnv(["specified_model_list=${model_list}", "token_config_list=${token_config_list}", "batch_size_list=${batch_size_list}","decode_strategy_list=${decode_strategy_list}",  "rank_list=${rank_list}", "test_mode_list=${test_mode_list}", "hf_token=${hf_token}"]) {
@@ -278,7 +278,7 @@ node(NODE_LABEL){
                     '''
                 }
 
-                archiveArtifacts artifacts: "**/logs/**", excludes: null
+                archiveArtifacts artifacts: "**/logs/**", excludes: null, allowEmptyArchive: true
                 fingerprint: true
             }
         }
