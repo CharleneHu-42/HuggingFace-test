@@ -171,6 +171,15 @@ if ('hf_cache' in params) {
 }
 echo "hf_cache: $hf_cache"
 
+env.hf_token = ' '
+if ('hf_token' in params) {
+    echo "hf_token in params"
+    if (params.hf_token != '') {
+        env.hf_token = params.hf_token
+    }
+}
+echo "hf_token: $hf_token"
+
 node(NODE_LABEL){
     properties(
         [disableConcurrentBuilds(),]
@@ -180,7 +189,7 @@ node(NODE_LABEL){
     currentBuild.displayName = "#${BUILD_NUMBER}-${NODE_LABEL}-${test_mode}"
 
     try{
-        def env.DOCKER_IMAGE = "appliedml/huggingface:cpu-base"
+        env.DOCKER_IMAGE = "appliedml/huggingface:cpu-base"
         stage("Prepare Env"){
             withEnv(["NODE_LABEL=${NODE_LABEL}", "oi_repo=${oi_repo}", "oi_branch=${oi_branch}", "oi_commit=${oi_commit}", \
                     "ipex_whl_url=${ipex_whl_url}", \
@@ -245,7 +254,7 @@ node(NODE_LABEL){
         }
 
         stage('Run Tests') {
-            withEnv(["specified_model_list=${model_list}", "token_config_list=${token_config_list}", "batch_size_list=${batch_size_list}","decode_strategy_list=${decode_strategy_list}",  "rank_list=${rank_list}", "test_mode_list=${test_mode_list}"]) {
+            withEnv(["specified_model_list=${model_list}", "token_config_list=${token_config_list}", "batch_size_list=${batch_size_list}","decode_strategy_list=${decode_strategy_list}",  "rank_list=${rank_list}", "test_mode_list=${test_mode_list}", "hf_token=${hf_token}"]) {
                 // Attach to the same Docker container
                 docker.image(env.DOCKER_IMAGE).inside("--volumes-from ${env.CONTAINER_ID}") {
                     sh '''
