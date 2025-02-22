@@ -72,7 +72,7 @@ echo "rank: $rank"
 rank_list = rank.split(',')
 echo "rank_list: $rank_list"
 
-env.oi_repo = 'https://github.com/intel-sandbox/HuggingFace'
+env.oi_repo = 'https://github.com/huggingface/optimum-intel'
 if ('oi_repo' in params) {
     echo "oi_repo in params"
     if (params.oi_repo != '') {
@@ -200,7 +200,7 @@ node(NODE_LABEL){
                 '''
 
                 // Start the Docker container
-                testContainer = docker.image(env.DOCKER_IMAGE).run('-d', "-e http_proxy=${node_http_proxy} -e https_proxy=${node_https_proxy} -v ${WORKSPACE}:/workspace", "--network host --privileged")
+                testContainer = docker.image(env.DOCKER_IMAGE).run('-d', "-e http_proxy=${node_http_proxy} -e https_proxy=${node_https_proxy} -v ${WORKSPACE}:/workspace, -v ${hf_cache}:/root/.cache/huggingface/hub", "--network host --privileged")
                 // Install libraries inside the container
                 testContainer.inside {
                     sh '''
