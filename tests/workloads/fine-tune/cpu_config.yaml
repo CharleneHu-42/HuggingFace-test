@@ -2,7 +2,7 @@ compute_environment: LOCAL_MACHINE
 debug: false
 distributed_type: MULTI_CPU
 downcast_bf16: 'no'
-enable_cpu_affinity: false
+enable_cpu_affinity: true
 ipex_config:
   ipex: false
 machine_rank: 0
@@ -13,8 +13,8 @@ mixed_precision: 'no'
 mpirun_config:
   mpirun_ccl: '1'
   mpirun_hostfile: "./fine-tune/hostfile"
-num_machines: 4
-num_processes: 4
+num_machines: 1
+num_processes: 6
 rdzv_backend: static
 same_network: true
 tpu_env: []

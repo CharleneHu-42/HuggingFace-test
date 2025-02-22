@@ -55,9 +55,12 @@ handle_options() {
 handle_options "$@"
 
 docker build \
+  --progress=plain \
 	-f Dockerfile.${device} \
 	--target ${target} \
 	--build-arg http_proxy=${http_proxy} \
 	--build-arg https_proxy=${https_proxy} \
-	--build-arg no_proxy=${no_proxy} \
 	-t appliedml/huggingface:${device}-${target} .
+
+  # --no-cache --progress=plain \
+	# --build-arg no_proxy=${no_proxy} \

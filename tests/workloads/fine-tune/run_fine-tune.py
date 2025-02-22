@@ -46,9 +46,9 @@ def train(
     data_path: str = "yahma/alpaca-cleaned",
     output_dir: str = "./lora-alpaca",
     # training hyperparams
-    batch_size: int = 120,
+    batch_size: int = 16,
     micro_batch_size: int = 4,
-    num_epochs: int = 10,
+    num_epochs: int = 0.2,
     learning_rate: float = 3e-4,
     cutoff_len: int = 512,
     val_set_size: int = 2000,

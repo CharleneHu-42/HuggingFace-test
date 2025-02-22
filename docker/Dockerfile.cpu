@@ -1,7 +1,9 @@
 # the base image contains ipex-2.5.0+cpu and torch-2.5.0+cpu
-FROM intel/intel-extension-for-pytorch:2.5.0-pip-base AS base
+FROM intel/intel-extension-for-pytorch:2.6.0-pip-base AS base
 
 ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt -y install linux-headers-5.15.0-125-generic
 
 RUN apt-get update && apt-get install -y gpg-agent
 RUN wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
@@ -9,13 +11,13 @@ RUN wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRO
 RUN apt-get update
 
 # install system tools
-RUN apt-get install -y numactl build-essential python3-dev git
+RUN apt-get install -y numactl build-essential python3-dev git g++ cmake time
 
 # install oneapi
 RUN apt-get install -y intel-basekit
 
 # install task required lib
-RUN apt-get install -y python3-opencv
+RUN apt-get install -y python3-opencv libgl1-mesa-glx
 
 # install performance utilities
 RUN apt-get install -y google-perftools
