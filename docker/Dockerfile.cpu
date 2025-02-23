@@ -3,15 +3,13 @@ FROM intel/intel-extension-for-pytorch:2.6.0-pip-base AS base
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt -y install linux-headers-5.15.0-125-generic
-
-RUN apt-get update && apt-get install -y gpg-agent
+RUN apt-get update && apt-get install -y gpg-agent linux-headers-5.15.0-125-generic
 RUN wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
 | gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null && echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list
 RUN apt-get update
 
 # install system tools
-RUN apt-get install -y numactl build-essential python3-dev git g++ cmake time
+RUN apt-get install -y numactl build-essential python3-dev python3.11-dev git g++ cmake time
 
 # install oneapi
 RUN apt-get install -y intel-basekit

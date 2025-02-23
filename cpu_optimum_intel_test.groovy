@@ -144,6 +144,15 @@ if ('transformers_commit' in params) {
 }
 echo "transformers_commit: $transformers_commit"
 
+env.build_image = 'True'
+if ('build_image' in params) {
+    echo "build_image in params"
+    if (params.build_image != '') {
+        env.build_image = params.build_image
+    }
+}
+echo "build_image: $build_image"
+
 env.node_http_proxy = 'http://proxy-dmz.intel.com:912'
 if ('node_http_proxy' in params) {
     echo "node_http_proxy in params"
@@ -194,18 +203,20 @@ node(NODE_LABEL){
             withEnv(["NODE_LABEL=${NODE_LABEL}", "oi_repo=${oi_repo}", "oi_branch=${oi_branch}", "oi_commit=${oi_commit}", \
                     "ipex_whl_url=${ipex_whl_url}", \
                     "transformers_version=${transformers_version}", "transformers_repo=${transformers_repo}", "transformers_branch=${transformers_branch}", "transformers_commit=${transformers_commit}", \
-                    "node_http_proxy=${node_http_proxy}", "node_https_proxy=${node_https_proxy}", "hf_cache=${hf_cache}"]) {
+                    "build_image=${build_image}", "node_http_proxy=${node_http_proxy}", "node_https_proxy=${node_https_proxy}", "hf_cache=${hf_cache}"]) {
                 sh '''
                     set -x
 
                     echo  "job number: #${BUILD_NUMBER}"
                     echo  "job link: ${BUILD_URL}"
 
-                    export http_proxy=${node_http_proxy}
-                    export https_proxy=${node_https_proxy}
+                    if [[ "${build_image}" == "True" ]]; then
+                        export http_proxy=${node_http_proxy}
+                        export https_proxy=${node_https_proxy}
 
-                    cd ${WORKSPACE}/HuggingFace/docker
-                    bash build_image.sh -d cpu -t base 2>&1 | tee build_image.log
+                        cd ${WORKSPACE}/HuggingFace/docker
+                        bash build_image.sh -d cpu -t base 2>&1 | tee build_image.log
+                    fi
                 '''
 
                 // Start the Docker container

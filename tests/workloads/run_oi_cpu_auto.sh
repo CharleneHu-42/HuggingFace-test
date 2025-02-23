@@ -126,59 +126,79 @@ else
 fi
 echo "Models to test: ${model_list[@]}"
 
-# bs, beam, do_sample
-default_generation_configs=(
-  "1,1,False"
-  "4,1,False"
-  "1,4,False"
-  "4,4,False"
-  "1,1,True"
-  "4,1,True"
-)
-generation_configs=("${default_generation_configs[@]}")
+# # bs, beam, do_sample
+# default_generation_configs=(
+#   "1,1,False"
+#   "4,1,False"
+#   "1,4,False"
+#   "4,4,False"
+#   "1,1,True"
+#   "4,1,True"
+# )
 
-
-for model in "${model_list[@]}"
+# beam, do_sample
+generation_configs=()
+IFS=' ' read -r -a decode_strategy_array <<< "$decode_strategy_list"
+for decode_strategy in "${decode_strategy_array[@]}"
 do
-  model_name=$(echo $model | awk -F'/' '{print $NF}' | tr '_' '-')
-  if [[ $model_name =~ "gpt2" ]]; then
-    input_ouput_tokens=(
-        "128,128"
-        "512,128"
-      )
-  else
-    input_ouput_tokens=(
-      "128,128"
-      "1024,128"
-    )
+  if [[ $decode_strategy == "greedy" ]]; then
+    generation_configs+=("1,False")
+  elif [[ $decode_strategy == "beam" ]]; then
+    generation_configs+=("4,False")
+  elif [[ $decode_strategy == "sample" ]]; then
+    generation_configs+=("1,True")
   fi
-  for gen_config in "${generation_configs[@]}"
+done
+echo "Generation configs to test: ${generation_configs[@]}"
+
+IFS=' ' read -r -a batch_size_array <<< "$batch_size_list"
+echo "Batch sizes to test: ${batch_size_array[@]}"
+
+for gen_config in "${generation_configs[@]}"
+do
+  IFS=',' read -r num_beams do_sample <<< "${gen_config}"
+
+  for model in "${model_list[@]}"
   do
-    IFS=',' read -r batch_size num_beams do_sample <<< "${gen_config}"
-    for input_output in "${input_ouput_tokens[@]}"
+    model_name=$(echo $model | awk -F'/' '{print $NF}' | tr '_' '-')
+    if [[ $model_name =~ "gpt2" ]]; then
+      input_ouput_tokens=(
+          "128,128"
+          "512,128"
+        )
+    else
+      input_ouput_tokens=(
+        "128,128"
+        "1024,128"
+      )
+    fi
+    for batch_size in "${batch_size_array[@]}"
     do
-      IFS=',' read -r input_tokens output_tokens <<< "${input_output}"
-      if [[ $optimum_intel == "True" ]]; then
-        log_file=${log_dir}/${model_name}_${model_dtype}_optimum-intel_ipex_${ipex_optimize}_inductor_${torch_compile}_bs_${batch_size}_beam_${num_beams}_sample_${do_sample}_${input_tokens}_${output_tokens}.log
-      else
-        log_file=${log_dir}/${model_name}_${model_dtype}_ipex_${ipex_optimize}_inductor_${torch_compile}_bs_${batch_size}_beam_${num_beams}_sample_${do_sample}_${input_tokens}_${output_tokens}.log
-      fi
-      # log_file_names="${log_file_names},$log_file"
+      for input_output in "${input_ouput_tokens[@]}"
+      do
+        IFS=',' read -r input_tokens output_tokens <<< "${input_output}"
+        if [[ $optimum_intel == "True" ]]; then
+          log_file=${log_dir}/${model_name}_${model_dtype}_optimum-intel_ipex_${ipex_optimize}_inductor_${torch_compile}_bs_${batch_size}_beam_${num_beams}_sample_${do_sample}_${input_tokens}_${output_tokens}.log
+        else
+          log_file=${log_dir}/${model_name}_${model_dtype}_ipex_${ipex_optimize}_inductor_${torch_compile}_bs_${batch_size}_beam_${num_beams}_sample_${do_sample}_${input_tokens}_${output_tokens}.log
+        fi
+        # log_file_names="${log_file_names},$log_file"
 
-      /usr/bin/time -v ./run.sh --task text-generation --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --do_sample $do_sample --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel 2>&1 | tee -a $log_file
+        /usr/bin/time -v ./run.sh --task text-generation --model_id $model --model_dtype $model_dtype --jit $jit --ipex_optimize $ipex_optimize --torch_compile $torch_compile --backend $backend --device $device --batch_size $batch_size --num_beams $num_beams --input_tokens $input_tokens --output_tokens $output_tokens --do_sample $do_sample --ipex_optimize_transformers $ipex_optimize_transformers --warm_up_steps $warm_up_steps --run_steps $run_steps --optimum_intel $optimum_intel 2>&1 | tee -a $log_file
+      done
     done
-  done
 
-  echo "----------------------------"
-  # log_file_names="${log_file_names:1}"
-  # if [[ $bitsandbytes != "None" ]]; then
-  #   output_log=$log_dir/gnr_${model_name}_bnb_benchmark.log
-  # elif [[ $autoawq != "None" ]]; then
-  #   output_log=$log_dir/gnr_${model_name}_autoawq_benchmark.log
-  # else
-  #   output_log=$log_dir/gnr_${model_name}_stock_eager_benchmark.log
-  # fi
-  # python analyse_logs.py --file_names $log_file_names --out_name $output_log
+    echo "----------------------------"
+    # log_file_names="${log_file_names:1}"
+    # if [[ $bitsandbytes != "None" ]]; then
+    #   output_log=$log_dir/gnr_${model_name}_bnb_benchmark.log
+    # elif [[ $autoawq != "None" ]]; then
+    #   output_log=$log_dir/gnr_${model_name}_autoawq_benchmark.log
+    # else
+    #   output_log=$log_dir/gnr_${model_name}_stock_eager_benchmark.log
+    # fi
+    # python analyse_logs.py --file_names $log_file_names --out_name $output_log
+  done
 done
 python collect_results.py -l $log_dir
 
