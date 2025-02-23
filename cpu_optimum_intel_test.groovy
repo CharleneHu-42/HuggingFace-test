@@ -199,6 +199,7 @@ node(NODE_LABEL){
 
     try{
         env.DOCKER_IMAGE = "appliedml/huggingface:cpu-base"
+        env.CONTAINER_NAME = "oi-cpu-test"
         stage("Prepare Env") {
             withEnv(["NODE_LABEL=${NODE_LABEL}", "oi_repo=${oi_repo}", "oi_branch=${oi_branch}", "oi_commit=${oi_commit}", \
                     "ipex_whl_url=${ipex_whl_url}", \
@@ -217,17 +218,9 @@ node(NODE_LABEL){
                         cd ${WORKSPACE}/HuggingFace/docker
                         bash build_image.sh -d cpu -t base 2>&1 | tee build_image.log
                     fi
-                '''
+                    docker run -d --network host --privileged --name=${env.CONTAINER_NAME} -e http_proxy=${node_http_proxy} -e https_proxy=${node_https_proxy} -v ${WORKSPACE}:/workspace -v ${hf_cache}:/root/.cache/huggingface ${env.DOCKER_IMAGE}
 
-                // Start the Docker container
-                // testContainer = docker.image(env.DOCKER_IMAGE).run('-d', "-e http_proxy=${node_http_proxy} -e https_proxy=${node_https_proxy} -v ${WORKSPACE}:/workspace, -v ${hf_cache}:/root/.cache/huggingface/hub", "--network host --privileged")
-                containerId = sh(script: "docker run -d --network host --privileged -e http_proxy=${node_http_proxy} -e https_proxy=${node_https_proxy} -v ${WORKSPACE}:/workspace -v ${hf_cache}:/root/.cache/huggingface ${env.DOCKER_IMAGE}", returnStdout: true).trim()
-                // Install libraries inside the container
-                // testContainer.inside {
-                sh '''
-                    set -x
-
-                    docker exec $containerId bash -c "
+                    docker exec ${env.CONTAINER_NAME} bash -c "
 
                         cd /workspace/
                         git clone ${oi_repo}
@@ -257,6 +250,9 @@ node(NODE_LABEL){
                         pip install -r requirements.txt
                     "
                 '''
+
+                // Start the Docker container
+                // testContainer = docker.image(env.DOCKER_IMAGE).run('-d', "-e http_proxy=${node_http_proxy} -e https_proxy=${node_https_proxy} -v ${WORKSPACE}:/workspace, -v ${hf_cache}:/root/.cache/huggingface/hub", "--network host --privileged")
                 // }
                 // Save the container ID for later use
                 // env.CONTAINER_ID = testContainer.id
@@ -300,6 +296,6 @@ node(NODE_LABEL){
         echo "Build failed: ${e}"
         currentBuild.result = 'FAILURE'
     } finally {
-        sh "docker rm -f ${containerId}"
+        sh "docker rm -f ${env.CONTAINER_NAME}"
     }
 }
