@@ -220,11 +220,14 @@ node(NODE_LABEL){
                 '''
 
                 // Start the Docker container
-                testContainer = docker.image(env.DOCKER_IMAGE).run('-d', "-e http_proxy=${node_http_proxy} -e https_proxy=${node_https_proxy} -v ${WORKSPACE}:/workspace, -v ${hf_cache}:/root/.cache/huggingface/hub", "--network host --privileged")
+                // testContainer = docker.image(env.DOCKER_IMAGE).run('-d', "-e http_proxy=${node_http_proxy} -e https_proxy=${node_https_proxy} -v ${WORKSPACE}:/workspace, -v ${hf_cache}:/root/.cache/huggingface/hub", "--network host --privileged")
+                containerId = sh(script: "docker run -d -e http_proxy=http://proxy-dmz.intel.com:912 -e https_proxy=http://proxy.ims.intel.com:911 -v ${WORKSPACE}:/workspace -v ${hf_cache}::/root/.cache/huggingface/hub ${env.DOCKER_IMAGE}", returnStdout: true).trim()
                 // Install libraries inside the container
-                testContainer.inside {
-                    sh '''
-                        set -x
+                // testContainer.inside {
+                sh '''
+                    set -x
+
+                    docker exec $containerId bash -c "
 
                         cd /workspace/
                         git clone ${oi_repo}
@@ -252,11 +255,11 @@ node(NODE_LABEL){
 
                         cd /workspace/HuggingFace/tests/workloads
                         pip install -r requirements.txt
-                        
-                    '''
-                }
+                    "
+                '''
+                // }
                 // Save the container ID for later use
-                env.CONTAINER_ID = testContainer.id
+                // env.CONTAINER_ID = testContainer.id
 
                 archiveArtifacts artifacts: 'HuggingFace/docker/build_image.log', allowEmptyArchive: true
             }
@@ -297,6 +300,6 @@ node(NODE_LABEL){
         echo "Build failed: ${e}"
         currentBuild.result = 'FAILURE'
     } finally {
-        sh "docker rm -f ${env.CONTAINER_ID}"
+        sh "docker rm -f ${containerId}"
     }
 }
