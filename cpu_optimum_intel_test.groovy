@@ -206,6 +206,7 @@ node(NODE_LABEL){
                     "transformers_version=${transformers_version}", "transformers_repo=${transformers_repo}", "transformers_branch=${transformers_branch}", "transformers_commit=${transformers_commit}", \
                     "build_image=${build_image}", "node_http_proxy=${node_http_proxy}", "node_https_proxy=${node_https_proxy}", "hf_cache=${hf_cache}"]) {
                 sh '''
+                    #!/bin/bash
                     set -x
 
                     echo  "job number: #${BUILD_NUMBER}"
@@ -218,7 +219,7 @@ node(NODE_LABEL){
                         cd ${WORKSPACE}/HuggingFace/docker
                         bash build_image.sh -d cpu -t base 2>&1 | tee build_image.log
                     fi
-                    docker run -d --network host --privileged --name=${env.CONTAINER_NAME} -e http_proxy=${node_http_proxy} -e https_proxy=${node_https_proxy} -v ${WORKSPACE}:/workspace -v ${hf_cache}:/root/.cache/huggingface ${env.DOCKER_IMAGE}
+                    docker run -d --network=host --privileged --name=${env.CONTAINER_NAME} -e http_proxy=${node_http_proxy} -e https_proxy=${node_https_proxy} -v ${WORKSPACE}:/workspace -v ${hf_cache}:/root/.cache/huggingface ${env.DOCKER_IMAGE}
 
                     docker exec ${env.CONTAINER_NAME} bash -c "
 
@@ -268,6 +269,7 @@ node(NODE_LABEL){
                 // Attach to the same Docker container
                 docker.image(env.DOCKER_IMAGE).inside("--volumes-from ${env.CONTAINER_ID}") {
                     sh '''
+                        #!/bin/bash
                         set -x
 
                         cd /workspace/HuggingFace/tests/workloads
