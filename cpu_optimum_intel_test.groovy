@@ -212,7 +212,7 @@ node(NODE_LABEL){
                     echo  "job number: #${BUILD_NUMBER}"
                     echo  "job link: ${BUILD_URL}"
 
-                    if [[ "${build_image}" == "True" ]]; then
+                    if [ "${build_image}" == "True" ]; then
                         export http_proxy=${node_http_proxy}
                         export https_proxy=${node_https_proxy}
 
@@ -232,13 +232,13 @@ node(NODE_LABEL){
                         fi
                         pip install .
 
-                        if [[ -n "${ipex_whl_url}" ]]; then
+                        if [ -n "${ipex_whl_url}" ]; then
                             pip install ${ipex_whl_url}
                         fi
 
-                        if [[ -n "${transformers_version}" ]]; then
+                        if [ -n "${transformers_version}" ]; then
                             pip install transformers==${transformers_version}
-                        elif [[ -n "${transformers_commit}" ]]; then
+                        elif [ -n "${transformers_commit}" ]; then
                             cd /workspace/
                             git clone ${transformers_repo}
                             cd transformers
@@ -266,33 +266,30 @@ node(NODE_LABEL){
 
         stage('Run Tests') {
             withEnv(["specified_model_list=${model_list}", "token_config_list=${token_config_list}", "batch_size_list=${batch_size_list}","decode_strategy_list=${decode_strategy_list}",  "rank_list=${rank_list}", "test_mode_list=${test_mode_list}", "hf_token=${hf_token}"]) {
-                // Attach to the same Docker container
-                docker.image(env.DOCKER_IMAGE).inside("--volumes-from ${env.CONTAINER_ID}") {
-                    sh '''
-                        #!/bin/bash
-                        set -x
+                sh '''
+                    #!/bin/bash
+                    set -x
 
-                        cd /workspace/HuggingFace/tests/workloads
-                        echo "Test modes: ${test_mode_list}"
-                        IFS=' ' read -r -a test_mode_array <<< "$test_mode_list"
+                    cd /workspace/HuggingFace/tests/workloads
+                    echo "Test modes: ${test_mode_list}"
+                    IFS=' ' read -r -a test_mode_array <<< "$test_mode_list"
 
-                        # Check for each test mode and execute corresponding commands
-                        for mode in "${test_mode_array[@]}"; do
-                            if [[ "$mode" == "oi" ]]; then
-                                export OI_PAGED_ATTN_BLOCK_SIZE=64
-                                bash run_oi_cpu_auto.sh --optimum_intel True
-                            elif [[ "$mode" == "eager" ]]; then
-                                bash run_oi_cpu_auto.sh
-                            elif [[ "$mode" == "compile" ]]; then
-                                bash run_oi_cpu_auto.sh -c True
-                            fi
-                        done
-                    '''
+                    # Check for each test mode and execute corresponding commands
+                    for mode in "${test_mode_array[@]}"; do
+                        if [ "$mode" == "oi" ]; then
+                            export OI_PAGED_ATTN_BLOCK_SIZE=64
+                            bash run_oi_cpu_auto.sh --optimum_intel True
+                        elif [ "$mode" == "eager" ]; then
+                            bash run_oi_cpu_auto.sh
+                        elif [ "$mode" == "compile" ]; then
+                            bash run_oi_cpu_auto.sh -c True
+                        fi
+                    done
+                '''
                 }
 
                 archiveArtifacts artifacts: "**/logs/**", excludes: null, allowEmptyArchive: true
                 fingerprint: true
-            }
         }
     } catch (Exception e) {
         echo "Build failed: ${e}"
