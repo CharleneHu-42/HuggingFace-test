@@ -221,7 +221,7 @@ node(NODE_LABEL){
 
                 // Start the Docker container
                 // testContainer = docker.image(env.DOCKER_IMAGE).run('-d', "-e http_proxy=${node_http_proxy} -e https_proxy=${node_https_proxy} -v ${WORKSPACE}:/workspace, -v ${hf_cache}:/root/.cache/huggingface/hub", "--network host --privileged")
-                containerId = sh(script: "docker run -d -e http_proxy=http://proxy-dmz.intel.com:912 -e https_proxy=http://proxy.ims.intel.com:911 -v ${WORKSPACE}:/workspace -v ${hf_cache}::/root/.cache/huggingface/hub ${env.DOCKER_IMAGE}", returnStdout: true).trim()
+                containerId = sh(script: "docker run -d --network host --privileged -e http_proxy=${node_http_proxy} -e https_proxy=${node_https_proxy} -v ${WORKSPACE}:/workspace -v ${hf_cache}:/root/.cache/huggingface ${env.DOCKER_IMAGE}", returnStdout: true).trim()
                 // Install libraries inside the container
                 // testContainer.inside {
                 sh '''
