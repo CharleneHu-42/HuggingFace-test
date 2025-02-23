@@ -204,7 +204,7 @@ node(NODE_LABEL){
             withEnv(["NODE_LABEL=${NODE_LABEL}", "oi_repo=${oi_repo}", "oi_branch=${oi_branch}", "oi_commit=${oi_commit}", \
                     "ipex_whl_url=${ipex_whl_url}", \
                     "transformers_version=${transformers_version}", "transformers_repo=${transformers_repo}", "transformers_branch=${transformers_branch}", "transformers_commit=${transformers_commit}", \
-                    "build_image=${build_image}", "node_http_proxy=${node_http_proxy}", "node_https_proxy=${node_https_proxy}", "hf_cache=${hf_cache}"]) {
+                    "build_image=${build_image}", "node_http_proxy=${node_http_proxy}", "node_https_proxy=${node_https_proxy}", "hf_cache=${hf_cache}", "DOCKER_IMAGE=${env.DOCKER_IMAGE}", "CONTAINER_NAME=${env.CONTAINER_NAME}"]) {
                 sh '''
                     #!/bin/bash
                     set -x
@@ -212,16 +212,16 @@ node(NODE_LABEL){
                     echo  "job number: #${BUILD_NUMBER}"
                     echo  "job link: ${BUILD_URL}"
 
-                    if [ "${build_image}" == "True" ]; then
+                    if [ "$build_image" == "True" ]; then
                         export http_proxy=${node_http_proxy}
                         export https_proxy=${node_https_proxy}
 
                         cd ${WORKSPACE}/HuggingFace/docker
                         bash build_image.sh -d cpu -t base 2>&1 | tee build_image.log
                     fi
-                    docker run -d --network=host --privileged --name=${env.CONTAINER_NAME} -e http_proxy=${node_http_proxy} -e https_proxy=${node_https_proxy} -v ${WORKSPACE}:/workspace -v ${hf_cache}:/root/.cache/huggingface ${env.DOCKER_IMAGE}
+                    docker run -d --network=host --privileged --name=${CONTAINER_NAME} -e http_proxy=${node_http_proxy} -e https_proxy=${node_https_proxy} -v ${WORKSPACE}:/workspace -v ${hf_cache}:/root/.cache/huggingface ${DOCKER_IMAGE}
 
-                    docker exec ${env.CONTAINER_NAME} bash -c "
+                    docker exec ${CONTAINER_NAME} bash -c "
 
                         cd /workspace/
                         git clone ${oi_repo}
