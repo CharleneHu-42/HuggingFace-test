@@ -1,0 +1,86 @@
+import os
+import sys
+import torch
+import time
+import requests
+import PIL.Image
+import logging
+logging.basicConfig(level=logging.INFO)
+
+from transformers import pipeline
+from transformers.utils import ContextManagers
+
+sys.path.append(os.path.dirname(__file__) + "/..")
+from common import get_args, get_torch_dtype, wrap_forward_for_benchmark, synchronize_device
+
+inference_context = [torch.inference_mode()]
+
+
+def generate(generator, image, warm_up_steps, run_steps):
+    time_costs = []
+    forward_times = []
+    with ContextManagers(inference_context):
+        for i in range(warm_up_steps + run_steps):
+            generator.forward_time = 0
+            synchronize_device(generator.device.type)
+            pre = time.time()
+            output = generator(image)
+            synchronize_device(generator.device.type)
+            time_costs.append((time.time() - pre) * 1000)
+            forward_times.append(generator.forward_time * 1000)
+    average_time = sum(time_costs[warm_up_steps:]) / run_steps
+    average_fwd_time = sum(forward_times[warm_up_steps:]) / run_steps
+    logging.info(f"total time [ms]: {time_costs}")
+    logging.info(
+        f"pipeline average time [ms] {average_time}, average fwd time [ms] {average_fwd_time}"
+    )
+    logging.info(f"output = {output}")
+
+
+if __name__ == "__main__":
+    args = get_args()
+    logging.info(f"args = {args}")
+    model_id = args.model_id
+    warm_up_steps = args.warm_up_steps
+    run_steps = args.run_steps
+    device = args.device
+    torch_dtype = get_torch_dtype(args.model_dtype)
+    dtype = get_torch_dtype(args.autocast_dtype)
+    apply_cast = dtype != torch.float32
+    if apply_cast:
+        inference_context.append(torch.autocast(device, dtype, apply_cast))
+
+    image_to_text = pipeline(
+        "image-to-text",
+        model=model_id,
+        device=device,
+        torch_dtype=torch_dtype,
+    )
+
+    wrap_forward_for_benchmark(image_to_text)
+    if args.jit:
+        raise ValueError("Image-to-text does not support jit trace")
+
+    if args.torch_compile:
+        logging.info(f"Use torch compile with {args.backend} backend")
+        if args.backend == "ipex":
+            import intel_extension_for_pytorch as ipex
+        if "Blip" in image_to_text.model.__class__.__name__:
+            image_to_text.model.vision_model.forward = torch.compile(image_to_text.model.vision_model.forward, backend=args.backend)
+            image_to_text.model.text_decoder.forward = torch.compile(image_to_text.model.text_decoder.forward, backend=args.backend)
+        else:
+            image_to_text.model.forward = torch.compile(image_to_text.model.forward, backend=args.backend)
+    elif args.ipex_optimize:
+        logging.info("Use ipex optimize")
+        import intel_extension_for_pytorch as ipex
+
+        image_to_text.model = ipex.optimize(
+            image_to_text.model,
+            dtype=torch_dtype,
+            inplace=True,
+        )
+
+    image_url = "https://ankur3107.github.io/assets/images/image-captioning-example.png"
+    image = PIL.Image.open(requests.get(image_url, stream=True, timeout=3000).raw)
+
+    generate(image_to_text, image, warm_up_steps, run_steps)

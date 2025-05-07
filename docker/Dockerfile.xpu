@@ -1,0 +1,80 @@
+FROM intel/oneapi-basekit:2025.0.1-0-devel-ubuntu22.04 AS base
+
+SHELL ["/bin/bash", "-c"]
+
+ARG PYTHON_VER=3.10
+
+RUN apt-get update && \
+    apt-get -y install \
+    apt-utils \
+    build-essential \
+    ca-certificates \
+    clinfo \
+    curl \
+    git \
+    git-lfs \
+    vim \
+    numactl \
+    gnupg2 \
+    gpg-agent \
+    zlib1g-dev \
+    rsync \
+    sudo \
+    unzip \
+    python$PYTHON_VER \
+    python$PYTHON_VER-dev \
+    python3-pip \
+    python-is-python3 \
+    ffmpeg \
+    tesseract-ocr \
+    espeak-ng \
+    wget \
+    ncurses-term \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install torch==2.5.1+cxx11.abi torchvision==0.20.1+cxx11.abi torchaudio==2.5.1+cxx11.abi intel-extension-for-pytorch==2.5.10+xpu oneccl_bind_pt==2.5.0+xpu --extra-index-url https://pytorch-extension.intel.com/release-whl/stable/xpu/cn/ --no-cache-dir
+
+RUN pip install pyctcdecode pytesseract decord galore-torch fire scipy scikit-learn sentencepiece sacremoses nltk rouge_score librosa soundfile g2p_en kenlm mpi4py
+RUN pip install pretty_midi essentia resampy Levenshtein av sacrebleu phonemizer invisible_watermark schedulefree clearml
+RUN pip install hf_transfer huggingface-hub hf-doc-builder datasets timm transformers accelerate peft onnx optimum
+RUN pip install gguf hqq quanto compressed_tensors liger-kernel auto-gptq mergekit
+RUN pip uninstall -y triton && pip install --pre pytorch-triton-xpu==3.1.0+91b14bf559 --index-url https://download.pytorch.org/whl/nightly/xpu
+
+# install bitsandbytes
+RUN pip install git+https://github.com/bitsandbytes-foundation/bitsandbytes.git@multi-backend-refactor
+
+ENV OCL_ICD_VENDORS=/etc/OpenCL/vendors
+ENV FI_PROVIDER_PATH=${I_MPI_ROOT}/lib/libfabric/prov:/usr/lib/x86_64-linux-gnu/libfabric
+ENV CCL_ROOT=/usr/local
+ENV CCL_ATL_TRANSPORT=ofi
+ENV I_MPI_ROOT=/usr/local
+ENV CLASSPATH=${I_MPI_ROOT}/lib/mpi.jar
+ENV PATH=${I_MPI_ROOT}/bin/libfabric:/opt/intel/oneapi/vtune/2025.0/bin64/gma/GTPin/Profilers/ocloc/Bin/intel64:${PATH}
+ENV LD_LIBRARY_PATH=${I_MPI_ROOT}/lib/libfabric:/opt/intel/oneapi/vtune/2025.0/bin64/gma/GTPin/Profilers/ocloc/Bin/intel64:${LD_LIBRARY_PATH}
+
+RUN touch /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+RUN echo "#!/bin/bash" >> /entrypoint.sh
+RUN echo "/bin/bash" >> /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+
+FROM base AS ut
+
+RUN pip install pytest-env pytest-timeout pytest-excel openpyxl
+
+WORKDIR /.tests
+ARG QUANTO_COMMIT=450870266df82a0c2ecf0d86c9fa738172763a5c
+ARG TRANSFORMERS_COMMIT=1f6b423f0ce0c6e7afd300b59e5fd1a816e4896c
+ARG ACCELERATE_COMMIT=200c9eb7833cfa505907f6f224ebf5a275aa6d92
+ARG PEFT_COMMIT=ae55fdcc5c4830e0f9fb6e56f16555bafca392de
+ARG DIFFUSERS_COMMIT=4450d26b63b4f6e7736ca86f11d0c37827159bfa
+ARG TRL_COMMIT=8c49ea39ec2e11ce4c61291ff2ad59edb46522aa
+RUN git clone https://github.com/huggingface/optimum-quanto.git && cd optimum-quanto && git checkout $QUANTO_COMMIT && pip install .[dev]
+RUN git clone https://github.com/huggingface/transformers && cd transformers && git checkout $TRANSFORMERS_COMMIT && pip install .[deepspeed-testing]
+RUN git clone https://github.com/huggingface/accelerate.git && cd accelerate && git checkout $ACCELERATE_COMMIT && pip install .[testing,test_trackers]
+RUN git clone https://github.com/huggingface/peft.git && cd peft && git checkout $PEFT_COMMIT && pip install .[test]
+RUN git clone https://github.com/huggingface/diffusers.git && cd diffusers && git checkout $DIFFUSERS_COMMIT && pip install .[test]
+RUN git clone https://github.com/huggingface/trl.git && cd trl && git checkout $TRL_COMMIT && pip install .[test]

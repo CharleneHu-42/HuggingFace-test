@@ -1,0 +1,2 @@
+test.tensor.weights.optimized.test_marlin_int4_weight_qbits_tensor::test_marlin_int4_weight_qbits_tensor_linear_failing[4096-4096-64-2]
+test.tensor.weights.optimized.test_marlin_int4_weight_qbits_tensor::test_marlin_int4_weight_qbits_tensor_linear_failing[2048-4096-64-2]

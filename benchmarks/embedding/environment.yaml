@@ -1,0 +1,15 @@
+name: tei-benchmark
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+    - numpy
+    - requests
+    - aiohttp
+    - tqdm
+    - transformers
+    - datasets
+    - loguru
+
